@@ -8,10 +8,9 @@ import (
 )
 
 func TestHello(t *testing.T) {
-	handler := Handler()
-	ts := httptest.NewServer(handler)
+	ts := httptest.NewServer(Handler())
 	defer ts.Close()
-	res, err := http.Get("/hello")
+	res, err := http.Get(ts.URL + "/hello")
 	if err != nil {
 		t.Error(err)
 	}
@@ -20,7 +19,7 @@ func TestHello(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if greeting != "world" {
-		t.Errorf("Expected response \"world\". Got response %s", greeting)
+	if string(greeting) != "world" {
+		t.Errorf("Expected response \"world\". Got response %s", string(greeting))
 	}
 }

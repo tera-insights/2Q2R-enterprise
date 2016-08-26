@@ -4,7 +4,6 @@ package server
 
 import (
 	"fmt"
-	"html"
 	"net/http"
 	"time"
 
@@ -15,7 +14,7 @@ func Handler() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/", http.NotFound)
 	r.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "World, %q", html.EscapeString(r.URL.Path))
+		fmt.Fprint(w, "world")
 	})
 	return r
 }
