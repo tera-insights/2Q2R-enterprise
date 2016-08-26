@@ -1,4 +1,4 @@
-// Copyright 2016 Tera Insights, LLC. All Rights Reserved.
+# Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
 GO_DEPENDENCIES = github.com/gorilla/mux
 
