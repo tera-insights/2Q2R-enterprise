@@ -5,7 +5,6 @@ package server
 import (
 	"fmt"
 	"html"
-	"log"
 	"net/http"
 	"time"
 
@@ -29,7 +28,5 @@ func New() (*http.Server, error) {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	log.Fatal(s.ListenAndServe())
-	fmt.Println("Called Log.Fatal")
 	return s, nil
 }
