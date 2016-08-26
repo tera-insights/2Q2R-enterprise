@@ -1,3 +1,5 @@
+// Copyright 2016 Tera Insights, LLC. All Rights Reserved.
+
 package common
 
 // AppIDInfoReply is the response to `GET /v1/info/:appID`.
