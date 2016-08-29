@@ -20,6 +20,12 @@ type AppIDInfoReply struct {
 	ServerKeyType string `json:"serverKeyType"`
 }
 
+// MakeAppIDInfoReply creates a new `AppIDInfoReply`.
+func MakeAppIDInfoReply(name string, url string, id string, pub string,
+	kt string) AppIDInfoReply {
+	return AppIDInfoReply{name, url, id, pub, kt}
+}
+
 // RegistrationRequestReply is the response to `POST /v1/register/request`.
 type RegistrationRequestReply struct {
 	// base64Web encoded random reply id
