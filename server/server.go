@@ -4,14 +4,49 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 
 	"2q2r/common"
 )
+
+// AppInfo is model that represents the SQL schema.
+type AppInfo struct {
+	ID       string
+	Name     string
+	AuthType string
+	AuthData string
+}
+
+// Config is the configuration for the server.
+type Config struct {
+	Port int
+	Type string
+}
+
+func main() {
+	viper.SetDefault("Port", 8080)
+	viper.SetDefault("Type", "sqlite3")
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error when reading config file: %s\n", err))
+	}
+	c := Config{
+		viper.GetInt("Port"),
+		viper.GetString("Type"),
+	}
+	s, err := New(c)
+	if err != nil {
+		panic(fmt.Errorf("Could not start server: %s\n", err))
+	}
+	s.ListenAndServe()
+}
 
 // Taken from https://git.io/v6xHB
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
@@ -38,9 +73,9 @@ func Handler() http.Handler {
 	return r
 }
 
-func New() (*http.Server, error) {
+func New(c Config) (*http.Server, error) {
 	s := &http.Server{
-		Addr:           ":8080",
+		Addr:           ":" + string(c.Port),
 		Handler:        Handler(),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
