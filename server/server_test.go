@@ -3,6 +3,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -24,11 +25,32 @@ func TestMain(m *testing.M) {
 }
 
 func CreateNewApp(t *testing.T) {
+	name := "foo"
+
 	// Create new app
+	req := NewAppRequest{
+		AppName:  name,
+		AuthType: "public-key",
+		AuthData: "{bar: baz}",
+	}
+	b := new(bytes.Buffer)
+	json.NewEncoder(b).Encode(req)
+	res, _ := http.Post(ts.URL+"/v1/app/new", "application/json; charset=utf-8", b)
+	reply := new(NewAppReply)
+	json.NewDecoder(res.Body).Decode(reply)
+	res.Body.Close()
+	if reply.AppID != "123" {
+		t.Errorf("Expected app ID of 123. Got %s", reply.AppID)
+	}
 
 	// Test app info
-
-	// Test nonexisting app info
+	res, _ = http.Get(ts.URL + "/v1/info/" + reply.AppID)
+	appInfo := new(AppIDInfoReply)
+	json.NewDecoder(res.Body).Decode(appInfo)
+	res.Body.Close()
+	if appInfo.AppName != name {
+		t.Errorf("Expected app name of %s. Got %s", name, appInfo.AppName)
+	}
 }
 
 func TestExistingAppID(t *testing.T) {

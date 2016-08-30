@@ -121,6 +121,7 @@ func (srv *Server) GetHandler() http.Handler {
 			} else {
 				var info AppInfo
 				srv.DB.First(&info, "AppID = ?", appID)
+				panic("AJSDLAKJDLKASJDLKASJDKL")
 				writeJSON(w, http.StatusOK, info)
 			}
 		default:
@@ -129,26 +130,27 @@ func (srv *Server) GetHandler() http.Handler {
 	})
 
 	// Upload app info
-	router.HandleFunc("/v1/info/new", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/v1/app/new", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
-			req := NewAppInfoRequest{}
+			req := NewAppRequest{}
 			decoder := json.NewDecoder(r.Body)
 			err := decoder.Decode(&req)
 			if err != nil {
 				handleError(w, err)
 				return
 			}
+			appID := "123"
 			srv.DB.Create(&AppInfo{
-				AppID:    req.AppID,
+				AppID:    appID,
 				Name:     req.AppName,
-				AuthType: req.ServerKeyType,
-				AuthData: "{}",
+				AuthType: req.AuthType,
+				AuthData: req.AuthData,
 			})
 			if err != nil {
 				handleError(w, err)
 			} else {
-				writeJSON(w, http.StatusOK, "Wrote info for app with id "+req.AppID)
+				writeJSON(w, http.StatusOK, "Wrote info for app with id "+appID)
 			}
 		default:
 			handleError(w, MethodNotAllowedError(r.Method))
