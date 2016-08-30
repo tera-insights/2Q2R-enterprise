@@ -10,28 +10,31 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
-
-	"2q2r/common"
 )
 
-// AppInfo is model that represents the SQL schema.
+// AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
+	gorm.Model
+
 	ID       string
 	Name     string
 	AuthType string
-	AuthData string
+	AuthData string // JSON
 }
 
 // Config is the configuration for the server.
 type Config struct {
-	Port int
-	Type string
+	Port         int
+	DatabaseType string
+	DatabaseName string
 }
 
 func main() {
 	viper.SetDefault("Port", 8080)
-	viper.SetDefault("Type", "sqlite3")
+	viper.SetDefault("DatabaseType", "sqlite3")
+	viper.SetDefault("DatabaseName", "test.db")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -39,9 +42,10 @@ func main() {
 	}
 	c := Config{
 		viper.GetInt("Port"),
-		viper.GetString("Type"),
+		viper.GetString("DatabaseType"),
+		viper.GetString("DatabaseName"),
 	}
-	s, err := New(c)
+	s, err := MakeServer(c)
 	if err != nil {
 		panic(fmt.Errorf("Could not start server: %s\n", err))
 	}
@@ -59,24 +63,35 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	}
 }
 
-func Handler() http.Handler {
-	r := mux.NewRouter()
-	r.HandleFunc("/v1/info/{appID}", func(w http.ResponseWriter, r *http.Request) {
-		data := new(common.AppIDInfoReply)
-		data.AppName = "foo_app"
-		data.BaseURL = "https://example.com/baz"
-		data.AppID = mux.Vars(r)["appID"]
-		data.ServerPubKey = "Call me beep me"
-		data.ServerKeyType = "P256"
-		writeJSON(w, http.StatusOK, data)
-	})
-	return r
+func appInfoExists(appID string) bool {
+	return false
 }
 
-func New(c Config) (*http.Server, error) {
+// MakeHandler returns the routes used by the 2Q2R server.
+func MakeHandler(db *gorm.DB) http.Handler {
+	router := mux.NewRouter()
+	router.HandleFunc("/v1/info/{appID}", func(w http.ResponseWriter, r *http.Request) {
+		appID := mux.Vars(r)["appID"]
+		if !appInfoExists(appID) {
+			msg := "Could not find information for app with ID " + appID
+			writeJSON(w, http.StatusNotFound, msg)
+		}
+		var info AppInfo
+		db.First(&info, "ID = ?", appID)
+		writeJSON(w, http.StatusOK, info)
+	})
+	return router
+}
+
+// MakeServer returns a new server initialized by the given configuration.
+func MakeServer(c Config) (*http.Server, error) {
+	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
+	if err != nil {
+		panic(fmt.Errorf("Could not open database: %s", err))
+	}
 	s := &http.Server{
 		Addr:           ":" + string(c.Port),
-		Handler:        Handler(),
+		Handler:        MakeHandler(db),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
