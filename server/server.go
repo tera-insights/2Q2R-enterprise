@@ -71,6 +71,7 @@ func appInfoExists(appID string) bool {
 // MakeDB returns the database specified by the configuration.
 func MakeDB(c Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
+	db.AutoMigrate(&AppInfo{})
 	if err != nil {
 		panic(fmt.Errorf("Could not open database: %s", err))
 	}
@@ -85,10 +86,11 @@ func MakeHandler(db *gorm.DB) http.Handler {
 		if !appInfoExists(appID) {
 			msg := "Could not find information for app with ID " + appID
 			writeJSON(w, http.StatusNotFound, msg)
+		} else {
+			var info AppInfo
+			db.First(&info, "ID = ?", appID)
+			writeJSON(w, http.StatusOK, info)
 		}
-		var info AppInfo
-		db.First(&info, "ID = ?", appID)
-		writeJSON(w, http.StatusOK, info)
 	})
 	return router
 }
