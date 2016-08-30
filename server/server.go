@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/spf13/viper"
 )
 
@@ -67,6 +68,15 @@ func appInfoExists(appID string) bool {
 	return false
 }
 
+// MakeDB returns the database specified by the configuration.
+func MakeDB(c Config) *gorm.DB {
+	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
+	if err != nil {
+		panic(fmt.Errorf("Could not open database: %s", err))
+	}
+	return db
+}
+
 // MakeHandler returns the routes used by the 2Q2R server.
 func MakeHandler(db *gorm.DB) http.Handler {
 	router := mux.NewRouter()
@@ -85,13 +95,9 @@ func MakeHandler(db *gorm.DB) http.Handler {
 
 // MakeServer returns a new server initialized by the given configuration.
 func MakeServer(c Config) (*http.Server, error) {
-	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
-	if err != nil {
-		panic(fmt.Errorf("Could not open database: %s", err))
-	}
 	s := &http.Server{
 		Addr:           ":" + string(c.Port),
-		Handler:        MakeHandler(db),
+		Handler:        MakeHandler(MakeDB(c)),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
