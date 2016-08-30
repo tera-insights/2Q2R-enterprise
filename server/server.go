@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 )
 
 // Config is the configuration for the server.
@@ -20,25 +20,24 @@ type Config struct {
 	DatabaseName string
 }
 
+// Server is the type that represents the 2Q2R server.
 type Server struct {
 	c  Config
 	DB *gorm.DB
 }
 
+// New creates a new 2Q2R server.
 func New(c Config) Server {
 	var s = Server{c, MakeDB(c)}
 	return s
 }
 
 // Taken from https://git.io/v6xHB.
-func writeJSON(w http.ResponseWriter, status int, data interface{}) {
+func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	encoder := json.NewEncoder(w)
-	encErr := encoder.Encode(data)
-	if encErr != nil {
-		log.Printf("Failed to encode data as JSON: %v", encErr)
-	}
+	return encoder.Encode(data)
 }
 
 // Taken from https://git.io/viJaE.
@@ -48,20 +47,15 @@ func handleError(w http.ResponseWriter, err error) {
 		ErrorCode: "unknown",
 		Message:   err.Error(),
 	}
-
 	if serr, ok := err.(StatusError); ok {
 		statusCode = serr.StatusCode()
 		response.ErrorCode = serr.ErrorCode()
 		response.Info = serr.Info()
 	}
-
-	w.Header().Add("Content-Type", "application/json; charset=utf8")
-	w.WriteHeader(statusCode)
-	encoder := json.NewEncoder(w)
-	encErr := encoder.Encode(response)
-	if encErr != nil {
+	writingErr := writeJSON(w, statusCode, response)
+	if writingErr != nil {
 		log.Printf("Failed to encode error as JSON.\nEncoding error: "+
-			"%v\nOriginal error:%v\n", encErr, err)
+			"%v\nOriginal error:%v\n", writingErr, err)
 	}
 }
 
@@ -94,7 +88,6 @@ func (srv *Server) GetHandler() http.Handler {
 			} else {
 				var info AppInfo
 				srv.DB.First(&info, "AppID = ?", appID)
-				panic("AJSDLAKJDLKASJDLKASJDKL")
 				writeJSON(w, http.StatusOK, info)
 			}
 		default:
