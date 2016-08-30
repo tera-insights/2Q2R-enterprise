@@ -12,11 +12,18 @@ import (
 	"2q2r/common"
 )
 
-var ts = httptest.NewServer(Handler())
+var c Config
+var s httptest.Server
 
 func TestMain(m *testing.M) {
+	db := MakeDB(Config{
+		8080,
+		"sqlite3",
+		"test.db",
+	})
+	s := httptest.NewServer(MakeHandler(db))
 	code := m.Run()
-	ts.Close()
+	s.Close()
 	os.Exit(code)
 }
 
@@ -30,7 +37,7 @@ func CreateNewApp(t *testing.T) {
 
 func TestExistingAppID(t *testing.T) {
 	appID := "really_here"
-	res, err := http.Get(ts.URL + "/v1/info/" + appID)
+	res, err := http.Get(s.URL + "/v1/info/" + appID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -49,7 +56,7 @@ func TestExistingAppID(t *testing.T) {
 }
 
 func TestNonExistingAppID(t *testing.T) {
-	_, err := http.Get(ts.URL + "/v1/info/really_fake")
+	_, err := http.Get(s.URL + "/v1/info/really_fake")
 	if err == nil {
 		t.Error("Expected error when accessing fake appID. Received none.")
 	}
