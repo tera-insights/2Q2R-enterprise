@@ -32,6 +32,16 @@ type Config struct {
 	DatabaseName string
 }
 
+type Server struct {
+	c  Config
+	DB *gorm.DB
+}
+
+func New(c Config) Server {
+	var s = Server{c, MakeDB(c)}
+	return s
+}
+
 func main() {
 	viper.SetDefault("Port", 8080)
 	viper.SetDefault("DatabaseType", "sqlite3")
@@ -46,11 +56,15 @@ func main() {
 		viper.GetString("DatabaseType"),
 		viper.GetString("DatabaseName"),
 	}
-	s, err := MakeServer(c)
-	if err != nil {
-		panic(fmt.Errorf("Could not start server: %s\n", err))
+	s := New(c)
+	hs := &http.Server{
+		Addr:           ":" + string(c.Port),
+		Handler:        s.GetHandler(),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
-	s.ListenAndServe()
+	hs.ListenAndServe()
 }
 
 // Taken from https://git.io/v6xHB
@@ -78,8 +92,8 @@ func MakeDB(c Config) *gorm.DB {
 	return db
 }
 
-// MakeHandler returns the routes used by the 2Q2R server.
-func MakeHandler(db *gorm.DB) http.Handler {
+// GetHandler returns the routes used by the 2Q2R server.
+func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 	router.HandleFunc("/v1/info/{appID}", func(w http.ResponseWriter, r *http.Request) {
 		appID := mux.Vars(r)["appID"]
@@ -88,21 +102,9 @@ func MakeHandler(db *gorm.DB) http.Handler {
 			writeJSON(w, http.StatusNotFound, msg)
 		} else {
 			var info AppInfo
-			db.First(&info, "ID = ?", appID)
+			srv.DB.First(&info, "ID = ?", appID)
 			writeJSON(w, http.StatusOK, info)
 		}
 	})
 	return router
-}
-
-// MakeServer returns a new server initialized by the given configuration.
-func MakeServer(c Config) (*http.Server, error) {
-	s := &http.Server{
-		Addr:           ":" + string(c.Port),
-		Handler:        MakeHandler(MakeDB(c)),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
-	return s, nil
 }
