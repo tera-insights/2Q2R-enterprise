@@ -95,16 +95,24 @@ func MakeDB(c Config) *gorm.DB {
 // GetHandler returns the routes used by the 2Q2R server.
 func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
+
+	// Get app info
 	router.HandleFunc("/v1/info/{appID}", func(w http.ResponseWriter, r *http.Request) {
-		appID := mux.Vars(r)["appID"]
-		if !appInfoExists(appID) {
-			msg := "Could not find information for app with ID " + appID
-			writeJSON(w, http.StatusNotFound, msg)
-		} else {
-			var info AppInfo
-			srv.DB.First(&info, "AppID = ?", appID)
-			writeJSON(w, http.StatusOK, info)
+		switch r.Method {
+		case http.MethodGet:
+			appID := mux.Vars(r)["appID"]
+			if !appInfoExists(appID) {
+				writeJSON(w, http.StatusNotFound, "Could not find "+
+					"information for app with ID "+appID)
+			} else {
+				var info AppInfo
+				srv.DB.First(&info, "AppID = ?", appID)
+				writeJSON(w, http.StatusOK, info)
+			}
+		default:
+			writeJSON(w, http.StatusMethodNotAllowed, "Method not allowed")
 		}
+
 	})
 	return router
 }

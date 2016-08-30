@@ -63,3 +63,11 @@ func TestNonExistingAppID(t *testing.T) {
 		t.Error("Expected `StatusNotFound` when accessing fake appID.")
 	}
 }
+
+func TestInvalidMethod(t *testing.T) {
+	res, _ := http.Post(ts.URL+"/v1/info/doesnt_matter", "", nil)
+	if res.StatusCode != http.StatusMethodNotAllowed {
+		t.Error("Expected `StatusMethodNotAllowed` when sending `POST` to " +
+			"/v1/info/{appID}")
+	}
+}
