@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/spf13/viper"
 )
 
 // Config is the configuration for the server.
@@ -30,31 +28,6 @@ type Server struct {
 func New(c Config) Server {
 	var s = Server{c, MakeDB(c)}
 	return s
-}
-
-func main() {
-	viper.SetDefault("Port", 8080)
-	viper.SetDefault("DatabaseType", "sqlite3")
-	viper.SetDefault("DatabaseName", "test.db")
-	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error when reading config file: %s\n", err))
-	}
-	c := Config{
-		viper.GetInt("Port"),
-		viper.GetString("DatabaseType"),
-		viper.GetString("DatabaseName"),
-	}
-	s := New(c)
-	hs := &http.Server{
-		Addr:           ":" + string(c.Port),
-		Handler:        s.GetHandler(),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
-	hs.ListenAndServe()
 }
 
 // Taken from https://git.io/v6xHB.
