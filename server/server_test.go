@@ -8,8 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"2q2r/common"
 )
 
 var s = New(Config{
@@ -39,7 +37,7 @@ func TestExistingAppID(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	info := new(common.AppIDInfoReply)
+	info := new(AppIDInfoReply)
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("Expected status code to be `http.StatusOK` Got %d",
 			res.StatusCode)

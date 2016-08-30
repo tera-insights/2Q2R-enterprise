@@ -15,16 +15,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// AppInfo is the Gorm model that holds information about an app.
-type AppInfo struct {
-	gorm.Model
-
-	AppID    string
-	Name     string
-	AuthType string
-	AuthData string // JSON
-}
-
 // Config is the configuration for the server.
 type Config struct {
 	Port         int
@@ -67,7 +57,7 @@ func main() {
 	hs.ListenAndServe()
 }
 
-// Taken from https://git.io/v6xHB
+// Taken from https://git.io/v6xHB.
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -75,6 +65,30 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	encErr := encoder.Encode(data)
 	if encErr != nil {
 		log.Printf("Failed to encode data as JSON: %v", encErr)
+	}
+}
+
+// Taken from https://git.io/viJaE.
+func handleError(w http.ResponseWriter, err error) {
+	var statusCode = http.StatusInternalServerError
+	var response = errorResponse{
+		ErrorCode: "unknown",
+		Message:   err.Error(),
+	}
+
+	if serr, ok := err.(StatusError); ok {
+		statusCode = serr.StatusCode()
+		response.ErrorCode = serr.ErrorCode()
+		response.Info = serr.Info()
+	}
+
+	w.Header().Add("Content-Type", "application/json; charset=utf8")
+	w.WriteHeader(statusCode)
+	encoder := json.NewEncoder(w)
+	encErr := encoder.Encode(response)
+	if encErr != nil {
+		log.Printf("Failed to encode error as JSON.\nEncoding error: "+
+			"%v\nOriginal error:%v\n", encErr, err)
 	}
 }
 
@@ -110,9 +124,36 @@ func (srv *Server) GetHandler() http.Handler {
 				writeJSON(w, http.StatusOK, info)
 			}
 		default:
-			writeJSON(w, http.StatusMethodNotAllowed, "Method not allowed")
+			handleError(w, MethodNotAllowedError(r.Method))
 		}
-
 	})
+
+	// Upload app info
+	router.HandleFunc("/v1/info/new", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			req := NewAppInfoRequest{}
+			decoder := json.NewDecoder(r.Body)
+			err := decoder.Decode(&req)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+			srv.DB.Create(&AppInfo{
+				AppID:    req.AppID,
+				Name:     req.AppName,
+				AuthType: req.ServerKeyType,
+				AuthData: "{}",
+			})
+			if err != nil {
+				handleError(w, err)
+			} else {
+				writeJSON(w, http.StatusOK, "Wrote info for app with id "+req.AppID)
+			}
+		default:
+			handleError(w, MethodNotAllowedError(r.Method))
+		}
+	})
+
 	return router
 }

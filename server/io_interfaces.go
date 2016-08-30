@@ -1,6 +1,24 @@
 // Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
-package common
+package server
+
+// NewAppInfoRequest is the request to `POST /v1/info/new`.
+type NewAppInfoRequest struct {
+	// string specifying displayable app name
+	AppName string `json:"appName"`
+
+	// string specifying the prefix of all routes
+	BaseURL string `json:"baseURL"`
+
+	// base64Web encoded appID
+	AppID string `json:"appID"`
+
+	// The server public key. Depends on key type
+	ServerPubKey string `json:"serverPubKey"`
+
+	// The key type. Only P256 supported for now.
+	ServerKeyType string `json:"serverKeyType"`
+}
 
 // AppIDInfoReply is the response to `GET /v1/info/:appID`.
 type AppIDInfoReply struct {
