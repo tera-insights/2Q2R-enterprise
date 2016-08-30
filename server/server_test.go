@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func CreateNewApp(t *testing.T) {
+func TestCreateNewApp(t *testing.T) {
 	name := "foo"
 
 	// Create new app
