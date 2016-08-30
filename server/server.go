@@ -59,10 +59,6 @@ func handleError(w http.ResponseWriter, err error) {
 	}
 }
 
-func appInfoExists(appID string) bool {
-	return false
-}
-
 // MakeDB returns the database specified by the configuration.
 func MakeDB(c Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
@@ -82,12 +78,14 @@ func (srv *Server) GetHandler() http.Handler {
 		switch r.Method {
 		case http.MethodGet:
 			appID := mux.Vars(r)["appID"]
-			if !appInfoExists(appID) {
+			var count = 0
+			srv.DB.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).Count(&count)
+			if count > 0 {
 				writeJSON(w, http.StatusNotFound, "Could not find "+
 					"information for app with ID "+appID)
 			} else {
 				var info AppInfo
-				srv.DB.First(&info, "AppID = ?", appID)
+				srv.DB.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).First(&info)
 				writeJSON(w, http.StatusOK, info)
 			}
 		default:
@@ -116,7 +114,7 @@ func (srv *Server) GetHandler() http.Handler {
 			if err != nil {
 				handleError(w, err)
 			} else {
-				writeJSON(w, http.StatusOK, "Wrote info for app with id "+appID)
+				writeJSON(w, http.StatusOK, NewAppReply{appID})
 			}
 		default:
 			handleError(w, MethodNotAllowedError(r.Method))
