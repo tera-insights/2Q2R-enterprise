@@ -19,7 +19,7 @@ import (
 type AppInfo struct {
 	gorm.Model
 
-	ID       string
+	AppID    string
 	Name     string
 	AuthType string
 	AuthData string // JSON
@@ -102,7 +102,7 @@ func (srv *Server) GetHandler() http.Handler {
 			writeJSON(w, http.StatusNotFound, msg)
 		} else {
 			var info AppInfo
-			srv.DB.First(&info, "ID = ?", appID)
+			srv.DB.First(&info, "AppID = ?", appID)
 			writeJSON(w, http.StatusOK, info)
 		}
 	})
