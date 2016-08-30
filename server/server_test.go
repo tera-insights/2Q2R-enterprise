@@ -12,16 +12,14 @@ import (
 	"2q2r/common"
 )
 
-var c Config
-var s httptest.Server
+var db = MakeDB(Config{
+	8080,
+	"sqlite3",
+	"test.db",
+})
+var s = httptest.NewServer(MakeHandler(db))
 
 func TestMain(m *testing.M) {
-	db := MakeDB(Config{
-		8080,
-		"sqlite3",
-		"test.db",
-	})
-	s := httptest.NewServer(MakeHandler(db))
 	code := m.Run()
 	s.Close()
 	os.Exit(code)
