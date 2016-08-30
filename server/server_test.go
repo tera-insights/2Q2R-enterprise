@@ -40,6 +40,10 @@ func TestExistingAppID(t *testing.T) {
 		t.Error(err)
 	}
 	info := new(common.AppIDInfoReply)
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected status code to be `http.StatusOK` Got %d",
+			res.StatusCode)
+	}
 	err = json.NewDecoder(res.Body).Decode(info)
 	res.Body.Close()
 	if err != nil {
@@ -54,8 +58,8 @@ func TestExistingAppID(t *testing.T) {
 }
 
 func TestNonExistingAppID(t *testing.T) {
-	_, err := http.Get(s.URL + "/v1/info/really_fake")
-	if err == nil {
-		t.Error("Expected error when accessing fake appID. Received none.")
+	res, _ := http.Get(s.URL + "/v1/info/really_fake")
+	if res.StatusCode != http.StatusNotFound {
+		t.Error("Expected `StatusNotFound` when accessing fake appID.")
 	}
 }
