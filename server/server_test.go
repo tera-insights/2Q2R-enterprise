@@ -77,11 +77,17 @@ func TestCreateNewApp(t *testing.T) {
 		t.Errorf("Expected app name of %s. Got %s", goodAppName, appInfo.AppName)
 	}
 
+	// Delete server
+	res, _ = postJSON("/v1/admin/server/delete", DeleteServerRequest{})
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected `http.StatusOK`, but got %d\n", res.StatusCode)
+	}
+
 	// Test invalid method but with proper app ID
 	res, _ = http.Post(ts.URL+"/v1/info/"+appReply.AppID, "", nil)
 	if res.StatusCode != http.StatusMethodNotAllowed {
-		t.Error("Expected `StatusMethodNotAllowed` when sending `POST` to " +
-			"/v1/info/{appID}")
+		t.Errorf("Expected `http.StatusMethodNotAllowed, but got %d\n",
+			res.StatusCode)
 	}
 }
 

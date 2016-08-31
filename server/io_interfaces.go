@@ -46,6 +46,12 @@ type NewServerReply struct {
 	ServerID   string `json:"serverID"`
 }
 
+// DeleteServerRequest is the request to `POST /v1/admin/server/delete`.
+type DeleteServerRequest struct{}
+
+// DeleteServerReply is the reply to `POST /v1/admin/server/delete`.
+type DeleteServerReply struct{}
+
 // RegistrationRequestReply is the response to `POST /v1/register/request`.
 type RegistrationRequestReply struct {
 	// base64Web encoded random reply id
