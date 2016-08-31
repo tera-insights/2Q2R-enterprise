@@ -32,14 +32,17 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func PostJSON(route string, d interface{}) (*http.Response, error) {
+	b := new(bytes.Buffer)
+	json.NewEncoder(b).Encode(d)
+	return http.Post(ts.URL+route, "application/json; charset=utf-8", b)
+}
+
 func TestCreateNewApp(t *testing.T) {
 	// Create new app
-	appRequest := NewAppRequest{
+	res, _ := PostJSON("/v1/app/new", NewAppRequest{
 		AppName: goodAppName,
-	}
-	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(appRequest)
-	res, _ := http.Post(ts.URL+"/v1/app/new", "application/json; charset=utf-8", b)
+	})
 	appReply := new(NewAppReply)
 	json.NewDecoder(res.Body).Decode(appReply)
 	res.Body.Close()
@@ -48,18 +51,14 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Create new server
-	serverRequest := NewServerRequest{
+	res, _ = PostJSON("/v1/admin/server/new", NewServerRequest{
 		ServerName:  goodServerName,
 		AppID:       appReply.AppID,
 		BaseURL:     goodBaseURL,
 		KeyType:     goodKeyType,
 		PublicKey:   goodPublicKey,
 		Permissions: goodPermissions,
-	}
-	b = new(bytes.Buffer)
-	json.NewEncoder(b).Encode(serverRequest)
-	res, _ = http.Post(ts.URL+"/v1/admin/server/new",
-		"application/json; charset=utf-8", b)
+	})
 	reply := new(NewServerReply)
 	json.NewDecoder(res.Body).Decode(reply)
 	res.Body.Close()
