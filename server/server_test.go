@@ -32,26 +32,30 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func PostJSON(route string, d interface{}) (*http.Response, error) {
+func postJSON(route string, d interface{}) (*http.Response, error) {
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(d)
 	return http.Post(ts.URL+route, "application/json; charset=utf-8", b)
 }
 
+func unmarshalJSONBody(r *http.Response, d interface{}) {
+	json.NewDecoder(r.Body).Decode(d)
+	r.Body.Close()
+}
+
 func TestCreateNewApp(t *testing.T) {
 	// Create new app
-	res, _ := PostJSON("/v1/app/new", NewAppRequest{
+	res, _ := postJSON("/v1/app/new", NewAppRequest{
 		AppName: goodAppName,
 	})
 	appReply := new(NewAppReply)
-	json.NewDecoder(res.Body).Decode(appReply)
-	res.Body.Close()
+	unmarshalJSONBody(res, appReply)
 	if appReply.AppID != goodAppID {
 		t.Errorf("Expected app ID of %s. Got %s", goodAppID, appReply.AppID)
 	}
 
 	// Create new server
-	res, _ = PostJSON("/v1/admin/server/new", NewServerRequest{
+	res, _ = postJSON("/v1/admin/server/new", NewServerRequest{
 		ServerName:  goodServerName,
 		AppID:       appReply.AppID,
 		BaseURL:     goodBaseURL,
@@ -59,18 +63,16 @@ func TestCreateNewApp(t *testing.T) {
 		PublicKey:   goodPublicKey,
 		Permissions: goodPermissions,
 	})
-	reply := new(NewServerReply)
-	json.NewDecoder(res.Body).Decode(reply)
-	res.Body.Close()
-	if reply.ServerName != goodServerName {
-		t.Errorf("Expected server name of %s. Got %s", goodServerName, reply.ServerName)
+	newReply := new(NewServerReply)
+	unmarshalJSONBody(res, newReply)
+	if newReply.ServerName != goodServerName {
+		t.Errorf("Expected server name of %s. Got %s", goodServerName, newReply.ServerName)
 	}
 
 	// Test app info
 	res, _ = http.Get(ts.URL + "/v1/info/" + appReply.AppID)
 	appInfo := new(AppIDInfoReply)
-	json.NewDecoder(res.Body).Decode(appInfo)
-	res.Body.Close()
+	unmarshalJSONBody(res, appInfo)
 	if appInfo.AppName != goodAppName {
 		t.Errorf("Expected app name of %s. Got %s", goodAppName, appInfo.AppName)
 	}
