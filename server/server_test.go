@@ -51,36 +51,12 @@ func TestCreateNewApp(t *testing.T) {
 	if appInfo.AppName != name {
 		t.Errorf("Expected app name of %s. Got %s", name, appInfo.AppName)
 	}
-}
 
-func TestExistingAppID(t *testing.T) {
-	appID := "really_here"
-	res, err := http.Get(ts.URL + "/v1/info/" + appID)
-	if err != nil {
-		t.Error(err)
-	}
-	info := new(AppIDInfoReply)
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("Expected status code to be `http.StatusOK` Got %d",
-			res.StatusCode)
-	}
-	err = json.NewDecoder(res.Body).Decode(info)
-	res.Body.Close()
-	if err != nil {
-		t.Error(err)
-	}
-	if info.AppID != appID {
-		t.Errorf("Expected appID %s. Got response %s", appID, info.AppID)
-	}
-	if info.ServerPubKey == "missing" {
-		t.Errorf("Expected a valid public key. Got %s", info.ServerPubKey)
-	}
-}
-
-func TestNonExistingAppID(t *testing.T) {
-	res, _ := http.Get(ts.URL + "/v1/info/really_fake")
+	// Test nonexisting app
+	res, _ = http.Get(ts.URL + "/v1/info/" + "foo_bar_baz")
 	if res.StatusCode != http.StatusNotFound {
-		t.Error("Expected `StatusNotFound` when accessing fake appID.")
+		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
+			res.StatusCode)
 	}
 }
 
