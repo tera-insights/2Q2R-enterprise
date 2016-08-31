@@ -18,6 +18,8 @@ type AppServerInfo struct {
 
 	ServerID string
 
+	ServerName string
+
 	// Base URL for users to connect to
 	BaseURL string
 
