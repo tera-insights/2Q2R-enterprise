@@ -17,6 +17,8 @@ var s = New(Config{
 	"test.db",
 })
 var ts = httptest.NewServer(s.GetHandler())
+var goodAppID = "123saWQgc3RyaW5nCg=="
+var badAppID = "321saWQgc3RyaW5nCg=="
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -39,8 +41,8 @@ func TestCreateNewApp(t *testing.T) {
 	reply := new(NewAppReply)
 	json.NewDecoder(res.Body).Decode(reply)
 	res.Body.Close()
-	if reply.AppID != "123" {
-		t.Errorf("Expected app ID of 123. Got %s", reply.AppID)
+	if reply.AppID != goodAppID {
+		t.Errorf("Expected app ID of %s. Got %s", goodAppID, reply.AppID)
 	}
 
 	// Test app info
@@ -53,15 +55,14 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Test nonexisting app
-	res, _ = http.Get(ts.URL + "/v1/info/" + "foo_bar_baz")
+	res, _ = http.Get(ts.URL + "/v1/info/" + badAppID)
 	if res.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
 			res.StatusCode)
 	}
-}
 
-func TestInvalidMethod(t *testing.T) {
-	res, _ := http.Post(ts.URL+"/v1/info/doesnt_matter", "", nil)
+	// Test invalid method but with proper app ID
+	res, _ = http.Post(ts.URL+"/v1/info/"+reply.AppID, "", nil)
 	if res.StatusCode != http.StatusMethodNotAllowed {
 		t.Error("Expected `StatusMethodNotAllowed` when sending `POST` to " +
 			"/v1/info/{appID}")

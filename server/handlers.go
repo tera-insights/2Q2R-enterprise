@@ -3,6 +3,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 
@@ -10,12 +11,20 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// Base64Encode turns a string into its base-64 representation.
+func Base64Encode(s string) string {
+	bytes := []byte(s)
+	return base64.StdEncoding.EncodeToString(bytes)
+}
+
 // AppInfoHandler returns information about the app specified by `appID`.
 func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		appID := mux.Vars(r)["appID"]
-		if isNotBase64String(appID) {
-			http.Error(w, "appID was not a valid base-64 string", http.StatusBadRequest)
+		_, err := base64.StdEncoding.DecodeString(appID)
+		if err != nil {
+			http.Error(w, "appID was not a valid base-64 string",
+				http.StatusBadRequest)
 		} else {
 			var count = 0
 			db.Model(&AppInfo{}).Where("app_id = ?", appID).Count(&count)
@@ -48,7 +57,7 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 			handleError(w, err)
 			return
 		}
-		appID := "123"
+		appID := "123saWQgc3RyaW5nCg=="
 		db.Create(&AppInfo{
 			AppID:    appID,
 			Name:     req.AppName,
