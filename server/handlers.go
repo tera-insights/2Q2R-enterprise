@@ -17,12 +17,18 @@ func Base64Encode(s string) string {
 	return base64.StdEncoding.EncodeToString(bytes)
 }
 
+// CheckBase64 returns any errors encountered when deserializing a
+// (supposedly) base-64 encoded string.
+func CheckBase64(s string) error {
+	_, err := base64.StdEncoding.DecodeString(s)
+	return err
+}
+
 // AppInfoHandler returns information about the app specified by `appID`.
 func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		appID := mux.Vars(r)["appID"]
-		_, err := base64.StdEncoding.DecodeString(appID)
-		if err != nil {
+		if CheckBase64(appID) != nil {
 			http.Error(w, "appID was not a valid base-64 string",
 				http.StatusBadRequest)
 		} else {
@@ -57,11 +63,25 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 			handleError(w, err)
 		} else {
 			appID := "123saWQgc3RyaW5nCg=="
-			db.Create(&AppInfo{
-				AppID:   appID,
-				AppName: req.AppName,
-			})
-			writeJSON(w, http.StatusOK, NewAppReply{appID})
+			if CheckBase64(appID) != nil {
+				http.Error(w, "App ID was not base-64 encoded", http.StatusBadRequest)
+			} else {
+				db.Create(&AppInfo{
+					AppID:   appID,
+					AppName: req.AppName,
+				})
+				count := 0
+				db.Model(&AppInfo{}).
+					Where(AppInfo{AppID: appID}).
+					Count(&count)
+				if count > 0 {
+					writeJSON(w, http.StatusOK, NewAppReply{appID})
+				} else {
+					http.Error(w, "Could not save server to database.",
+						http.StatusInternalServerError)
+				}
+
+			}
 		}
 	}
 }
@@ -76,7 +96,33 @@ func NewServerHandler(db *gorm.DB) http.HandlerFunc {
 		if err != nil {
 			handleError(w, err)
 		} else {
-			writeJSON(w, http.StatusOK, NewServerReply{})
+			serverID := "777saJMgc7RyaW5nCg=="
+			if CheckBase64(serverID) != nil {
+				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
+			} else {
+				db.Create(&AppServerInfo{
+					ServerID:    serverID,
+					ServerName:  req.ServerName,
+					BaseURL:     req.BaseURL,
+					AppID:       req.AppID,
+					KeyType:     req.KeyType,
+					PublicKey:   req.PublicKey,
+					Permissions: req.Permissions,
+				})
+				count := 0
+				db.Model(&AppServerInfo{}).
+					Where(AppServerInfo{ServerID: serverID}).
+					Count(&count)
+				if count > 0 {
+					writeJSON(w, http.StatusOK, NewServerReply{
+						ServerName: req.ServerName,
+						ServerID:   serverID,
+					})
+				} else {
+					http.Error(w, "Could not save server to database.",
+						http.StatusInternalServerError)
+				}
+			}
 		}
 	}
 }
