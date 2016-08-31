@@ -24,6 +24,20 @@ func CheckBase64(s string) error {
 	return err
 }
 
+type genericGormTable struct {
+	DB *gorm.DB
+}
+
+func (g *genericGormTable) CountWhere(q interface{}) int {
+	c := 0
+	g.DB.Where(q).Count(&c)
+	return c
+}
+
+func (g *genericGormTable) FirstWhere(q interface{}, r interface{}) {
+	g.DB.Where(q).First(r)
+}
+
 // AppInfoHandler returns information about the app specified by `appID`.
 func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -32,11 +46,11 @@ func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 			http.Error(w, "appID was not a valid base-64 string",
 				http.StatusBadRequest)
 		} else {
-			var count = 0
-			db.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).Count(&count)
+			t := genericGormTable{DB: db.Model(&AppInfo{})}
+			count := t.CountWhere(AppInfo{AppID: appID})
 			if count > 0 {
 				var info AppInfo
-				db.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).First(&info)
+				t.FirstWhere(AppInfo{AppID: appID}, &info)
 				reply := AppIDInfoReply{
 					AppName:       info.AppName,
 					BaseURL:       "example.com",
@@ -70,17 +84,7 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 					AppID:   appID,
 					AppName: req.AppName,
 				})
-				count := 0
-				db.Model(&AppInfo{}).
-					Where(AppInfo{AppID: appID}).
-					Count(&count)
-				if count > 0 {
-					writeJSON(w, http.StatusOK, NewAppReply{appID})
-				} else {
-					http.Error(w, "Could not save server to database.",
-						http.StatusInternalServerError)
-				}
-
+				writeJSON(w, http.StatusOK, NewAppReply{appID})
 			}
 		}
 	}
@@ -109,19 +113,10 @@ func NewServerHandler(db *gorm.DB) http.HandlerFunc {
 					PublicKey:   req.PublicKey,
 					Permissions: req.Permissions,
 				})
-				count := 0
-				db.Model(&AppServerInfo{}).
-					Where(AppServerInfo{ServerID: serverID}).
-					Count(&count)
-				if count > 0 {
-					writeJSON(w, http.StatusOK, NewServerReply{
-						ServerName: req.ServerName,
-						ServerID:   serverID,
-					})
-				} else {
-					http.Error(w, "Could not save server to database.",
-						http.StatusInternalServerError)
-				}
+				writeJSON(w, http.StatusOK, NewServerReply{
+					ServerName: req.ServerName,
+					ServerID:   serverID,
+				})
 			}
 		}
 	}
