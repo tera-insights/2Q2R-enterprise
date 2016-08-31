@@ -79,14 +79,21 @@ func (srv *Server) GetHandler() http.Handler {
 		case http.MethodGet:
 			appID := mux.Vars(r)["appID"]
 			var count = 0
-			srv.DB.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).Count(&count)
+			srv.DB.Model(&AppInfo{}).Where("app_id = ?", appID).Count(&count)
 			if count > 0 {
-				writeJSON(w, http.StatusNotFound, "Could not find "+
-					"information for app with ID "+appID)
-			} else {
 				var info AppInfo
 				srv.DB.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).First(&info)
-				writeJSON(w, http.StatusOK, info)
+				reply := AppIDInfoReply{
+					AppName:       info.Name,
+					BaseURL:       "example.com",
+					AppID:         info.AppID,
+					ServerPubKey:  "my_pub_key",
+					ServerKeyType: "ECC-P256",
+				}
+				writeJSON(w, http.StatusOK, reply)
+			} else {
+				http.Error(w, "Could not find information for app with ID "+
+					appID, http.StatusNotFound)
 			}
 		default:
 			handleError(w, MethodNotAllowedError(r.Method))
