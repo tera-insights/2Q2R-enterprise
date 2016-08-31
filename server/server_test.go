@@ -76,17 +76,19 @@ func TestCreateNewApp(t *testing.T) {
 		t.Errorf("Expected app name of %s. Got %s", goodAppName, appInfo.AppName)
 	}
 
-	// Test nonexisting app
-	res, _ = http.Get(ts.URL + "/v1/info/" + badAppID)
-	if res.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
-			res.StatusCode)
-	}
-
 	// Test invalid method but with proper app ID
 	res, _ = http.Post(ts.URL+"/v1/info/"+appReply.AppID, "", nil)
 	if res.StatusCode != http.StatusMethodNotAllowed {
 		t.Error("Expected `StatusMethodNotAllowed` when sending `POST` to " +
 			"/v1/info/{appID}")
+	}
+}
+
+func TestNonExistingApp(t *testing.T) {
+	// Test nonexisting app
+	res, _ := http.Get(ts.URL + "/v1/info/" + badAppID)
+	if res.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
+			res.StatusCode)
 	}
 }
