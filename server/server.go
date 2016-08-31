@@ -69,64 +69,66 @@ func MakeDB(c Config) *gorm.DB {
 	return db
 }
 
+func HandleInvalidMethod() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handleError(w, MethodNotAllowedError(r.Method))
+	}
+}
+
 // GetHandler returns the routes used by the 2Q2R server.
 func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
-	// Get app info
+	// GET /v1/info/{appID}
 	router.HandleFunc("/v1/info/{appID}", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			appID := mux.Vars(r)["appID"]
-			var count = 0
-			srv.DB.Model(&AppInfo{}).Where("app_id = ?", appID).Count(&count)
-			if count > 0 {
-				var info AppInfo
-				srv.DB.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).First(&info)
-				reply := AppIDInfoReply{
-					AppName:       info.Name,
-					BaseURL:       "example.com",
-					AppID:         info.AppID,
-					ServerPubKey:  "my_pub_key",
-					ServerKeyType: "ECC-P256",
-				}
-				writeJSON(w, http.StatusOK, reply)
-			} else {
-				http.Error(w, "Could not find information for app with ID "+
-					appID, http.StatusNotFound)
+		appID := mux.Vars(r)["appID"]
+		var count = 0
+		srv.DB.Model(&AppInfo{}).Where("app_id = ?", appID).Count(&count)
+		if count > 0 {
+			var info AppInfo
+			srv.DB.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).First(&info)
+			reply := AppIDInfoReply{
+				AppName:       info.Name,
+				BaseURL:       "example.com",
+				AppID:         info.AppID,
+				ServerPubKey:  "my_pub_key",
+				ServerKeyType: "ECC-P256",
 			}
-		default:
-			handleError(w, MethodNotAllowedError(r.Method))
+			writeJSON(w, http.StatusOK, reply)
+		} else {
+			http.Error(w, "Could not find information for app with ID "+
+				appID, http.StatusNotFound)
 		}
-	})
+	}).Methods("GET")
 
-	// Upload app info
+	// NON-GET /v1/info/{appID}
+	router.HandleFunc("/v1/info/{appID}", HandleInvalidMethod())
+
+	// POST /v1/app/new
 	router.HandleFunc("/v1/app/new", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			req := NewAppRequest{}
-			decoder := json.NewDecoder(r.Body)
-			err := decoder.Decode(&req)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
-			appID := "123"
-			srv.DB.Create(&AppInfo{
-				AppID:    appID,
-				Name:     req.AppName,
-				AuthType: req.AuthType,
-				AuthData: req.AuthData,
-			})
-			if err != nil {
-				handleError(w, err)
-			} else {
-				writeJSON(w, http.StatusOK, NewAppReply{appID})
-			}
-		default:
-			handleError(w, MethodNotAllowedError(r.Method))
+		req := NewAppRequest{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&req)
+		if err != nil {
+			handleError(w, err)
+			return
 		}
-	})
+		appID := "123"
+		srv.DB.Create(&AppInfo{
+			AppID:    appID,
+			Name:     req.AppName,
+			AuthType: req.AuthType,
+			AuthData: req.AuthData,
+		})
+		if err != nil {
+			handleError(w, err)
+		} else {
+			writeJSON(w, http.StatusOK, NewAppReply{appID})
+		}
+	}).Methods("POST")
+
+	// NON-POST /v1/app/new
+	router.HandleFunc("/v1/app/new", HandleInvalidMethod())
 
 	return router
 }
