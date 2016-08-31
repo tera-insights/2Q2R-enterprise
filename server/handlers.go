@@ -55,17 +55,28 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 		err := decoder.Decode(&req)
 		if err != nil {
 			handleError(w, err)
-			return
+		} else {
+			appID := "123saWQgc3RyaW5nCg=="
+			db.Create(&AppInfo{
+				AppID:   appID,
+				AppName: req.AppName,
+			})
+			writeJSON(w, http.StatusOK, NewAppReply{appID})
 		}
-		appID := "123saWQgc3RyaW5nCg=="
-		db.Create(&AppInfo{
-			AppID:   appID,
-			AppName: req.AppName,
-		})
+	}
+}
+
+// NewServerHandler creates a new server for an admin with valid credentials.
+// POST /v1/admin/server/new
+func NewServerHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := NewServerRequest{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&req)
 		if err != nil {
 			handleError(w, err)
 		} else {
-			writeJSON(w, http.StatusOK, NewAppReply{appID})
+			writeJSON(w, http.StatusOK, NewServerReply{})
 		}
 	}
 }

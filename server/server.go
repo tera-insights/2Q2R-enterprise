@@ -63,6 +63,7 @@ func handleError(w http.ResponseWriter, err error) {
 func MakeDB(c Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	db.AutoMigrate(&AppInfo{})
+	db.AutoMigrate(&AppServerInfo{})
 	if err != nil {
 		panic(fmt.Errorf("Could not open database: %s", err))
 	}
@@ -88,6 +89,10 @@ func (srv *Server) GetHandler() http.Handler {
 	// POST /v1/app/new
 	router.HandleFunc("/v1/app/new", NewAppHandler(srv.DB)).Methods("POST")
 	router.HandleFunc("/v1/app/new", HandleInvalidMethod())
+
+	// POST /v1/admin/server/new
+	router.HandleFunc("/v1/admin/server/new", NewServerHandler(srv.DB)).Methods("POST")
+	router.HandleFunc("/v1/admin/server/new", HandleInvalidMethod())
 
 	return router
 }

@@ -17,8 +17,14 @@ var s = New(Config{
 	"test.db",
 })
 var ts = httptest.NewServer(s.GetHandler())
+var goodServerName = "foo"
+var goodAppName = "bar"
 var goodAppID = "123saWQgc3RyaW5nCg=="
 var badAppID = "321saWQgc3RyaW5nCg=="
+var goodBaseURL = "2q2r.org"
+var goodKeyType = "P256"
+var goodPublicKey = "notHidden!"
+var goodPermissions = "[]"
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -27,31 +33,47 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreateNewApp(t *testing.T) {
-	name := "foo"
-
 	// Create new app
-	req := NewAppRequest{
-		AppName:  name,
-		AuthType: "public-key",
-		AuthData: "{bar: baz}",
+	appRequest := NewAppRequest{
+		AppName: goodAppName,
 	}
 	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(req)
+	json.NewEncoder(b).Encode(appRequest)
 	res, _ := http.Post(ts.URL+"/v1/app/new", "application/json; charset=utf-8", b)
-	reply := new(NewAppReply)
+	appReply := new(NewAppReply)
+	json.NewDecoder(res.Body).Decode(appReply)
+	res.Body.Close()
+	if appReply.AppID != goodAppID {
+		t.Errorf("Expected app ID of %s. Got %s", goodAppID, appReply.AppID)
+	}
+
+	// Create new server
+	serverRequest := NewServerRequest{
+		ServerName:  goodServerName,
+		AppID:       appReply.AppID,
+		BaseURL:     goodBaseURL,
+		KeyType:     goodKeyType,
+		PublicKey:   goodPublicKey,
+		Permissions: goodPermissions,
+	}
+	b = new(bytes.Buffer)
+	json.NewEncoder(b).Encode(serverRequest)
+	res, _ = http.Post(ts.URL+"/v1/admin/server/new",
+		"application/json; charset=utf-8", b)
+	reply := new(NewServerReply)
 	json.NewDecoder(res.Body).Decode(reply)
 	res.Body.Close()
-	if reply.AppID != goodAppID {
-		t.Errorf("Expected app ID of %s. Got %s", goodAppID, reply.AppID)
+	if reply.ServerName != goodServerName {
+		t.Errorf("Expected server name of %s. Got %s", goodServerName, reply.ServerName)
 	}
 
 	// Test app info
-	res, _ = http.Get(ts.URL + "/v1/info/" + reply.AppID)
+	res, _ = http.Get(ts.URL + "/v1/info/" + appReply.AppID)
 	appInfo := new(AppIDInfoReply)
 	json.NewDecoder(res.Body).Decode(appInfo)
 	res.Body.Close()
-	if appInfo.AppName != name {
-		t.Errorf("Expected app name of %s. Got %s", name, appInfo.AppName)
+	if appInfo.AppName != goodAppName {
+		t.Errorf("Expected app name of %s. Got %s", goodAppName, appInfo.AppName)
 	}
 
 	// Test nonexisting app
@@ -62,7 +84,7 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Test invalid method but with proper app ID
-	res, _ = http.Post(ts.URL+"/v1/info/"+reply.AppID, "", nil)
+	res, _ = http.Post(ts.URL+"/v1/info/"+appReply.AppID, "", nil)
 	if res.StatusCode != http.StatusMethodNotAllowed {
 		t.Error("Expected `StatusMethodNotAllowed` when sending `POST` to " +
 			"/v1/info/{appID}")
