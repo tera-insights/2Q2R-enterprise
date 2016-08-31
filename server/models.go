@@ -8,10 +8,8 @@ import "github.com/jinzhu/gorm"
 type AppInfo struct {
 	gorm.Model
 
-	AppID    string
-	Name     string
-	AuthType string
-	AuthData string // JSON
+	AppID   string
+	AppName string
 }
 
 // AppServerInfo is the Gorm model that holds information about an app server.

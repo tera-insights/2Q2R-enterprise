@@ -27,12 +27,12 @@ func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 				http.StatusBadRequest)
 		} else {
 			var count = 0
-			db.Model(&AppInfo{}).Where("app_id = ?", appID).Count(&count)
+			db.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).Count(&count)
 			if count > 0 {
 				var info AppInfo
 				db.Model(&AppInfo{}).Where(AppInfo{AppID: appID}).First(&info)
 				reply := AppIDInfoReply{
-					AppName:       info.Name,
+					AppName:       info.AppName,
 					BaseURL:       "example.com",
 					AppID:         info.AppID,
 					ServerPubKey:  "my_pub_key",
@@ -59,10 +59,8 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 		}
 		appID := "123saWQgc3RyaW5nCg=="
 		db.Create(&AppInfo{
-			AppID:    appID,
-			Name:     req.AppName,
-			AuthType: req.AuthType,
-			AuthData: req.AuthData,
+			AppID:   appID,
+			AppName: req.AppName,
 		})
 		if err != nil {
 			handleError(w, err)
