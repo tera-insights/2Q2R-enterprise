@@ -69,6 +69,8 @@ func MakeDB(c Config) *gorm.DB {
 	return db
 }
 
+// HandleInvalidMethod returns a function that says that the requested method
+// was not allowed.
 func HandleInvalidMethod() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handleError(w, MethodNotAllowedError(r.Method))
