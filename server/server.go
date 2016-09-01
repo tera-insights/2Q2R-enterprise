@@ -78,21 +78,19 @@ func HandleInvalidMethod() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
+	r.HandleFunc(s, h).Methods(m)
+	r.HandleFunc(s, HandleInvalidMethod())
+}
+
 // GetHandler returns the routes used by the 2Q2R server.
 func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
-	// GET /v1/info/{appID}
-	router.HandleFunc("/v1/info/{appID}", AppInfoHandler(srv.DB)).Methods("GET")
-	router.HandleFunc("/v1/info/{appID}", HandleInvalidMethod())
-
-	// POST /v1/app/new
-	router.HandleFunc("/v1/app/new", NewAppHandler(srv.DB)).Methods("POST")
-	router.HandleFunc("/v1/app/new", HandleInvalidMethod())
-
-	// POST /v1/admin/server/new
-	router.HandleFunc("/v1/admin/server/new", NewServerHandler(srv.DB)).Methods("POST")
-	router.HandleFunc("/v1/admin/server/new", HandleInvalidMethod())
+	forMethod(router, "/v1/info/{appID}", AppInfoHandler(srv.DB), "GET")
+	forMethod(router, "/v1/app/new", NewAppHandler(srv.DB), "POST")
+	forMethod(router, "/v1/admin/server/new", NewServerHandler(srv.DB), "POST")
+	forMethod(router, "/v1/admin/server/delete", DeleteServerHandler(srv.DB), "POST")
 
 	return router
 }
