@@ -154,15 +154,19 @@ func GetServerHandler(db *gorm.DB) http.HandlerFunc {
 		if err != nil {
 			handleError(w, err)
 		} else {
-			t := genericGormTable{DB: db.Model(&AppServerInfo{})}
-			count := t.CountWhere(AppServerInfo{ServerID: req.ServerID})
-			if count > 0 {
-				var info AppServerInfo
-				t.FirstWhere(AppServerInfo{ServerID: req.ServerID}, &info)
-				writeJSON(w, http.StatusOK, info)
+			if CheckBase64(req.ServerID) != nil {
+				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
 			} else {
-				http.Error(w, "Could not find information for server with ID "+
-					req.ServerID, http.StatusNotFound)
+				t := genericGormTable{DB: db.Model(&AppServerInfo{})}
+				count := t.CountWhere(AppServerInfo{ServerID: req.ServerID})
+				if count > 0 {
+					var info AppServerInfo
+					t.FirstWhere(AppServerInfo{ServerID: req.ServerID}, &info)
+					writeJSON(w, http.StatusOK, info)
+				} else {
+					http.Error(w, "Could not find information for server with ID "+
+						req.ServerID, http.StatusNotFound)
+				}
 			}
 		}
 	}

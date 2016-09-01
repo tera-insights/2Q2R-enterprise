@@ -52,7 +52,9 @@ type DeleteServerRequest struct {
 }
 
 // AppServerInfoRequest is the request to `POST /v1/admin/server/info`.
-type AppServerInfoRequest struct{}
+type AppServerInfoRequest struct {
+	ServerID string `json:"serverID"`
+}
 
 // RegistrationRequestReply is the response to `POST /v1/register/request`.
 type RegistrationRequestReply struct {

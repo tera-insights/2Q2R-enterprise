@@ -78,7 +78,9 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Test server info
-	res, _ = postJSON("/v1/admin/server/get", AppServerInfoRequest{})
+	res, _ = postJSON("/v1/admin/server/get", AppServerInfoRequest{
+		ServerID: newReply.ServerID,
+	})
 	serverInfo := new(AppServerInfo)
 	unmarshalJSONBody(res, serverInfo)
 	if serverInfo.ServerName != goodServerName {
@@ -92,6 +94,15 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Assert that server was deleted
+	res, _ = postJSON("/v1/admin/server/get", AppServerInfoRequest{
+		ServerID: newReply.ServerID,
+	})
+	deletedServerInfo := new(AppServerInfo)
+	unmarshalJSONBody(res, deletedServerInfo)
+	if res.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
+			res.StatusCode)
+	}
 
 	// Test invalid method but with proper app ID
 	res, _ = http.Post(ts.URL+"/v1/info/"+appReply.AppID, "", nil)
