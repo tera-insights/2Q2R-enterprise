@@ -25,7 +25,8 @@ func CheckBase64(s string) error {
 }
 
 type genericGormTable struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	Writer http.ResponseWriter
 }
 
 func (g *genericGormTable) CountWhere(q interface{}) int {
@@ -38,6 +39,16 @@ func (g *genericGormTable) FirstWhere(q interface{}, r interface{}) {
 	g.DB.Where(q).First(r)
 }
 
+func (g *genericGormTable) FirstWhereWithRespond(q interface{}, r interface{}) {
+	count := g.CountWhere(q)
+	if count > 0 {
+		g.FirstWhere(q, r)
+		writeJSON(g.Writer, http.StatusOK, r)
+	} else {
+		http.Error(g.Writer, "Could not find resource", http.StatusNotFound)
+	}
+}
+
 // AppInfoHandler returns information about the app specified by `appID`.
 func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +58,8 @@ func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 				http.StatusBadRequest)
 		} else {
 			t := genericGormTable{DB: db.Model(&AppInfo{})}
-			count := t.CountWhere(AppInfo{AppID: appID})
+			query := AppInfo{AppID: appID}
+			count := t.CountWhere(query)
 			if count > 0 {
 				var info AppInfo
 				t.FirstWhere(AppInfo{AppID: appID}, &info)
@@ -157,16 +169,9 @@ func GetServerHandler(db *gorm.DB) http.HandlerFunc {
 			if CheckBase64(req.ServerID) != nil {
 				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
 			} else {
-				t := genericGormTable{DB: db.Model(&AppServerInfo{})}
-				count := t.CountWhere(AppServerInfo{ServerID: req.ServerID})
-				if count > 0 {
-					var info AppServerInfo
-					t.FirstWhere(AppServerInfo{ServerID: req.ServerID}, &info)
-					writeJSON(w, http.StatusOK, info)
-				} else {
-					http.Error(w, "Could not find information for server with ID "+
-						req.ServerID, http.StatusNotFound)
-				}
+				g := genericGormTable{DB: db.Model(&AppServerInfo{}), Writer: w}
+				var info AppServerInfo
+				g.FirstWhereWithRespond(AppServerInfo{ServerID: req.ServerID}, &info)
 			}
 		}
 	}
