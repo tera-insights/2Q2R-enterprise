@@ -17,6 +17,13 @@ var s = New(Config{
 	"test.db",
 })
 var ts = httptest.NewServer(s.GetHandler())
+var goodServerName = "foo"
+var goodAppName = "bar"
+var badAppID = "321saWQgc3RyaW5nCg=="
+var goodBaseURL = "2q2r.org"
+var goodKeyType = "P256"
+var goodPublicKey = "notHidden!"
+var goodPermissions = "[]"
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -24,46 +31,84 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestCreateNewApp(t *testing.T) {
-	name := "foo"
-
-	// Create new app
-	req := NewAppRequest{
-		AppName:  name,
-		AuthType: "public-key",
-		AuthData: "{bar: baz}",
-	}
+func postJSON(route string, d interface{}) (*http.Response, error) {
 	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(req)
-	res, _ := http.Post(ts.URL+"/v1/app/new", "application/json; charset=utf-8", b)
-	reply := new(NewAppReply)
-	json.NewDecoder(res.Body).Decode(reply)
-	res.Body.Close()
-	if reply.AppID != "123" {
-		t.Errorf("Expected app ID of 123. Got %s", reply.AppID)
-	}
+	json.NewEncoder(b).Encode(d)
+	return http.Post(ts.URL+route, "application/json; charset=utf-8", b)
+}
 
-	// Test app info
-	res, _ = http.Get(ts.URL + "/v1/info/" + reply.AppID)
-	appInfo := new(AppIDInfoReply)
-	json.NewDecoder(res.Body).Decode(appInfo)
-	res.Body.Close()
-	if appInfo.AppName != name {
-		t.Errorf("Expected app name of %s. Got %s", name, appInfo.AppName)
-	}
+func unmarshalJSONBody(r *http.Response, d interface{}) {
+	json.NewDecoder(r.Body).Decode(d)
+	r.Body.Close()
+}
 
-	// Test nonexisting app
-	res, _ = http.Get(ts.URL + "/v1/info/" + "foo_bar_baz")
-	if res.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
-			res.StatusCode)
+func checkStatus(t *testing.T, expected int, r *http.Response) {
+	if expected != r.StatusCode {
+		t.Errorf("Expected status code %d but got %d\n", expected, r.StatusCode)
 	}
 }
 
-func TestInvalidMethod(t *testing.T) {
-	res, _ := http.Post(ts.URL+"/v1/info/doesnt_matter", "", nil)
-	if res.StatusCode != http.StatusMethodNotAllowed {
-		t.Error("Expected `StatusMethodNotAllowed` when sending `POST` to " +
-			"/v1/info/{appID}")
+func TestCreateNewApp(t *testing.T) {
+	// Create new app
+	res, _ := postJSON("/v1/app/new", NewAppRequest{
+		AppName: goodAppName,
+	})
+	appReply := new(NewAppReply)
+	unmarshalJSONBody(res, appReply)
+	checkStatus(t, http.StatusOK, res)
+
+	// Create new server
+	res, _ = postJSON("/v1/admin/server/new", NewServerRequest{
+		ServerName:  goodServerName,
+		AppID:       appReply.AppID,
+		BaseURL:     goodBaseURL,
+		KeyType:     goodKeyType,
+		PublicKey:   goodPublicKey,
+		Permissions: goodPermissions,
+	})
+	newReply := new(NewServerReply)
+	unmarshalJSONBody(res, newReply)
+	if newReply.ServerName != goodServerName {
+		t.Errorf("Expected server name of %s. Got %s", goodServerName, newReply.ServerName)
 	}
+
+	// Test app info
+	res, _ = http.Get(ts.URL + "/v1/info/" + appReply.AppID)
+	appInfo := new(AppIDInfoReply)
+	unmarshalJSONBody(res, appInfo)
+	if appInfo.AppName != goodAppName {
+		t.Errorf("Expected app name of %s. Got %s", goodAppName, appInfo.AppName)
+	}
+
+	// Test server info
+	res, _ = postJSON("/v1/admin/server/get", AppServerInfoRequest{
+		ServerID: newReply.ServerID,
+	})
+	serverInfo := new(AppServerInfo)
+	unmarshalJSONBody(res, serverInfo)
+	if serverInfo.ServerName != goodServerName {
+		t.Errorf("Expected server name of %s. Got %s", goodServerName, serverInfo.ServerName)
+	}
+
+	// Delete server
+	res, _ = postJSON("/v1/admin/server/delete", DeleteServerRequest{})
+	checkStatus(t, http.StatusOK, res)
+
+	// Assert that server was deleted
+	res, _ = postJSON("/v1/admin/server/get", AppServerInfoRequest{
+		ServerID: newReply.ServerID,
+	})
+	deletedServerInfo := new(AppServerInfo)
+	unmarshalJSONBody(res, deletedServerInfo)
+	checkStatus(t, http.StatusNotFound, res)
+
+	// Test invalid method but with proper app ID
+	res, _ = http.Post(ts.URL+"/v1/info/"+appReply.AppID, "", nil)
+	checkStatus(t, http.StatusMethodNotAllowed, res)
+}
+
+func TestNonExistingApp(t *testing.T) {
+	// Test nonexisting app
+	res, _ := http.Get(ts.URL + "/v1/info/" + badAppID)
+	checkStatus(t, http.StatusNotFound, res)
 }

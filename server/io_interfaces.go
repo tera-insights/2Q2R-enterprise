@@ -2,11 +2,9 @@
 
 package server
 
-// NewAppInfoRequest is the request to `POST /v1/app/new`.
+// NewAppRequest is the request to `POST /v1/app/new`.
 type NewAppRequest struct {
-	AppName  string `json:"appName"`
-	AuthType string `json:"authType"`
-	AuthData string `json:"authData"`
+	AppName string `json:"appName"`
 }
 
 // NewAppReply is the response to `POST /v1/app/new`.
@@ -14,7 +12,7 @@ type NewAppReply struct {
 	AppID string `json:"appID"`
 }
 
-// AppIDInfoReply is the response to `GET /v1/info/:appID`.
+// AppIDInfoReply is the reply to `GET /v1/info/:appID`.
 type AppIDInfoReply struct {
 	// string specifying displayable app name
 	AppName string `json:"appName"`
@@ -32,10 +30,30 @@ type AppIDInfoReply struct {
 	ServerKeyType string `json:"serverKeyType"`
 }
 
-// MakeAppIDInfoReply creates a new `AppIDInfoReply`.
-func MakeAppIDInfoReply(name string, url string, id string, pub string,
-	kt string) AppIDInfoReply {
-	return AppIDInfoReply{name, url, id, pub, kt}
+// NewServerRequest is the request to `POST /v1/admin/server/new`.
+type NewServerRequest struct {
+	ServerName  string `json:"serverName"`
+	AppID       string `json:"appID"`
+	BaseURL     string `json:"baseURL"`
+	KeyType     string `json:"keyType"`
+	PublicKey   string `json:"publicKey"`
+	Permissions string `json:"permissions"`
+}
+
+// NewServerReply is the response to `POST `/v1/admin/server/new`.
+type NewServerReply struct {
+	ServerName string `json:"serverName"`
+	ServerID   string `json:"serverID"`
+}
+
+// DeleteServerRequest is the request to `POST /v1/admin/server/delete`.
+type DeleteServerRequest struct {
+	ServerID string `json:"serverID"`
+}
+
+// AppServerInfoRequest is the request to `POST /v1/admin/server/info`.
+type AppServerInfoRequest struct {
+	ServerID string `json:"serverID"`
 }
 
 // RegistrationRequestReply is the response to `POST /v1/register/request`.
