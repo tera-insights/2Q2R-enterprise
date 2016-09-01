@@ -121,3 +121,49 @@ func NewServerHandler(db *gorm.DB) http.HandlerFunc {
 		}
 	}
 }
+
+// DeleteServerHandler deletes a server on behalf of a valid admin.
+func DeleteServerHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := DeleteServerRequest{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&req)
+		if err != nil {
+			handleError(w, err)
+		} else {
+			serverID := "777saJMgc7RyaW5nCg=="
+			if CheckBase64(serverID) != nil {
+				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
+			} else {
+				query := AppServerInfo{
+					ServerID: serverID,
+				}
+				db.Where(query).Delete(AppServerInfo{})
+				writeJSON(w, http.StatusOK, "Server deleted")
+			}
+		}
+	}
+}
+
+// GetServerHandler gets information about a server with a particular ID.
+func GetServerHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := DeleteServerRequest{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&req)
+		if err != nil {
+			handleError(w, err)
+		} else {
+			t := genericGormTable{DB: db.Model(&AppServerInfo{})}
+			count := t.CountWhere(AppServerInfo{ServerID: req.ServerID})
+			if count > 0 {
+				var info AppServerInfo
+				t.FirstWhere(AppServerInfo{ServerID: req.ServerID}, &info)
+				writeJSON(w, http.StatusOK, info)
+			} else {
+				http.Error(w, "Could not find information for server with ID "+
+					req.ServerID, http.StatusNotFound)
+			}
+		}
+	}
+}

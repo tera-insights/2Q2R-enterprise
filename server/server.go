@@ -91,6 +91,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/app/new", NewAppHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/new", NewServerHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/delete", DeleteServerHandler(srv.DB), "POST")
+	forMethod(router, "/v1/admin/server/get", GetServerHandler(srv.DB), "POST")
 
 	return router
 }
