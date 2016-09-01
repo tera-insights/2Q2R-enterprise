@@ -19,7 +19,6 @@ var s = New(Config{
 var ts = httptest.NewServer(s.GetHandler())
 var goodServerName = "foo"
 var goodAppName = "bar"
-var goodAppID = "123saWQgc3RyaW5nCg=="
 var badAppID = "321saWQgc3RyaW5nCg=="
 var goodBaseURL = "2q2r.org"
 var goodKeyType = "P256"
@@ -50,8 +49,8 @@ func TestCreateNewApp(t *testing.T) {
 	})
 	appReply := new(NewAppReply)
 	unmarshalJSONBody(res, appReply)
-	if appReply.AppID != goodAppID {
-		t.Errorf("Expected app ID of %s. Got %s", goodAppID, appReply.AppID)
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Could not create app. Status code: %d\n", res.StatusCode)
 	}
 
 	// Create new server

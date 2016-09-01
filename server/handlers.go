@@ -3,6 +3,7 @@
 package server
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -24,29 +25,14 @@ func CheckBase64(s string) error {
 	return err
 }
 
-type genericGormTable struct {
-	DB     *gorm.DB
-	Writer http.ResponseWriter
-}
-
-func (g *genericGormTable) CountWhere(q interface{}) int {
-	c := 0
-	g.DB.Where(q).Count(&c)
-	return c
-}
-
-func (g *genericGormTable) FirstWhere(q interface{}, r interface{}) {
-	g.DB.Where(q).First(r)
-}
-
-func (g *genericGormTable) FirstWhereWithRespond(q interface{}, r interface{}) {
-	count := g.CountWhere(q)
-	if count > 0 {
-		g.FirstWhere(q, r)
-		writeJSON(g.Writer, http.StatusOK, r)
-	} else {
-		http.Error(g.Writer, "Could not find resource", http.StatusNotFound)
+func randString(n int) string {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, n)
+	rand.Read(bytes)
+	for i, b := range bytes {
+		bytes[i] = alphanum[b%byte(len(alphanum))]
 	}
+	return string(bytes)
 }
 
 // AppInfoHandler returns information about the app specified by `appID`.
@@ -57,7 +43,7 @@ func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
 			http.Error(w, "appID was not a valid base-64 string",
 				http.StatusBadRequest)
 		} else {
-			t := genericGormTable{DB: db.Model(&AppInfo{})}
+			t := DBHandler{DB: db.Model(&AppInfo{})}
 			query := AppInfo{AppID: appID}
 			count := t.CountWhere(query)
 			if count > 0 {
@@ -88,7 +74,7 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 		if err != nil {
 			handleError(w, err)
 		} else {
-			appID := "123saWQgc3RyaW5nCg=="
+			appID := randString(32)
 			if CheckBase64(appID) != nil {
 				http.Error(w, "App ID was not base-64 encoded", http.StatusBadRequest)
 			} else {
@@ -112,7 +98,7 @@ func NewServerHandler(db *gorm.DB) http.HandlerFunc {
 		if err != nil {
 			handleError(w, err)
 		} else {
-			serverID := "777saJMgc7RyaW5nCg=="
+			serverID := randString(32)
 			if CheckBase64(serverID) != nil {
 				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
 			} else {
@@ -143,12 +129,11 @@ func DeleteServerHandler(db *gorm.DB) http.HandlerFunc {
 		if err != nil {
 			handleError(w, err)
 		} else {
-			serverID := "777saJMgc7RyaW5nCg=="
-			if CheckBase64(serverID) != nil {
+			if CheckBase64(req.ServerID) != nil {
 				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
 			} else {
 				query := AppServerInfo{
-					ServerID: serverID,
+					ServerID: req.ServerID,
 				}
 				db.Where(query).Delete(AppServerInfo{})
 				writeJSON(w, http.StatusOK, "Server deleted")
@@ -169,7 +154,7 @@ func GetServerHandler(db *gorm.DB) http.HandlerFunc {
 			if CheckBase64(req.ServerID) != nil {
 				http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
 			} else {
-				g := genericGormTable{DB: db.Model(&AppServerInfo{}), Writer: w}
+				g := DBHandler{DB: db.Model(&AppServerInfo{}), Writer: w}
 				var info AppServerInfo
 				g.FirstWhereWithRespond(AppServerInfo{ServerID: req.ServerID}, &info)
 			}
