@@ -42,6 +42,12 @@ func unmarshalJSONBody(r *http.Response, d interface{}) {
 	r.Body.Close()
 }
 
+func checkStatus(t *testing.T, expected int, r *http.Response) {
+	if expected != r.StatusCode {
+		t.Errorf("Expected status code %d but got %d\n", expected, r.StatusCode)
+	}
+}
+
 func TestCreateNewApp(t *testing.T) {
 	// Create new app
 	res, _ := postJSON("/v1/app/new", NewAppRequest{
@@ -49,9 +55,7 @@ func TestCreateNewApp(t *testing.T) {
 	})
 	appReply := new(NewAppReply)
 	unmarshalJSONBody(res, appReply)
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("Could not create app. Status code: %d\n", res.StatusCode)
-	}
+	checkStatus(t, http.StatusOK, res)
 
 	// Create new server
 	res, _ = postJSON("/v1/admin/server/new", NewServerRequest{
@@ -88,9 +92,7 @@ func TestCreateNewApp(t *testing.T) {
 
 	// Delete server
 	res, _ = postJSON("/v1/admin/server/delete", DeleteServerRequest{})
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("Expected `http.StatusOK`, but got %d\n", res.StatusCode)
-	}
+	checkStatus(t, http.StatusOK, res)
 
 	// Assert that server was deleted
 	res, _ = postJSON("/v1/admin/server/get", AppServerInfoRequest{
@@ -98,24 +100,15 @@ func TestCreateNewApp(t *testing.T) {
 	})
 	deletedServerInfo := new(AppServerInfo)
 	unmarshalJSONBody(res, deletedServerInfo)
-	if res.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
-			res.StatusCode)
-	}
+	checkStatus(t, http.StatusNotFound, res)
 
 	// Test invalid method but with proper app ID
 	res, _ = http.Post(ts.URL+"/v1/info/"+appReply.AppID, "", nil)
-	if res.StatusCode != http.StatusMethodNotAllowed {
-		t.Errorf("Expected `http.StatusMethodNotAllowed, but got %d\n",
-			res.StatusCode)
-	}
+	checkStatus(t, http.StatusMethodNotAllowed, res)
 }
 
 func TestNonExistingApp(t *testing.T) {
 	// Test nonexisting app
 	res, _ := http.Get(ts.URL + "/v1/info/" + badAppID)
-	if res.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected response code of `http.StatusNotFound`. Got %d",
-			res.StatusCode)
-	}
+	checkStatus(t, http.StatusNotFound, res)
 }
