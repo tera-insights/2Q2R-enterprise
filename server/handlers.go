@@ -160,7 +160,7 @@ func DeleteServerHandler(db *gorm.DB) http.HandlerFunc {
 // GetServerHandler gets information about a server with a particular ID.
 func GetServerHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req := DeleteServerRequest{}
+		req := AppServerInfoRequest{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&req)
 		if err != nil {
