@@ -3,7 +3,9 @@
 package server
 
 import (
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -30,8 +32,19 @@ type authenticateData struct {
 }
 
 func TestRegisterIFrameGeneration(t *testing.T) {
-	iFrameBody := GenerateRegisterIFrame()
+	// Set up registration request
 	requestID := "foo"
+
+	// Get registration iframe
+	res, _ := http.Get(ts.URL + "/v1/info/" + badAppID)
+	var bodyBytes = make([]byte, 0)
+	n, err := res.Body.Read(bodyBytes)
+	iFrameBody := string(bodyBytes[:n])
+	if strings.Index(iFrameBody, "var data = ") == -1 {
+		t.Errorf("Could not find data inside iFrameBody")
+	}
+
+	// Assert that data embedded in the iframe is what we expect
 	gleanedData := registerData{}
 	correctData := registerData{
 		id:        requestID,
