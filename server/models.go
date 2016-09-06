@@ -41,5 +41,6 @@ type AppServerInfo struct {
 type LongTermRequest struct {
 	gorm.Model
 
-	hashedID string
+	hashedID  string
+	challenge []byte
 }

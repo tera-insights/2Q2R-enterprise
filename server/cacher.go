@@ -16,8 +16,6 @@ import (
 type Request struct {
 	requestID string
 	challenge []byte
-	userID    string
-	appID     string
 }
 
 // AuthenticationRequest is a specialization of Request. It has an additional
@@ -30,9 +28,12 @@ type AuthenticationRequest struct {
 // NewCacher creates a new cacher that cleans itself after a set amount of time.
 func NewCacher(expiration time.Duration, clean time.Duration) *Cacher {
 	return &Cacher{
-		expiration:             expiration,
-		clean:                  clean,
-		registrationRequests:   cache.New(expiration, clean),
+		expiration: expiration,
+		clean:      clean,
+		// Maps requestID to a Request
+		registrationRequests: cache.New(expiration, clean),
+
+		// Maps requestID to an AuthenticationRequest
 		authenticationRequests: cache.New(expiration, clean),
 	}
 }
@@ -58,7 +59,13 @@ func (c *Cacher) GetRegistrationRequest(id string) (*Request, error) {
 	var hashedID []byte
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
-	return c.db.FindAndDelete(LongTermRequest{hashedID: string(h.Sum(nil))}, ltr), nil
+	c.db.FindAndDelete(LongTermRequest{hashedID: string(h.Sum(nil))}, ltr)
+	r := Request{
+		requestID: id,
+		challenge: ltr.challenge,
+	}
+	c.registrationRequests.Set(id, r, c.expiration)
+	return &r, nil
 }
 
 // GetAuthenticationRequest returns the string(h.Sum(nil))n request for a
@@ -71,14 +78,4 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 		return ptr, nil
 	}
 	return nil, fmt.Errorf("Could not find authentication request with id %s", id)
-}
-
-// RecordRegistrationRequest puts a registration request inside the cache.
-func (c *Cacher) RecordRegistrationRequest(id string, r Request) {
-	c.registrationRequests.Set(id, r, c.expiration)
-}
-
-// RecordAuthenticationRequest puts an authentication request inside the cache.
-func (c *Cacher) RecordAuthenticationRequest(id string, r AuthenticationRequest) {
-	c.authenticationRequests.Set(id, r, c.expiration)
 }
