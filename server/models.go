@@ -44,3 +44,13 @@ type LongTermRequest struct {
 	hashedID  string
 	challenge []byte
 }
+
+// Key is the Gorm model for a user's stored public key.
+type Key struct {
+	gorm.Model
+
+	KeyID     string
+	UserID    string
+	AppID     string
+	PublicKey string
+}

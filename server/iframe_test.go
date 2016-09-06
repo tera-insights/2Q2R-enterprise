@@ -41,7 +41,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	// Get registration iFrame
 	res, _ = http.Get(ts.URL + "/register/" + registrationRequest.AppID)
 	var bodyBytes = make([]byte, 0)
-	n, err := res.Body.Read(bodyBytes)
+	n, _ := res.Body.Read(bodyBytes)
 	iFrameBody := string(bodyBytes[:n])
 	if strings.Index(iFrameBody, "var data = ") == -1 {
 		t.Errorf("Could not find data inside iFrameBody")
@@ -79,7 +79,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	// Get authentication iFrame
 	res, _ = http.Get(ts.URL + "/auth/" + setupInfo.RequestID)
 	var bodyBytes = make([]byte, 0)
-	n, err := res.Body.Read(bodyBytes)
+	n, _ := res.Body.Read(bodyBytes)
 	iFrameBody := string(bodyBytes[:n])
 	if strings.Index(iFrameBody, "var data = ") == -1 {
 		t.Errorf("Could not find data inside iFrameBody")
@@ -94,10 +94,15 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	unmarshalJSONBody(res, appInfo)
 
 	authenticationRequest, _ := s.cache.GetAuthenticationRequest(setupInfo.RequestID)
+
+	query := Key{AppID: asr.AppID, UserID: asr.UserID}
+	var keys []string
+	s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys)
+
 	correctData := authenticateData{
 		id:           setupInfo.RequestID,
 		counter:      authenticationRequest.counter,
-		keys:         GetKeys(asr.AppID, asr.UserID),
+		keys:         keys,
 		challenge:    authenticationRequest.challenge,
 		userID:       asr.UserID,
 		appId:        asr.AppID,
