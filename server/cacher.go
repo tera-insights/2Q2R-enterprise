@@ -56,10 +56,24 @@ func (c *Cacher) GetRegistrationRequest(id string) (*Request, error) {
 		return ptr, nil
 	}
 	ltr := LongTermRequest{}
-	var hashedID []byte
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
-	c.db.FindAndDelete(LongTermRequest{hashedID: string(h.Sum(nil))}, ltr)
+	hashedID := string(h.Sum(nil))
+
+	// We transactionally find the long-term request and then delete it from
+	// the DB.
+	tx := c.db.Begin()
+	query := LongTermRequest{hashedID: hashedID}
+	if err := tx.First(ltr, query).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if err := tx.Delete(LongTermRequest{}, query).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	tx.Commit()
+
 	r := Request{
 		requestID: id,
 		challenge: ltr.challenge,
