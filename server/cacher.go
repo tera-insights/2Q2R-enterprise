@@ -58,7 +58,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*Request, error) {
 	var hashedID []byte
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
-	return c.db.FindAndDelete(LongTermRequest{hashedID: h.Sum(nil)}, ltr), nil
+	return c.db.FindAndDelete(LongTermRequest{hashedID: string(h.Sum(nil))}, ltr), nil
 }
 
 // GetAuthenticationRequest returns the string(h.Sum(nil))n request for a
