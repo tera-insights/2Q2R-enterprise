@@ -35,7 +35,7 @@ type authenticateData struct {
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
 	registrationRequest := RegistrationSetupRequest{
-		AppID:     "foo",
+		AppID:     goodAppID,
 		Timestamp: time.Now(),
 		UserID:    "bar",
 	}
