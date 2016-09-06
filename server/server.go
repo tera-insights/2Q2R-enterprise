@@ -117,7 +117,12 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/server/get", GetServerHandler(srv.DB), "POST")
 
 	// Auth routes
-	forMethod(router, "/v1/auth/request", AuthRequestSetupHandler(srv), "POST")
+	ah := AuthHandler{srv}
+	forMethod(router, "/v1/auth/request", ah.AuthRequestSetupHandler, "POST")
+
+	// Register routes
+	rh := RegisterHandler{srv}
+	forMethod(router, "/v1/register/request", rh.RegisterSetupHandler, "POST")
 
 	return router
 }

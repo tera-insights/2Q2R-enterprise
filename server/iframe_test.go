@@ -40,7 +40,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 		UserID:    "bar",
 	}
 	res, _ := postJSON("/v1/register/request", registrationRequest)
-	setupInfo := new(RegistrationRequestReply)
+	setupInfo := new(RegistrationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 
 	// Get registration iFrame

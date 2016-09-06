@@ -12,14 +12,14 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-// Request represents a challenge-based request.
-type Request struct {
+// RegistrationRequest stores data used during the registration of a new
+// device, etc.
+type RegistrationRequest struct {
 	requestID string
 	challenge []byte
 }
 
-// AuthenticationRequest is a specialization of Request. It has an additional
-// field, counter, that is used during authentication.
+// AuthenticationRequest stores data used during authentication.
 type AuthenticationRequest struct {
 	requestID string
 	challenge []byte
@@ -37,9 +37,9 @@ type Cacher struct {
 
 // GetRegistrationRequest returns the registration request for a particular
 // request ID.
-func (c *Cacher) GetRegistrationRequest(id string) (*Request, error) {
+func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error) {
 	if val, ok := c.registrationRequests.Get(id); ok {
-		rr := val.(Request) // We must convert and then take the address
+		rr := val.(RegistrationRequest) // We must convert and then take the address
 		ptr := &rr
 		return ptr, nil
 	}
@@ -62,7 +62,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*Request, error) {
 	}
 	tx.Commit()
 
-	r := Request{
+	r := RegistrationRequest{
 		requestID: id,
 		challenge: ltr.challenge,
 	}
@@ -85,4 +85,9 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 // SetAuthenticationRequest puts an AuthenticationRequest into the cache.
 func (c *Cacher) SetAuthenticationRequest(id string, r AuthenticationRequest) {
 	c.authenticationRequests.Set(id, r, c.expiration)
+}
+
+// SetRegistrationRequest puts a RegistrationRequest into the cache.
+func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
+	c.registrationRequests.Set(id, r, c.expiration)
 }
