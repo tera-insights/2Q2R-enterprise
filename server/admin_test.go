@@ -2,17 +2,7 @@
 
 package server
 
-import (
-	"net/http/httptest"
-	"testing"
-)
-
-var s = New(Config{
-	8080,
-	"sqlite3",
-	"test.db",
-})
-var ts = httptest.NewServer(s.GetHandler())
+import "testing"
 
 // Create app and app server
 
