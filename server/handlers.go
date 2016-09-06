@@ -76,7 +76,8 @@ func NewAppHandler(db *gorm.DB) http.HandlerFunc {
 		} else {
 			appID := randString(32)
 			if CheckBase64(appID) != nil {
-				http.Error(w, "App ID was not base-64 encoded", http.StatusBadRequest)
+				http.Error(w, "Could not generate app ID",
+					http.StatusInternalServerError)
 			} else {
 				db.Create(&AppInfo{
 					AppID:   appID,
