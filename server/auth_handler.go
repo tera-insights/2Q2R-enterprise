@@ -34,7 +34,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		r := AuthenticationRequest{
 			randString(32),
 			challenge,
-			authData.Counter,
+			authData.Counter + 1,
 		}
 		ah.s.cache.SetAuthenticationRequest(r.requestID, r)
 		server := AppServerInfo{}
