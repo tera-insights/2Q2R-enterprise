@@ -9,12 +9,15 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 var s = New(Config{
 	8080,
 	"sqlite3",
 	"test.db",
+	5 * time.Minute,
+	30 * time.Second,
 })
 var ts = httptest.NewServer(s.GetHandler())
 var goodServerName = "foo"

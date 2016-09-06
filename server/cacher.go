@@ -25,19 +25,6 @@ type AuthenticationRequest struct {
 	counter int
 }
 
-// NewCacher creates a new cacher that cleans itself after a set amount of time.
-func NewCacher(expiration time.Duration, clean time.Duration) *Cacher {
-	return &Cacher{
-		expiration: expiration,
-		clean:      clean,
-		// Maps requestID to a Request
-		registrationRequests: cache.New(expiration, clean),
-
-		// Maps requestID to an AuthenticationRequest
-		authenticationRequests: cache.New(expiration, clean),
-	}
-}
-
 // Cacher holds various requests. If they are not found, it hits the database.
 type Cacher struct {
 	expiration             time.Duration

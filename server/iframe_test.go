@@ -12,7 +12,7 @@ import (
 type registerData struct {
 	id        string
 	keyTypes  []string
-	challenge string
+	challenge []byte
 	userID    string
 	appId     string
 	infoUrl   string
@@ -23,7 +23,7 @@ type authenticateData struct {
 	id           string
 	counter      int
 	keys         []string
-	challenge    string
+	challenge    []byte
 	userID       string
 	appId        string
 	infoUrl      string
@@ -33,11 +33,13 @@ type authenticateData struct {
 
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
-	requestID := "foo"
-	appID := "bar"
+	registrationRequest := RegistrationRequest{}
+	res, _ := postJSON("/v1/register/request", registrationRequest)
+	setupInfo := new(RegistrationRequestReply)
+	unmarshalJSONBody(res, setupInfo)
 
 	// Get registration iFrame
-	res, _ := http.Get(ts.URL + "/register/" + appID)
+	res, _ = http.Get(ts.URL + "/register/" + registrationRequest.AppID)
 	var bodyBytes = make([]byte, 0)
 	n, err := res.Body.Read(bodyBytes)
 	iFrameBody := string(bodyBytes[:n])
@@ -45,19 +47,22 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 		t.Errorf("Could not find data inside iFrameBody")
 	}
 
+	// Get app info
+	res, _ = http.Get(ts.URL + "/v1/info/" + registrationRequest.AppID)
+	appInfo := new(AppIDInfoReply)
+	unmarshalJSONBody(res, appInfo)
+
 	// Assert that data embedded in the iFrame is what we expect
 	gleanedData := registerData{}
-	var appInfo AppServerInfo
-	appInfo = GetAppInfo(appID)
-	registrationRequest := GetRegistrationRequest(requestID)
+	cachedRequest, _ := s.cache.GetRegistrationRequest(setupInfo.RequestID)
 	correctData := registerData{
-		id:        requestID,
+		id:        setupInfo.RequestID,
 		keyTypes:  []string{"2q2r", "u2f"},
-		challenge: registrationRequest.challenge,
-		userID:    registrationRequest.userID,
-		appId:     appID,
-		infoUrl:   appInfo.BaseURL + "/v1/info/" + registrationRequest.appID,
-		waitUrl:   appInfo.BaseURL + "/v1/register/" + requestID + "/wait",
+		challenge: cachedRequest.challenge,
+		userID:    registrationRequest.UserID,
+		appId:     registrationRequest.AppID,
+		infoUrl:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
+		waitUrl:   appInfo.BaseURL + "/v1/register/" + setupInfo.RequestID + "/wait",
 	}
 	if !reflect.DeepEqual(gleanedData, correctData) {
 		t.Errorf("Gleaned data was not expected")
@@ -79,8 +84,12 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	// Assert that data embedded in the iFrame is what we expect
 	gleanedData := authenticateData{}
-	var appInfo AppServerInfo
-	appInfo = GetAppInfo(appID)
+
+	// Get app info
+	res, _ = http.Get(ts.URL + "/v1/info/" + appID)
+	appInfo := new(AppIDInfoReply)
+	unmarshalJSONBody(res, appInfo)
+
 	authenticationRequest := GetAuthenticationRequest(requestID)
 	correctData := authenticateData{
 		id:           requestID,

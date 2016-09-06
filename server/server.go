@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
+	cache "github.com/patrickmn/go-cache"
 )
 
 // Config is the configuration for the server.
@@ -18,17 +20,25 @@ type Config struct {
 	Port         int
 	DatabaseType string
 	DatabaseName string
+
+	// How long until auth/register requests are considered invalid (will be
+	// cleaned on the next sweep)
+	ExpirationTime time.Duration
+
+	// How frequently the auth/register caches are cleaned
+	CleanTime time.Duration
 }
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
-	c  Config
-	DB *gorm.DB
+	c     Config
+	DB    *gorm.DB
+	cache Cacher
 }
 
 // New creates a new 2Q2R server.
 func New(c Config) Server {
-	var s = Server{c, MakeDB(c)}
+	var s = Server{c, MakeDB(c), MakeCacher(c)}
 	return s
 }
 
@@ -70,6 +80,16 @@ func MakeDB(c Config) *gorm.DB {
 	return db
 }
 
+// MakeCacher returns the cacher specified by the configuration.
+func MakeCacher(c Config) Cacher {
+	return Cacher{
+		expiration:             c.ExpirationTime,
+		clean:                  c.CleanTime,
+		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
+		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
+	}
+}
+
 // HandleInvalidMethod returns a function that says that the requested method
 // was not allowed.
 func HandleInvalidMethod() func(http.ResponseWriter, *http.Request) {
@@ -92,6 +112,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/server/new", NewServerHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/delete", DeleteServerHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/get", GetServerHandler(srv.DB), "POST")
+
+	// iFrame Routes
 
 	return router
 }

@@ -56,10 +56,17 @@ type AppServerInfoRequest struct {
 	ServerID string `json:"serverID"`
 }
 
+// RegistrationRequest is the request to `POST /v1/register/request`.
+type RegistrationRequest struct {
+	AppID     string `json:"appID"`
+	Timestamp string `json:"timestamp"`
+	UserID    string `json:"userID"`
+}
+
 // RegistrationRequestReply is the response to `POST /v1/register/request`.
 type RegistrationRequestReply struct {
 	// base64Web encoded random reply id
-	ID string `json:"id"`
+	RequestID string `json:"id"`
 
 	// Url at which the registration iframe can be found. Pass to frontend.
 	RegisterURL string `json:"registerUrl"`
@@ -68,7 +75,7 @@ type RegistrationRequestReply struct {
 // AuthRequestReply is the response to `POST /v1/auth/request`.
 type AuthRequestReply struct {
 	// base64Web encoded random reply id
-	ID string `json:"id"`
+	RequestID string `json:"id"`
 
 	// Url at which the registration iframe can be found. Pass to frontend.
 	AuthURL string `json:"authUrl"`
