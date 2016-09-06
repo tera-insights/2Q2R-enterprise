@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 type registerData struct {
@@ -33,7 +34,11 @@ type authenticateData struct {
 
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
-	registrationRequest := RegistrationSetupRequest{}
+	registrationRequest := RegistrationSetupRequest{
+		AppID:     "foo",
+		Timestamp: time.Now(),
+		UserID:    "bar",
+	}
 	res, _ := postJSON("/v1/register/request", registrationRequest)
 	setupInfo := new(RegistrationRequestReply)
 	unmarshalJSONBody(res, setupInfo)
@@ -71,9 +76,14 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 
 func TestAuthenticateIFrameGeneration(t *testing.T) {
 	// Set up registration request
-	asr := AuthenticationSetupRequest{}
+	asr := AuthenticationSetupRequest{
+		AppID:     "foo",
+		Timestamp: time.Now(),
+		UserID:    "bar",
+		KeyID:     "baz",
+	}
 	res, _ := postJSON("/v1/auth/request", asr)
-	setupInfo := new(AuthRequestReply)
+	setupInfo := new(AuthenticationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 
 	// Get authentication iFrame

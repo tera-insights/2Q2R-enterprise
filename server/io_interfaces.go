@@ -2,6 +2,8 @@
 
 package server
 
+import "time"
+
 // NewAppRequest is the request to `POST /v1/app/new`.
 type NewAppRequest struct {
 	AppName string `json:"appName"`
@@ -58,9 +60,9 @@ type AppServerInfoRequest struct {
 
 // RegistrationSetupRequest is the request to `POST /v1/register/request`.
 type RegistrationSetupRequest struct {
-	AppID     string `json:"appID"`
-	Timestamp string `json:"timestamp"`
-	UserID    string `json:"userID"`
+	AppID     string    `json:"appID"`
+	Timestamp time.Time `json:"timestamp"`
+	UserID    string    `json:"userID"`
 }
 
 // RegistrationRequestReply is the response to `POST /v1/register/request`.
@@ -74,14 +76,15 @@ type RegistrationRequestReply struct {
 
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
 type AuthenticationSetupRequest struct {
-	AppID     string `json:"appID"`
-	Timestamp string `json:"timestamp"`
-	UserID    string `json:"userID"`
-	KeyID     string `json:"keyID"`
+	AppID              string      `json:"appID"`
+	Timestamp          time.Time   `json:"timestamp"`
+	UserID             string      `json:"userID"`
+	KeyID              string      `json:"keyID"`
+	AuthenticationData interface{} `json:"authentication"`
 }
 
-// AuthRequestReply is the response to `POST /v1/auth/request`.
-type AuthRequestReply struct {
+// AuthenticationSetupReply is the response to `POST /v1/auth/request`.
+type AuthenticationSetupReply struct {
 	// base64Web encoded random reply id
 	RequestID string `json:"id"`
 

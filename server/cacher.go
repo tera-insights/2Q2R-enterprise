@@ -21,8 +21,9 @@ type Request struct {
 // AuthenticationRequest is a specialization of Request. It has an additional
 // field, counter, that is used during authentication.
 type AuthenticationRequest struct {
-	Request
-	counter int
+	requestID string
+	challenge []byte
+	counter   int
 }
 
 // Cacher holds various requests. If they are not found, it hits the database.
@@ -79,4 +80,9 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 		return ptr, nil
 	}
 	return nil, fmt.Errorf("Could not find authentication request with id %s", id)
+}
+
+// SetAuthenticationRequest puts an AuthenticationRequest into the cache.
+func (c *Cacher) SetAuthenticationRequest(id string, r AuthenticationRequest) {
+	c.authenticationRequests.Set(id, r, c.expiration)
 }

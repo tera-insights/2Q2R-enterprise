@@ -18,6 +18,7 @@ var s = New(Config{
 	"test.db",
 	5 * time.Minute,
 	30 * time.Second,
+	64,
 })
 var ts = httptest.NewServer(s.GetHandler())
 var goodServerName = "foo"

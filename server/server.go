@@ -27,6 +27,9 @@ type Config struct {
 
 	// How frequently the auth/register caches are cleaned
 	CleanTime time.Duration
+
+	// In bytes
+	ChallengeLength int
 }
 
 // Server is the type that represents the 2Q2R server.
@@ -113,7 +116,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/server/delete", DeleteServerHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/get", GetServerHandler(srv.DB), "POST")
 
-	// iFrame Routes
+	// Auth routes
+	forMethod(router, "/v1/auth/request", AuthRequestSetupHandler(srv), "POST")
 
 	return router
 }
