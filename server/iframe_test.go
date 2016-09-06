@@ -33,7 +33,7 @@ type authenticateData struct {
 
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
-	registrationRequest := RegistrationRequest{}
+	registrationRequest := RegistrationSetupRequest{}
 	res, _ := postJSON("/v1/register/request", registrationRequest)
 	setupInfo := new(RegistrationRequestReply)
 	unmarshalJSONBody(res, setupInfo)
@@ -70,11 +70,14 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 }
 
 func TestAuthenticateIFrameGeneration(t *testing.T) {
-	requestID := "foo"
-	appID := "bar"
+	// Set up registration request
+	asr := AuthenticationSetupRequest{}
+	res, _ := postJSON("/v1/auth/request", asr)
+	setupInfo := new(AuthRequestReply)
+	unmarshalJSONBody(res, setupInfo)
 
 	// Get authentication iFrame
-	res, _ := http.Get(ts.URL + "/auth/" + appID)
+	res, _ = http.Get(ts.URL + "/auth/" + setupInfo.RequestID)
 	var bodyBytes = make([]byte, 0)
 	n, err := res.Body.Read(bodyBytes)
 	iFrameBody := string(bodyBytes[:n])
@@ -86,21 +89,21 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	gleanedData := authenticateData{}
 
 	// Get app info
-	res, _ = http.Get(ts.URL + "/v1/info/" + appID)
+	res, _ = http.Get(ts.URL + "/v1/info/" + asr.AppID)
 	appInfo := new(AppIDInfoReply)
 	unmarshalJSONBody(res, appInfo)
 
-	authenticationRequest := GetAuthenticationRequest(requestID)
+	authenticationRequest, _ := s.cache.GetAuthenticationRequest(setupInfo.RequestID)
 	correctData := authenticateData{
-		id:           requestID,
+		id:           setupInfo.RequestID,
 		counter:      authenticationRequest.counter,
-		keys:         GetKeys(appID, authenticationRequest.userID),
-		challenge:    GetAuthenticationChallenge(requestID),
-		userID:       authenticationRequest.userID,
-		appId:        authenticationRequest.appId,
-		infoUrl:      appInfo.BaseURL + "/v1/info/" + authenticationRequest.appId,
-		waitUrl:      appInfo.BaseURL + "/v1/auth/" + requestID + "/wait",
-		challengeUrl: appInfo.BaseURL + "/v1/auth/" + requestID + "/challenge",
+		keys:         GetKeys(asr.AppID, asr.UserID),
+		challenge:    authenticationRequest.challenge,
+		userID:       asr.UserID,
+		appId:        asr.AppID,
+		infoUrl:      appInfo.BaseURL + "/v1/info/" + asr.AppID,
+		waitUrl:      appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/wait",
+		challengeUrl: appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/challenge",
 	}
 	if !reflect.DeepEqual(gleanedData, correctData) {
 		t.Errorf("Gleaned data was not expected")

@@ -56,8 +56,8 @@ type AppServerInfoRequest struct {
 	ServerID string `json:"serverID"`
 }
 
-// RegistrationRequest is the request to `POST /v1/register/request`.
-type RegistrationRequest struct {
+// RegistrationSetupRequest is the request to `POST /v1/register/request`.
+type RegistrationSetupRequest struct {
 	AppID     string `json:"appID"`
 	Timestamp string `json:"timestamp"`
 	UserID    string `json:"userID"`
@@ -70,6 +70,14 @@ type RegistrationRequestReply struct {
 
 	// Url at which the registration iframe can be found. Pass to frontend.
 	RegisterURL string `json:"registerUrl"`
+}
+
+// AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
+type AuthenticationSetupRequest struct {
+	AppID     string `json:"appID"`
+	Timestamp string `json:"timestamp"`
+	UserID    string `json:"userID"`
+	KeyID     string `json:"keyID"`
 }
 
 // AuthRequestReply is the response to `POST /v1/auth/request`.
