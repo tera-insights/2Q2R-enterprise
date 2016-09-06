@@ -77,7 +77,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 func TestAuthenticateIFrameGeneration(t *testing.T) {
 	// Set up registration request
 	asr := AuthenticationSetupRequest{
-		AppID:     "foo",
+		AppID:     goodAppID,
 		Timestamp: time.Now(),
 		UserID:    "bar",
 		KeyID:     "baz",
