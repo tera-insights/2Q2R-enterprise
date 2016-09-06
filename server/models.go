@@ -2,7 +2,12 @@
 
 package server
 
-import "github.com/jinzhu/gorm"
+import (
+	"crypto"
+	"time"
+
+	"github.com/jinzhu/gorm"
+)
 
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
@@ -34,4 +39,15 @@ type AppServerInfo struct {
 
 	// JSON array containing a subset of ["Register", "Delete", "Login"]
 	Permissions string
+}
+
+// LongTermRequest is the Gorm model for a long-term registration request set
+// up by an admin.
+type LongTermRequest struct {
+	gorm.Model
+
+	hashedID     crypto.Hash
+	setup        time.Time
+	signerPubKey crypto.PublicKey
+	signature    []byte
 }
