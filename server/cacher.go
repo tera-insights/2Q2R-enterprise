@@ -5,6 +5,7 @@ package server
 import (
 	"crypto"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -14,7 +15,7 @@ import (
 // Request represents a challenge-based request.
 type Request struct {
 	requestID string
-	challenge string
+	challenge []byte
 	userID    string
 	appID     string
 }
@@ -47,21 +48,25 @@ type Cacher struct {
 
 // GetRegistrationRequest returns the registration request for a particular
 // request ID.
-func (c *Cacher) GetRegistrationRequest(id string) (Request, error) {
+func (c *Cacher) GetRegistrationRequest(id string) (*Request, error) {
 	if val, ok := c.registrationRequests.Get(id); ok {
-		return val.(Request), nil
+		rr := val.(Request) // We must convert and then take the address
+		ptr := &rr
+		return ptr, nil
 	}
 	ltr := LongTermRequest{}
-	var hashedID crypto.Hash
-	return c.db.FindAndDelete(LongTermRequest{hashedID: hashedID}, ltr), nil
+	var hashedID []byte
+	h := crypto.SHA256.New()
+	io.WriteString(h, id)
+	return c.db.FindAndDelete(LongTermRequest{hashedID: h.Sum(nil)}, ltr), nil
 }
 
-// GetAuthenticationRequest returns the authentication request for a
+// GetAuthenticationRequest returns the string(h.Sum(nil))n request for a
 // particular request ID.
 func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, error) {
 	val, ok := c.authenticationRequests.Get(id)
 	if ok {
-		ar := val.(AuthenticationRequest) // We must convert and then take the address
+		ar := val.(AuthenticationRequest)
 		ptr := &ar
 		return ptr, nil
 	}
