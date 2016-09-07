@@ -31,6 +31,9 @@ type Config struct {
 
 	// In bytes
 	ChallengeLength int
+
+	// BaseURL for this 2Q-2R Server
+	BaseURL string
 }
 
 // Server is the type that represents the 2Q2R server.

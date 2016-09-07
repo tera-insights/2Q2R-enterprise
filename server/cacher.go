@@ -15,8 +15,10 @@ import (
 // RegistrationRequest stores data used during the registration of a new
 // device, etc.
 type RegistrationRequest struct {
-	requestID string
-	challenge []byte
+	RequestID string
+	Challenge []byte
+	AppID     string
+	UserID    string
 }
 
 // AuthenticationRequest stores data used during authentication.
@@ -51,7 +53,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	// We transactionally find the long-term request and then delete it from
 	// the DB.
 	tx := c.db.Begin()
-	query := LongTermRequest{hashedID: hashedID}
+	query := LongTermRequest{HashedRequestID: hashedID}
 	if err := tx.First(ltr, query).Error; err != nil {
 		tx.Rollback()
 		return nil, err
@@ -63,8 +65,9 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	tx.Commit()
 
 	r := RegistrationRequest{
-		requestID: id,
-		challenge: ltr.challenge,
+		RequestID: id,
+		Challenge: []byte{0x01},
+		AppID:     ltr.AppID,
 	}
 	c.registrationRequests.Set(id, r, c.expiration)
 	return &r, nil

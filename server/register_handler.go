@@ -3,7 +3,6 @@
 package server
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -26,19 +25,19 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		handleError(w, err)
 		return
 	}
-	var challenge = make([]byte, rh.s.c.ChallengeLength)
-	rand.Read(challenge)
 	rr := RegistrationRequest{
-		randString(32),
-		challenge,
+		RequestID: randString(32),
+		Challenge: []byte{0x01},
+		AppID:     req.AppID,
+		UserID:    req.UserID,
 	}
-	rh.s.cache.SetRegistrationRequest(rr.requestID, rr)
+	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
 	server := AppServerInfo{}
 	rh.s.DB.Model(AppServerInfo{}).Find(&server,
 		AppServerInfo{ServerID: req.AuthenticationData.ServerID})
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
-		rr.requestID,
-		server.BaseURL + "/register/" + rr.requestID,
+		rr.RequestID,
+		server.BaseURL + "/register/" + rr.RequestID,
 	})
 }
 
@@ -51,9 +50,26 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		handleError(w, err)
 		return
 	}
+	cachedRequest, err := rh.s.cache.GetRegistrationRequest(requestID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	var appInfo AppInfo
+	query := AppInfo{AppID: cachedRequest.AppID}
+	err = rh.s.DB.Model(AppInfo{}).Find(&appInfo, query).Error
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	data, err := json.Marshal(registerData{
 		RequestID: requestID,
-		KeyTypes:  []string{"foo", "bar"},
+		KeyTypes:  []string{"2q2r", "u2f"},
+		Challenge: cachedRequest.Challenge,
+		UserID:    cachedRequest.UserID,
+		AppID:     cachedRequest.AppID,
+		InfoURL:   rh.s.c.BaseURL + "/v1/info/" + cachedRequest.AppID,
+		WaitURL:   rh.s.c.BaseURL + "/v1/register/" + requestID + "/wait",
 	})
 	if err != nil {
 		handleError(w, err)

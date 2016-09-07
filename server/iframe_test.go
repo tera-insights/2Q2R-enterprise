@@ -46,7 +46,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	correctData := registerData{
 		RequestID: setupInfo.RequestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: cachedRequest.challenge,
+		Challenge: cachedRequest.Challenge,
 		UserID:    registrationRequest.UserID,
 		AppID:     registrationRequest.AppID,
 		InfoURL:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
