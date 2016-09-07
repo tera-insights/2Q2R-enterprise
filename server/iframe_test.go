@@ -3,6 +3,7 @@
 package server
 
 import (
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
@@ -49,10 +50,9 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	unmarshalJSONBody(res, setupInfo)
 
 	// Get registration iFrame
-	res, _ = http.Get(ts.URL + "/register/" + registrationRequest.AppID)
-	var bodyBytes = make([]byte, 0)
-	n, _ := res.Body.Read(bodyBytes)
-	iFrameBody := string(bodyBytes[:n])
+	res, _ = http.Get(ts.URL + "/register/" + setupInfo.RequestID)
+	bytes, _ := ioutil.ReadAll(res.Body)
+	iFrameBody := string(bytes)
 	if strings.Index(iFrameBody, "var data = ") == -1 {
 		t.Errorf("Could not find data inside iFrameBody")
 	}

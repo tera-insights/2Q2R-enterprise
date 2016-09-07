@@ -5,6 +5,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -39,10 +40,17 @@ type Server struct {
 	cache Cacher
 }
 
-type TemplateData struct {
-	Name            string
-	ID              string
-	StringifiedData string
+// Used in registration and authentication templates
+type templateData struct {
+	Name string
+	ID   string
+	Data template.JS
+}
+
+// Embedded in the templates
+type authData struct {
+	ID      string `json:"id"`
+	Counter int    `json:"counter"`
 }
 
 // New creates a new 2Q2R server.

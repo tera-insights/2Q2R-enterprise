@@ -46,10 +46,15 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	t, err := template.ParseFiles("../assets/all.html")
 	if err != nil {
 		handleError(w, err)
+	} else {
+		data, _ := json.Marshal(authData{
+			ID:      "bar",
+			Counter: 0,
+		})
+		t.Execute(w, templateData{
+			Name: "Authentication",
+			ID:   "auth",
+			Data: template.JS(data),
+		})
 	}
-	t.Execute(w, TemplateData{
-		Name:            "Authentication",
-		ID:              "auth",
-		StringifiedData: "{foo: \"bar\"}",
-	})
 }
