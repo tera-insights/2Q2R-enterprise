@@ -11,28 +11,6 @@ import (
 	"time"
 )
 
-type registerData struct {
-	id        string
-	keyTypes  []string
-	challenge []byte
-	userID    string
-	appId     string
-	infoUrl   string
-	waitUrl   string
-}
-
-type authenticateData struct {
-	id           string
-	counter      int
-	keys         []string
-	challenge    []byte
-	userID       string
-	appId        string
-	infoUrl      string
-	waitUrl      string
-	challengeUrl string
-}
-
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
 	authData := CounterBasedAuthData{
@@ -66,13 +44,13 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	gleanedData := registerData{}
 	cachedRequest, _ := s.cache.GetRegistrationRequest(setupInfo.RequestID)
 	correctData := registerData{
-		id:        setupInfo.RequestID,
-		keyTypes:  []string{"2q2r", "u2f"},
-		challenge: cachedRequest.challenge,
-		userID:    registrationRequest.UserID,
-		appId:     registrationRequest.AppID,
-		infoUrl:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
-		waitUrl:   appInfo.BaseURL + "/v1/register/" + setupInfo.RequestID + "/wait",
+		ID:        setupInfo.RequestID,
+		KeyTypes:  []string{"2q2r", "u2f"},
+		Challenge: cachedRequest.challenge,
+		UserID:    registrationRequest.UserID,
+		AppID:     registrationRequest.AppID,
+		InfoURL:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
+		WaitURL:   appInfo.BaseURL + "/v1/register/" + setupInfo.RequestID + "/wait",
 	}
 	if !reflect.DeepEqual(gleanedData, correctData) {
 		t.Errorf("Gleaned data was not expected")
@@ -93,9 +71,8 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	// Get authentication iFrame
 	res, _ = http.Get(ts.URL + "/auth/" + setupInfo.RequestID)
-	var bodyBytes = make([]byte, 0)
-	n, _ := res.Body.Read(bodyBytes)
-	iFrameBody := string(bodyBytes[:n])
+	bytes, _ := ioutil.ReadAll(res.Body)
+	iFrameBody := string(bytes)
 	if strings.Index(iFrameBody, "var data = ") == -1 {
 		t.Errorf("Could not find data inside iFrameBody")
 	}
@@ -115,15 +92,15 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys)
 
 	correctData := authenticateData{
-		id:           setupInfo.RequestID,
-		counter:      authenticationRequest.counter,
-		keys:         keys,
-		challenge:    authenticationRequest.challenge,
-		userID:       asr.UserID,
-		appId:        asr.AppID,
-		infoUrl:      appInfo.BaseURL + "/v1/info/" + asr.AppID,
-		waitUrl:      appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/wait",
-		challengeUrl: appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/challenge",
+		ID:           setupInfo.RequestID,
+		Counter:      authenticationRequest.counter,
+		Keys:         keys,
+		Challenge:    authenticationRequest.challenge,
+		UserID:       asr.UserID,
+		AppID:        asr.AppID,
+		InfoURL:      appInfo.BaseURL + "/v1/info/" + asr.AppID,
+		WaitURL:      appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/wait",
+		ChallengeURL: appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/challenge",
 	}
 	if !reflect.DeepEqual(gleanedData, correctData) {
 		t.Errorf("Gleaned data was not expected")

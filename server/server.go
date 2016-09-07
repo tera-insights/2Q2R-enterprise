@@ -48,9 +48,27 @@ type templateData struct {
 }
 
 // Embedded in the templates
-type authData struct {
-	ID      string `json:"id"`
-	Counter int    `json:"counter"`
+type registerData struct {
+	ID        string   `json:"id"`
+	KeyTypes  []string `json:"keyTypes"`
+	Challenge []byte   `json:"challenge"`
+	UserID    string   `json:"userID"`
+	AppID     string   `json:"appId"`
+	InfoURL   string   `json:"infoUrl"`
+	WaitURL   string   `json:"waitUrl"`
+}
+
+// Embedded in the templates
+type authenticateData struct {
+	ID           string   `json:"id"`
+	Counter      int      `json:"counter"`
+	Keys         []string `json:"keys"`
+	Challenge    []byte   `json:"challenge"`
+	UserID       string   `json:"userID"`
+	AppID        string   `json:"appId"`
+	InfoURL      string   `json:"infoUrl"`
+	WaitURL      string   `json:"waitUrl"`
+	ChallengeURL string   `json:"challengeUrl"`
 }
 
 // New creates a new 2Q2R server.
@@ -133,6 +151,7 @@ func (srv *Server) GetHandler() http.Handler {
 	// Auth routes
 	ah := AuthHandler{srv}
 	forMethod(router, "/v1/auth/request", ah.AuthRequestSetupHandler, "POST")
+	forMethod(router, "/auth/{requestID}", ah.AuthIFrameHandler, "GET")
 
 	// Register routes
 	rh := RegisterHandler{srv}

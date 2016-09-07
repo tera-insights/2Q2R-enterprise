@@ -5,6 +5,7 @@ package server
 import (
 	"crypto/rand"
 	"encoding/json"
+	"html/template"
 	"net/http"
 )
 
@@ -42,6 +43,25 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		writeJSON(w, http.StatusOK, AuthenticationSetupReply{
 			r.requestID,
 			server.BaseURL + "/auth/" + r.requestID,
+		})
+	}
+}
+
+// AuthIFrameHandler returns the iFrame that is used to perform authentication.
+// GET /register/:id
+func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("../assets/all.html")
+	if err != nil {
+		handleError(w, err)
+	} else {
+		data, _ := json.Marshal(authenticateData{
+			ID:      "bar",
+			Counter: 1,
+		})
+		t.Execute(w, templateData{
+			Name: "Authentication",
+			ID:   "auth",
+			Data: template.JS(data),
 		})
 	}
 }

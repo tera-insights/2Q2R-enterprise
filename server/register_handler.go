@@ -40,20 +40,20 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	})
 }
 
-// RegisterIFrameHandler returns the iFrame that is used to perform the actual registration.
+// RegisterIFrameHandler returns the iFrame that is used to perform registration.
 // GET /register/:id
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := template.ParseFiles("../assets/all.html")
 	if err != nil {
 		handleError(w, err)
 	} else {
-		data, _ := json.Marshal(authData{
-			ID:      "bar",
-			Counter: 0,
+		data, _ := json.Marshal(registerData{
+			ID:       "bar",
+			KeyTypes: []string{"foo", "bar"},
 		})
 		t.Execute(w, templateData{
-			Name: "Authentication",
-			ID:   "auth",
+			Name: "Registration",
+			ID:   "register",
 			Data: template.JS(data),
 		})
 	}
