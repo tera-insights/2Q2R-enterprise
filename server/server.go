@@ -49,7 +49,7 @@ type templateData struct {
 
 // Embedded in the templates
 type registerData struct {
-	ID        string   `json:"id"`
+	RequestID string   `json:"id"`
 	KeyTypes  []string `json:"keyTypes"`
 	Challenge []byte   `json:"challenge"`
 	UserID    string   `json:"userID"`
@@ -60,7 +60,7 @@ type registerData struct {
 
 // Embedded in the templates
 type authenticateData struct {
-	ID           string   `json:"id"`
+	RequestID    string   `json:"id"`
 	Counter      int      `json:"counter"`
 	Keys         []string `json:"keys"`
 	Challenge    []byte   `json:"challenge"`

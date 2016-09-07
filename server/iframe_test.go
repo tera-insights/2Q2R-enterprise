@@ -44,7 +44,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	gleanedData := registerData{}
 	cachedRequest, _ := s.cache.GetRegistrationRequest(setupInfo.RequestID)
 	correctData := registerData{
-		ID:        setupInfo.RequestID,
+		RequestID: setupInfo.RequestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
 		Challenge: cachedRequest.challenge,
 		UserID:    registrationRequest.UserID,
@@ -92,7 +92,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys)
 
 	correctData := authenticateData{
-		ID:           setupInfo.RequestID,
+		RequestID:    setupInfo.RequestID,
 		Counter:      authenticationRequest.counter,
 		Keys:         keys,
 		Challenge:    authenticationRequest.challenge,

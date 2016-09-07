@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // CounterBasedAuthData represents auth data that uses a counter.
@@ -50,18 +52,23 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
 // GET /register/:id
 func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
+	requestID := mux.Vars(r)["requestID"]
 	t, err := template.ParseFiles("../assets/all.html")
 	if err != nil {
 		handleError(w, err)
-	} else {
-		data, _ := json.Marshal(authenticateData{
-			ID:      "bar",
-			Counter: 1,
-		})
-		t.Execute(w, templateData{
-			Name: "Authentication",
-			ID:   "auth",
-			Data: template.JS(data),
-		})
+		return
 	}
+	data, err := json.Marshal(authenticateData{
+		RequestID: requestID,
+		Counter:   1,
+	})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	t.Execute(w, templateData{
+		Name: "Authentication",
+		ID:   "auth",
+		Data: template.JS(data),
+	})
 }

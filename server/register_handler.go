@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // RegisterHandler is the handler for all registration requests.
@@ -43,18 +45,23 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 // RegisterIFrameHandler returns the iFrame that is used to perform registration.
 // GET /register/:id
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+	requestID := mux.Vars(r)["requestID"]
 	t, err := template.ParseFiles("../assets/all.html")
 	if err != nil {
 		handleError(w, err)
-	} else {
-		data, _ := json.Marshal(registerData{
-			ID:       "bar",
-			KeyTypes: []string{"foo", "bar"},
-		})
-		t.Execute(w, templateData{
-			Name: "Registration",
-			ID:   "register",
-			Data: template.JS(data),
-		})
+		return
 	}
+	data, err := json.Marshal(registerData{
+		RequestID: requestID,
+		KeyTypes:  []string{"foo", "bar"},
+	})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	t.Execute(w, templateData{
+		Name: "Registration",
+		ID:   "register",
+		Data: template.JS(data),
+	})
 }
