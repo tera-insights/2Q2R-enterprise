@@ -28,18 +28,17 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		handleError(w, err)
 	} else {
-		authData := req.AuthenticationData.(CounterBasedAuthData)
 		var challenge = make([]byte, ah.s.c.ChallengeLength)
 		rand.Read(challenge)
 		r := AuthenticationRequest{
 			randString(32),
 			challenge,
-			authData.Counter + 1,
+			req.AuthenticationData.Counter + 1,
 		}
 		ah.s.cache.SetAuthenticationRequest(r.requestID, r)
 		server := AppServerInfo{}
 		ah.s.DB.Model(AppServerInfo{}).Find(&server,
-			AppServerInfo{ServerID: authData.ServerID})
+			AppServerInfo{ServerID: req.AuthenticationData.ServerID})
 		writeJSON(w, http.StatusOK, AuthenticationSetupReply{
 			r.requestID,
 			server.BaseURL + "/auth/" + r.requestID,

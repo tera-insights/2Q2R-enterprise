@@ -23,7 +23,6 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		handleError(w, err)
 		return
 	}
-	authData := req.AuthenticationData.(CounterBasedAuthData)
 	var challenge = make([]byte, rh.s.c.ChallengeLength)
 	rand.Read(challenge)
 	rr := RegistrationRequest{
@@ -33,7 +32,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	rh.s.cache.SetRegistrationRequest(rr.requestID, rr)
 	server := AppServerInfo{}
 	rh.s.DB.Model(AppServerInfo{}).Find(&server,
-		AppServerInfo{ServerID: authData.ServerID})
+		AppServerInfo{ServerID: req.AuthenticationData.ServerID})
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.requestID,
 		server.BaseURL + "/register/" + rr.requestID,

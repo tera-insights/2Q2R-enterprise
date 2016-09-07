@@ -60,10 +60,10 @@ type AppServerInfoRequest struct {
 
 // RegistrationSetupRequest is the request to `POST /v1/register/request`.
 type RegistrationSetupRequest struct {
-	AppID              string      `json:"appID"`
-	Timestamp          time.Time   `json:"timestamp"`
-	UserID             string      `json:"userID"`
-	AuthenticationData interface{} `json:"authentication"`
+	AppID              string               `json:"appID"`
+	Timestamp          time.Time            `json:"timestamp"`
+	UserID             string               `json:"userID"`
+	AuthenticationData CounterBasedAuthData `json:"authentication"`
 }
 
 // RegistrationSetupReply is the reply to `POST /v1/register/request`.
@@ -77,11 +77,11 @@ type RegistrationSetupReply struct {
 
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
 type AuthenticationSetupRequest struct {
-	AppID              string      `json:"appID"`
-	Timestamp          time.Time   `json:"timestamp"`
-	UserID             string      `json:"userID"`
-	KeyID              string      `json:"keyID"`
-	AuthenticationData interface{} `json:"authentication"`
+	AppID              string               `json:"appID"`
+	Timestamp          time.Time            `json:"timestamp"`
+	UserID             string               `json:"userID"`
+	KeyID              string               `json:"keyID"`
+	AuthenticationData CounterBasedAuthData `json:"authentication"`
 }
 
 // AuthenticationSetupReply is the response to `POST /v1/auth/request`.

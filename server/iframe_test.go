@@ -34,10 +34,15 @@ type authenticateData struct {
 
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
+	authData := CounterBasedAuthData{
+		Counter:  0,
+		ServerID: "foo",
+	}
 	registrationRequest := RegistrationSetupRequest{
-		AppID:     goodAppID,
-		Timestamp: time.Now(),
-		UserID:    "bar",
+		AppID:              goodAppID,
+		Timestamp:          time.Now(),
+		UserID:             "bar",
+		AuthenticationData: authData,
 	}
 	res, _ := postJSON("/v1/register/request", registrationRequest)
 	setupInfo := new(RegistrationSetupReply)
