@@ -5,6 +5,7 @@ package server
 import (
 	"crypto/rand"
 	"encoding/json"
+	"html/template"
 	"net/http"
 )
 
@@ -36,5 +37,19 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.requestID,
 		server.BaseURL + "/register/" + rr.requestID,
+	})
+}
+
+// RegisterIFrameHandler returns the iFrame that is used to perform the actual registration.
+// GET /register/:id
+func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("../assets/all.html")
+	if err != nil {
+		handleError(w, err)
+	}
+	t.Execute(w, TemplateData{
+		Name:            "Authentication",
+		ID:              "auth",
+		StringifiedData: "{foo: \"bar\"}",
 	})
 }

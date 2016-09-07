@@ -39,6 +39,12 @@ type Server struct {
 	cache Cacher
 }
 
+type TemplateData struct {
+	Name            string
+	ID              string
+	StringifiedData string
+}
+
 // New creates a new 2Q2R server.
 func New(c Config) Server {
 	var s = Server{c, MakeDB(c), MakeCacher(c)}
@@ -123,6 +129,7 @@ func (srv *Server) GetHandler() http.Handler {
 	// Register routes
 	rh := RegisterHandler{srv}
 	forMethod(router, "/v1/register/request", rh.RegisterSetupHandler, "POST")
+	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	return router
 }
