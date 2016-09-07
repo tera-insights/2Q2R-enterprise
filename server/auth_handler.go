@@ -34,17 +34,19 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		var challenge = make([]byte, ah.s.c.ChallengeLength)
 		rand.Read(challenge)
 		r := AuthenticationRequest{
-			randString(32),
-			challenge,
-			req.AuthenticationData.Counter + 1,
+			RequestID: randString(32),
+			Challenge: challenge,
+			Counter:   req.AuthenticationData.Counter + 1,
+			AppID:     req.AppID,
+			UserID:    req.UserID,
 		}
-		ah.s.cache.SetAuthenticationRequest(r.requestID, r)
+		ah.s.cache.SetAuthenticationRequest(r.RequestID, r)
 		server := AppServerInfo{}
 		ah.s.DB.Model(AppServerInfo{}).Find(&server,
 			AppServerInfo{ServerID: req.AuthenticationData.ServerID})
 		writeJSON(w, http.StatusOK, AuthenticationSetupReply{
-			r.requestID,
-			server.BaseURL + "/auth/" + r.requestID,
+			r.RequestID,
+			server.BaseURL + "/auth/" + r.RequestID,
 		})
 	}
 }
@@ -58,9 +60,24 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		handleError(w, err)
 		return
 	}
+	cachedRequest, err := ah.s.cache.GetAuthenticationRequest(requestID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
+	var keys []string
+	err = ah.s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys).Error
 	data, err := json.Marshal(authenticateData{
-		RequestID: requestID,
-		Counter:   1,
+		RequestID:    requestID,
+		Counter:      1,
+		Keys:         keys,
+		Challenge:    cachedRequest.Challenge,
+		UserID:       cachedRequest.UserID,
+		AppID:        cachedRequest.AppID,
+		InfoURL:      ah.s.c.BaseURL + "/v1/info/" + cachedRequest.AppID,
+		WaitURL:      ah.s.c.BaseURL + "/v1/auth/" + cachedRequest.RequestID + "/wait",
+		ChallengeURL: ah.s.c.BaseURL + "/v1/auth/" + cachedRequest.RequestID + "/challenge",
 	})
 	if err != nil {
 		handleError(w, err)

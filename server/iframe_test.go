@@ -93,9 +93,9 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	correctData := authenticateData{
 		RequestID:    setupInfo.RequestID,
-		Counter:      authenticationRequest.counter,
+		Counter:      authenticationRequest.Counter,
 		Keys:         keys,
-		Challenge:    authenticationRequest.challenge,
+		Challenge:    authenticationRequest.Challenge,
 		UserID:       asr.UserID,
 		AppID:        asr.AppID,
 		InfoURL:      appInfo.BaseURL + "/v1/info/" + asr.AppID,

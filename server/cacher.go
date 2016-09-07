@@ -23,9 +23,11 @@ type RegistrationRequest struct {
 
 // AuthenticationRequest stores data used during authentication.
 type AuthenticationRequest struct {
-	requestID string
-	challenge []byte
-	counter   int
+	RequestID string
+	Challenge []byte
+	Counter   int
+	AppID     string
+	UserID    string
 }
 
 // Cacher holds various requests. If they are not found, it hits the database.
