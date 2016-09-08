@@ -54,4 +54,5 @@ type Key struct {
 	UserID    string
 	AppID     string
 	PublicKey string
+	Counter   int
 }

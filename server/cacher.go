@@ -25,7 +25,6 @@ type RegistrationRequest struct {
 type AuthenticationRequest struct {
 	RequestID string
 	Challenge []byte
-	Counter   int
 	AppID     string
 	UserID    string
 }

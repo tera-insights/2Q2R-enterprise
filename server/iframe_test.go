@@ -14,7 +14,7 @@ import (
 
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
-	authData := CounterBasedAuthData{
+	authData := AuthenticationData{
 		Counter:  0,
 		ServerID: "foo",
 	}
@@ -119,13 +119,16 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	authenticationRequest, _ := s.cache.GetAuthenticationRequest(setupInfo.RequestID)
 
+	keyID := "foo"
 	query := Key{AppID: asr.AppID, UserID: asr.UserID}
 	var keys []string
 	s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys)
+	correctCounter := 0
+	s.DB.Model(Key{}).Where(Key{KeyID: keyID}).Count(correctCounter)
 
 	correctData := authenticateData{
 		RequestID:    setupInfo.RequestID,
-		Counter:      authenticationRequest.Counter,
+		Counter:      correctCounter,
 		Keys:         keys,
 		Challenge:    authenticationRequest.Challenge,
 		UserID:       asr.UserID,

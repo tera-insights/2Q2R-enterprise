@@ -11,8 +11,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// CounterBasedAuthData represents auth data that uses a counter.
-type CounterBasedAuthData struct {
+// AuthenticationData represents auth data.
+type AuthenticationData struct {
 	Counter  int
 	ServerID string
 }
@@ -30,25 +30,24 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	err := decoder.Decode(&req)
 	if err != nil {
 		handleError(w, err)
-	} else {
-		var challenge = make([]byte, ah.s.c.ChallengeLength)
-		rand.Read(challenge)
-		r := AuthenticationRequest{
-			RequestID: randString(32),
-			Challenge: challenge,
-			Counter:   req.AuthenticationData.Counter + 1,
-			AppID:     req.AppID,
-			UserID:    req.UserID,
-		}
-		ah.s.cache.SetAuthenticationRequest(r.RequestID, r)
-		server := AppServerInfo{}
-		ah.s.DB.Model(AppServerInfo{}).Find(&server,
-			AppServerInfo{ServerID: req.AuthenticationData.ServerID})
-		writeJSON(w, http.StatusOK, AuthenticationSetupReply{
-			r.RequestID,
-			server.BaseURL + "/auth/" + r.RequestID,
-		})
+		return
 	}
+	var challenge = make([]byte, ah.s.c.ChallengeLength)
+	rand.Read(challenge)
+	cachedRequest := AuthenticationRequest{
+		RequestID: randString(32),
+		Challenge: challenge,
+		AppID:     req.AppID,
+		UserID:    req.UserID,
+	}
+	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
+	server := AppServerInfo{}
+	ah.s.DB.Model(AppServerInfo{}).Find(&server,
+		AppServerInfo{ServerID: req.AuthenticationData.ServerID})
+	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
+		cachedRequest.RequestID,
+		server.BaseURL + "/auth/" + cachedRequest.RequestID,
+	})
 }
 
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
