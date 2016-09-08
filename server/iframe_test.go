@@ -119,16 +119,13 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	authenticationRequest, _ := s.cache.GetAuthenticationRequest(setupInfo.RequestID)
 
-	keyID := "foo"
 	query := Key{AppID: asr.AppID, UserID: asr.UserID}
 	var keys []string
 	s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys)
-	correctCounter := 0
-	s.DB.Model(Key{}).Where(Key{KeyID: keyID}).Count(correctCounter)
 
 	correctData := authenticateData{
 		RequestID:    setupInfo.RequestID,
-		Counter:      correctCounter,
+		Counter:      12903812,
 		Keys:         keys,
 		Challenge:    authenticationRequest.Challenge,
 		UserID:       asr.UserID,
