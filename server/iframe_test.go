@@ -4,7 +4,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -109,7 +108,6 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		ChallengeURL: appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/challenge",
 	}
 	if gleanedData.RequestID != correctData.RequestID {
-		fmt.Printf("%s vs %s\n", gleanedData.RequestID, correctData.RequestID)
 		t.Errorf("RequestID was not properly templated")
 	}
 	if gleanedData.Counter != correctData.Counter {
@@ -128,7 +126,6 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		t.Errorf("AppID was not properly templated")
 	}
 	if gleanedData.InfoURL != correctData.InfoURL {
-		fmt.Printf("%s vs %s\n", gleanedData.InfoURL, correctData.InfoURL)
 		t.Errorf("InfoURL was not properly templated")
 	}
 	if gleanedData.WaitURL != correctData.WaitURL {
