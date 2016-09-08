@@ -4,11 +4,25 @@ package server
 
 import "testing"
 
-// Create app and app server
+// Create app server
 // Add user to system
 // Add key to system
 
 func TestIFrameAuthentication(t *testing.T) {
+	serverName := "auth_e2e_test"
+
+	// Create app server
+	postJSON("/v1/admin/server/new", NewServerRequest{
+		ServerName:  serverName,
+		AppID:       goodAppID,
+		BaseURL:     goodBaseURL,
+		KeyType:     goodKeyType,
+		PublicKey:   goodPublicKey,
+		Permissions: goodPermissions,
+	})
+
+	// Add user to system
+
 	// Set up an authentication request
 
 	// Get the registration iFrame and extract the challenge

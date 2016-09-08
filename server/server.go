@@ -145,19 +145,21 @@ func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
-	forMethod(router, "/v1/app/new", NewAppHandler(srv.DB), "POST")
-	forMethod(router, "/v1/admin/server/new", NewServerHandler(srv.DB), "POST")
-	forMethod(router, "/v1/admin/server/delete", DeleteServerHandler(srv.DB), "POST")
-	forMethod(router, "/v1/admin/server/get", GetServerHandler(srv.DB), "POST")
+	// Admin routes
+	ah := AdminHandler{srv}
+	forMethod(router, "/v1/admin/app/new", ah.NewAppHandler, "POST")
+	forMethod(router, "/v1/admin/server/new", ah.NewServerHandler, "POST")
+	forMethod(router, "/v1/admin/server/delete", ah.DeleteServerHandler, "POST")
+	forMethod(router, "/v1/admin/server/get", ah.GetServerHandler, "POST")
 
 	// Info routes
 	ih := InfoHandler{srv}
 	forMethod(router, "/v1/info/{appID}", ih.AppInfoHandler, "GET")
 
 	// Auth routes
-	ah := AuthHandler{srv}
-	forMethod(router, "/v1/auth/request", ah.AuthRequestSetupHandler, "POST")
-	forMethod(router, "/auth/{requestID}", ah.AuthIFrameHandler, "GET")
+	uh := AuthHandler{srv}
+	forMethod(router, "/v1/auth/request", uh.AuthRequestSetupHandler, "POST")
+	forMethod(router, "/auth/{requestID}", uh.AuthIFrameHandler, "GET")
 
 	// Register routes
 	rh := RegisterHandler{srv}

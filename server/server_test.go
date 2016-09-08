@@ -33,7 +33,7 @@ var goodAppID string
 
 // Create new app for use in other
 func TestMain(m *testing.M) {
-	res, _ := postJSON("/v1/app/new", NewAppRequest{
+	res, _ := postJSON("/v1/admin/app/new", NewAppRequest{
 		AppName: goodAppName,
 	})
 	appReply := new(NewAppReply)
