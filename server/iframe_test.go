@@ -42,7 +42,16 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	unmarshalJSONBody(res, appInfo)
 
 	// Assert that data embedded in the iFrame is what we expect
-	gleanedData := registerData{}
+	startIndex := strings.Index(iFrameBody, "{")
+	endIndex := strings.Index(iFrameBody, ";")
+	if startIndex == -1 || endIndex == -1 {
+		t.Errorf("Could not find data inside iFrameBody")
+	}
+
+	embedded := iFrameBody[startIndex:endIndex]
+	gleanedData := new(registerData)
+	json.NewDecoder(strings.NewReader(embedded)).Decode(gleanedData)
+
 	cachedRequest, _ := s.cache.GetRegistrationRequest(setupInfo.RequestID)
 	correctData := registerData{
 		RequestID: setupInfo.RequestID,
@@ -53,8 +62,26 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 		InfoURL:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
 		WaitURL:   appInfo.BaseURL + "/v1/register/" + setupInfo.RequestID + "/wait",
 	}
-	if !reflect.DeepEqual(gleanedData, correctData) {
-		t.Errorf("Gleaned data was not expected")
+	if gleanedData.RequestID != correctData.RequestID {
+		t.Errorf("RequestID was not properly templated")
+	}
+	if !reflect.DeepEqual(gleanedData.KeyTypes, correctData.KeyTypes) {
+		t.Errorf("KeyTypes were not properly templated")
+	}
+	if !reflect.DeepEqual(gleanedData.Challenge, correctData.Challenge) {
+		t.Errorf("Challenge was not properly templated")
+	}
+	if gleanedData.UserID != correctData.UserID {
+		t.Errorf("UserID was not properly templated")
+	}
+	if gleanedData.AppID != correctData.AppID {
+		t.Errorf("AppID was not properly templated")
+	}
+	if gleanedData.InfoURL != correctData.InfoURL {
+		t.Errorf("InfoURL was not properly templated")
+	}
+	if gleanedData.WaitURL != correctData.WaitURL {
+		t.Errorf("WaitURL was not properly templated")
 	}
 }
 
