@@ -3,6 +3,8 @@
 package server
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -73,12 +75,16 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	res, _ = http.Get(ts.URL + "/auth/" + setupInfo.RequestID)
 	bytes, _ := ioutil.ReadAll(res.Body)
 	iFrameBody := string(bytes)
-	if strings.Index(iFrameBody, "var data = ") == -1 {
+
+	startIndex := strings.Index(iFrameBody, "{")
+	endIndex := strings.Index(iFrameBody, ";")
+	if startIndex == -1 || endIndex == -1 {
 		t.Errorf("Could not find data inside iFrameBody")
 	}
 
-	// Assert that data embedded in the iFrame is what we expect
-	gleanedData := authenticateData{}
+	embedded := iFrameBody[startIndex:endIndex]
+	gleanedData := new(authenticateData)
+	json.NewDecoder(strings.NewReader(embedded)).Decode(gleanedData)
 
 	// Get app info
 	res, _ = http.Get(ts.URL + "/v1/info/" + asr.AppID)
@@ -102,7 +108,33 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		WaitURL:      appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/wait",
 		ChallengeURL: appInfo.BaseURL + "/v1/auth/" + setupInfo.RequestID + "/challenge",
 	}
-	if !reflect.DeepEqual(gleanedData, correctData) {
-		t.Errorf("Gleaned data was not expected")
+	if gleanedData.RequestID != correctData.RequestID {
+		fmt.Printf("%s vs %s\n", gleanedData.RequestID, correctData.RequestID)
+		t.Errorf("RequestID was not properly templated")
+	}
+	if gleanedData.Counter != correctData.Counter {
+		t.Errorf("Counter was not properly templated")
+	}
+	if !reflect.DeepEqual(gleanedData.Keys, correctData.Keys) {
+		t.Errorf("Keys were not properly templated")
+	}
+	if !reflect.DeepEqual(gleanedData.Challenge, correctData.Challenge) {
+		t.Errorf("Challenge was not properly templated")
+	}
+	if gleanedData.UserID != correctData.UserID {
+		t.Errorf("UserID was not properly templated")
+	}
+	if gleanedData.AppID != correctData.AppID {
+		t.Errorf("AppID was not properly templated")
+	}
+	if gleanedData.InfoURL != correctData.InfoURL {
+		fmt.Printf("%s vs %s\n", gleanedData.InfoURL, correctData.InfoURL)
+		t.Errorf("InfoURL was not properly templated")
+	}
+	if gleanedData.WaitURL != correctData.WaitURL {
+		t.Errorf("WaitURL was not properly templated")
+	}
+	if gleanedData.ChallengeURL != correctData.ChallengeURL {
+		t.Errorf("ChallengeURL was not properly templated")
 	}
 }

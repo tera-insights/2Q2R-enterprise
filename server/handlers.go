@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -33,36 +32,6 @@ func randString(n int) string {
 		bytes[i] = alphanum[b%byte(len(alphanum))]
 	}
 	return string(bytes)
-}
-
-// AppInfoHandler returns information about the app specified by `appID`.
-func AppInfoHandler(db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		appID := mux.Vars(r)["appID"]
-		if CheckBase64(appID) != nil {
-			http.Error(w, "appID was not a valid base-64 string",
-				http.StatusBadRequest)
-		} else {
-			t := DBHandler{DB: db.Model(&AppInfo{})}
-			query := AppInfo{AppID: appID}
-			count := t.CountWhere(query)
-			if count > 0 {
-				var info AppInfo
-				t.FirstWhere(AppInfo{AppID: appID}, &info)
-				reply := AppIDInfoReply{
-					AppName:       info.AppName,
-					BaseURL:       "example.com",
-					AppID:         info.AppID,
-					ServerPubKey:  "my_pub_key",
-					ServerKeyType: "ECC-P256",
-				}
-				writeJSON(w, http.StatusOK, reply)
-			} else {
-				http.Error(w, "Could not find information for app with ID "+
-					appID, http.StatusNotFound)
-			}
-		}
-	}
 }
 
 // NewAppHandler creates a new app.

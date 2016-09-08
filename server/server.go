@@ -145,11 +145,14 @@ func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
-	forMethod(router, "/v1/info/{appID}", AppInfoHandler(srv.DB), "GET")
 	forMethod(router, "/v1/app/new", NewAppHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/new", NewServerHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/delete", DeleteServerHandler(srv.DB), "POST")
 	forMethod(router, "/v1/admin/server/get", GetServerHandler(srv.DB), "POST")
+
+	// Info routes
+	ih := InfoHandler{srv}
+	forMethod(router, "/v1/info/{appID}", ih.AppInfoHandler, "GET")
 
 	// Auth routes
 	ah := AuthHandler{srv}
