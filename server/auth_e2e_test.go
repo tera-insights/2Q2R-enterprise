@@ -2,7 +2,10 @@
 
 package server
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 // Create app server
 // Add user to system
@@ -22,10 +25,26 @@ func TestIFrameAuthentication(t *testing.T) {
 	})
 
 	// Add user to system
+	// postJSON("/v1/admin/user/new", NewUserRequest{})
 
-	// Set up an authentication request
+	// Set up a registration request
+	authData := AuthenticationData{
+		Counter:  0,
+		ServerID: "foo",
+	}
+	registrationRequest := RegistrationSetupRequest{
+		AppID:              goodAppID,
+		Timestamp:          time.Now(),
+		UserID:             "bar",
+		AuthenticationData: authData,
+	}
+	res, _ := postJSON("/v1/register/request", registrationRequest)
+	setupInfo := new(RegistrationSetupReply)
+	unmarshalJSONBody(res, setupInfo)
 
 	// Get the registration iFrame and extract the challenge
+	gleanedData := new(registerData)
+	extractEmbeddedData("/register/"+setupInfo.RequestID, gleanedData)
 
 	// In a separate routine, wait for the registration challenge to be met
 

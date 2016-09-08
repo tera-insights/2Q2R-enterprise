@@ -12,6 +12,18 @@ import (
 	"time"
 )
 
+func extractEmbeddedData(route string, o interface{}) {
+	res, _ := http.Get(ts.URL + route)
+	bytes, _ := ioutil.ReadAll(res.Body)
+	iFrameBody := string(bytes)
+
+	// Assert that data embedded in the iFrame is what we expect
+	startIndex := strings.Index(iFrameBody, "{")
+	endIndex := strings.Index(iFrameBody, ";")
+	embedded := iFrameBody[startIndex:endIndex]
+	json.NewDecoder(strings.NewReader(embedded)).Decode(o)
+}
+
 func TestRegisterIFrameGeneration(t *testing.T) {
 	// Set up registration request
 	authData := AuthenticationData{
@@ -29,28 +41,13 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	unmarshalJSONBody(res, setupInfo)
 
 	// Get registration iFrame
-	res, _ = http.Get(ts.URL + "/register/" + setupInfo.RequestID)
-	bytes, _ := ioutil.ReadAll(res.Body)
-	iFrameBody := string(bytes)
-	if strings.Index(iFrameBody, "var data = ") == -1 {
-		t.Errorf("Could not find data inside iFrameBody")
-	}
+	gleanedData := new(registerData)
+	extractEmbeddedData("/register/"+setupInfo.RequestID, gleanedData)
 
 	// Get app info
 	res, _ = http.Get(ts.URL + "/v1/info/" + registrationRequest.AppID)
 	appInfo := new(AppIDInfoReply)
 	unmarshalJSONBody(res, appInfo)
-
-	// Assert that data embedded in the iFrame is what we expect
-	startIndex := strings.Index(iFrameBody, "{")
-	endIndex := strings.Index(iFrameBody, ";")
-	if startIndex == -1 || endIndex == -1 {
-		t.Errorf("Could not find data inside iFrameBody")
-	}
-
-	embedded := iFrameBody[startIndex:endIndex]
-	gleanedData := new(registerData)
-	json.NewDecoder(strings.NewReader(embedded)).Decode(gleanedData)
 
 	cachedRequest, _ := s.cache.GetRegistrationRequest(setupInfo.RequestID)
 	correctData := registerData{
