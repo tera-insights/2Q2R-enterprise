@@ -25,7 +25,9 @@ func TestIFrameAuthentication(t *testing.T) {
 	})
 
 	// Add user to system
-	// postJSON("/v1/admin/user/new", NewUserRequest{})
+	res, _ := postJSON("/v1/admin/user/new", NewUserRequest{})
+	userData := new(NewUserReply)
+	unmarshalJSONBody(res, userData)
 
 	// Set up a registration request
 	authData := AuthenticationData{
@@ -35,10 +37,10 @@ func TestIFrameAuthentication(t *testing.T) {
 	registrationRequest := RegistrationSetupRequest{
 		AppID:              goodAppID,
 		Timestamp:          time.Now(),
-		UserID:             "bar",
+		UserID:             userData.UserID,
 		AuthenticationData: authData,
 	}
-	res, _ := postJSON("/v1/register/request", registrationRequest)
+	res, _ = postJSON("/v1/register/request", registrationRequest)
 	setupInfo := new(RegistrationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 

@@ -112,6 +112,7 @@ func MakeDB(c Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	db.AutoMigrate(&AppInfo{})
 	db.AutoMigrate(&AppServerInfo{})
+	db.AutoMigrate(&User{})
 	if err != nil {
 		panic(fmt.Errorf("Could not open database: %s", err))
 	}
@@ -151,6 +152,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/server/new", ah.NewServerHandler, "POST")
 	forMethod(router, "/v1/admin/server/delete", ah.DeleteServerHandler, "POST")
 	forMethod(router, "/v1/admin/server/get", ah.GetServerHandler, "POST")
+	forMethod(router, "/v1/admin/user/new", ah.NewUserHandler, "POST")
 
 	// Info routes
 	ih := InfoHandler{srv}

@@ -75,6 +75,15 @@ type RegistrationSetupReply struct {
 	RegisterURL string `json:"registerUrl"`
 }
 
+// NewUserRequest is the request to `POST /v1/admin/user/new`.
+type NewUserRequest struct {
+}
+
+// NewUserReply is the reply to `POST /v1/admin/user/new`.
+type NewUserReply struct {
+	UserID string `json:"userID"`
+}
+
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
 type AuthenticationSetupRequest struct {
 	AppID              string             `json:"appID"`

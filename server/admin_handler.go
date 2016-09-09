@@ -112,3 +112,27 @@ func (ah *AdminHandler) GetServerHandler(w http.ResponseWriter, r *http.Request)
 	var info AppServerInfo
 	g.FirstWhereWithRespond(AppServerInfo{ServerID: req.ServerID}, &info)
 }
+
+// NewUserHandler creates a new user for an admin with valid credentials.
+// POST /v1/admin/user/new
+func (ah *AdminHandler) NewUserHandler(w http.ResponseWriter, r *http.Request) {
+	req := NewUserRequest{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	userID := randString(32)
+	if CheckBase64(userID) != nil {
+		http.Error(w, "User ID was not base-64 encoded",
+			http.StatusInternalServerError)
+		return
+	}
+	ah.s.DB.Create(&User{
+		UserID: userID,
+	})
+	writeJSON(w, http.StatusOK, NewUserReply{
+		UserID: userID,
+	})
+}
