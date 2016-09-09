@@ -92,12 +92,10 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
 func handleError(w http.ResponseWriter, err error) {
 	var statusCode = http.StatusInternalServerError
 	var response = errorResponse{
-		ErrorCode: "unknown",
-		Message:   err.Error(),
+		Message: err.Error(),
 	}
 	if serr, ok := err.(StatusError); ok {
 		statusCode = serr.StatusCode()
-		response.ErrorCode = serr.ErrorCode()
 		response.Info = serr.Info()
 	}
 	writingErr := writeJSON(w, statusCode, response)
@@ -126,6 +124,7 @@ func MakeCacher(c Config) Cacher {
 		clean:                  c.CleanTime,
 		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
 		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
+		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
 	}
 }
 
@@ -166,6 +165,7 @@ func (srv *Server) GetHandler() http.Handler {
 	// Register routes
 	rh := RegisterHandler{srv}
 	forMethod(router, "/v1/register/request", rh.RegisterSetupHandler, "POST")
+	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	return router

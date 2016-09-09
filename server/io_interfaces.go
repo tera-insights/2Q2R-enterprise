@@ -75,6 +75,27 @@ type RegistrationSetupReply struct {
 	RegisterURL string `json:"registerUrl"`
 }
 
+// RegisterRequest is the request to `POST /v1/register`.
+type RegisterRequest struct {
+	Successful bool `json:"successful"`
+	// Either a successfulRegistrationData or a failedRegistrationData
+	Data interface{} `json:"data"`
+}
+
+type successfulRegistrationData struct {
+	ClientData       string `json:"clientData"`       // base64 serialized client data
+	RegistrationData string `json:"registrationData"` // base64 binary registration data
+	DeviceName       string `json:"deviceName"`
+	Type             string `json:"type"`     // device type and key type
+	FCMToken         string `json:"fcmToken"` // Firebase Communicator Device token
+}
+
+type failedRegistrationData struct {
+	Challenge    string `json:"challenge"`
+	ErrorMessage string `json:"errorMessage"`
+	ErrorCode    int    `json:"errorStatus"`
+}
+
 // NewUserRequest is the request to `POST /v1/admin/user/new`.
 type NewUserRequest struct {
 }

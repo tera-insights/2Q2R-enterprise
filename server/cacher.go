@@ -35,7 +35,8 @@ type Cacher struct {
 	clean                  time.Duration
 	registrationRequests   *cache.Cache
 	authenticationRequests *cache.Cache
-	db                     *gorm.DB // Templated on and holds long-term requests
+	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
+	db                     *gorm.DB     // Templated on and holds long-term requests
 }
 
 // GetRegistrationRequest returns the registration request for a particular

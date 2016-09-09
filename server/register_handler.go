@@ -3,11 +3,14 @@
 package server
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"html/template"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/tstranex/u2f"
 )
 
 // RegisterHandler is the handler for all registration requests.
@@ -80,4 +83,63 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		ID:   "register",
 		Data: template.JS(data),
 	})
+}
+
+// Register registers a new authentication method for a device.
+func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
+	req := RegisterRequest{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	// Assert that the registration presented to us was successful
+	if !req.Successful {
+		failedData := req.Data.(failedRegistrationData)
+		writeJSON(w, failedData.ErrorCode, errorResponse{
+			Message: string(failedData.ErrorMessage),
+		})
+		return
+	}
+
+	// Assert that the challenge exists
+	successData := req.Data.(successfulRegistrationData)
+	clientData := u2f.ClientData{}
+	decoded, err := base64.StdEncoding.DecodeString(successData.ClientData)
+	reader := bytes.NewReader(decoded)
+	decoder = json.NewDecoder(reader)
+	err = decoder.Decode(&clientData)
+	c := u2f.Challenge{}
+	requestID, found := rh.s.cache.challengeToRequestID.Get(string(c.Challenge))
+	if !found {
+		writeJSON(w, http.StatusForbidden, errorResponse{
+			Message: "Challenge does not exist",
+		})
+		return
+	}
+
+	// Get challenge data
+	rr, err := rh.s.cache.GetRegistrationRequest(requestID.(string))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Message: "Failed to look up data for valid challenge",
+		})
+	}
+
+	// Verify app id
+
+	// Verify signature
+	var counter uint32
+
+	var reg u2f.Registration
+	var resp u2f.SignResponse
+	newCounter, err := reg.Authenticate(resp, c, counter)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Message: "Could not verify signature",
+		})
+		return
+	}
 }
