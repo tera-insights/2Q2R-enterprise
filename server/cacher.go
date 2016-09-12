@@ -17,7 +17,7 @@ import (
 // device, etc.
 type RegistrationRequest struct {
 	RequestID string
-	Challenge u2f.Challenge
+	Challenge *u2f.Challenge
 	AppID     string
 	UserID    string
 }
@@ -25,7 +25,7 @@ type RegistrationRequest struct {
 // AuthenticationRequest stores data used during authentication.
 type AuthenticationRequest struct {
 	RequestID string
-	Challenge u2f.Challenge
+	Challenge *u2f.Challenge
 	AppID     string
 	UserID    string
 }
@@ -67,9 +67,13 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	}
 	tx.Commit()
 
+	challenge, err := u2f.NewChallenge(ltr.AppID, []string{ltr.AppID})
+	if err != nil {
+		return nil, err
+	}
 	r := RegistrationRequest{
 		RequestID: id,
-		Challenge: []byte{0x01},
+		Challenge: challenge,
 		AppID:     ltr.AppID,
 	}
 	c.registrationRequests.Set(id, r, c.expiration)

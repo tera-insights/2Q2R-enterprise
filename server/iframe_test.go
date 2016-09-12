@@ -53,7 +53,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	correctData := registerData{
 		RequestID: setupInfo.RequestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: cachedRequest.Challenge,
+		Challenge: cachedRequest.Challenge.Challenge,
 		UserID:    registrationRequest.UserID,
 		AppID:     registrationRequest.AppID,
 		InfoURL:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
@@ -124,7 +124,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		RequestID:    setupInfo.RequestID,
 		Counter:      12903812,
 		Keys:         keys,
-		Challenge:    authenticationRequest.Challenge,
+		Challenge:    authenticationRequest.Challenge.Challenge,
 		UserID:       asr.UserID,
 		AppID:        asr.AppID,
 		InfoURL:      appInfo.BaseURL + "/v1/info/" + asr.AppID,

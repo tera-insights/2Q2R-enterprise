@@ -3,12 +3,12 @@
 package server
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"html/template"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/tstranex/u2f"
 )
 
 // AuthenticationData represents auth data.
@@ -32,8 +32,11 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		handleError(w, err)
 		return
 	}
-	var challenge = make([]byte, ah.s.c.ChallengeLength)
-	rand.Read(challenge)
+	challenge, err := u2f.NewChallenge(req.AppID, []string{req.AppID})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	cachedRequest := AuthenticationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
@@ -71,7 +74,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		RequestID:    requestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    cachedRequest.Challenge,
+		Challenge:    cachedRequest.Challenge.Challenge,
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
 		InfoURL:      ah.s.c.BaseURL + "/v1/info/" + cachedRequest.AppID,

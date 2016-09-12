@@ -28,9 +28,14 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		handleError(w, err)
 		return
 	}
+	challenge, err := u2f.NewChallenge(req.AppID, []string{req.AppID})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	rr := RegistrationRequest{
 		RequestID: randString(32),
-		Challenge: []byte{0x01},
+		Challenge: challenge,
 		AppID:     req.AppID,
 		UserID:    req.UserID,
 	}
@@ -68,7 +73,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	data, err := json.Marshal(registerData{
 		RequestID: requestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: cachedRequest.Challenge,
+		Challenge: cachedRequest.Challenge.Challenge,
 		UserID:    cachedRequest.UserID,
 		AppID:     cachedRequest.AppID,
 		InfoURL:   rh.s.c.BaseURL + "/v1/info/" + cachedRequest.AppID,
@@ -153,7 +158,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		RegistrationData: successData.RegistrationData,
 		ClientData:       successData.ClientData,
 	}
-	reg, err := u2f.Register(resp, rr.Challenge, nil)
+	reg, err := u2f.Register(resp, *rr.Challenge, nil)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{
 			Message: "Could not verify signature when registering",
