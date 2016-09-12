@@ -86,6 +86,11 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 }
 
 // Register registers a new authentication method for a device.
+// Steps:
+// 1. Parse request
+// 2. Assert that we have a pending registration request for the challenge
+// 3. Verify the signature in the request
+// 4. Record the valid public key in the database
 func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := RegisterRequest{}
 	decoder := json.NewDecoder(r.Body)
