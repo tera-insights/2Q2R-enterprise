@@ -20,10 +20,24 @@ import (
 // Cleans out the both the recently completed list and waiting lists
 // at fixed time intervals.
 type Queue struct {
-	listeners                *cache.Cache
-	recentlyCompleted        *cache.Cache
-	recentlyCompletedTimeout time.Duration
-	listenersTimeout         time.Duration
+	recentlyCompleted *cache.Cache
+	rcTimeout         time.Duration
+	rcInterval        time.Duration
+	listeners         *cache.Cache
+	lTimeout          time.Duration
+	lInterval         time.Duration
+}
+
+func NewQueue(rcTimeout time.Duration, rcInterval time.Duration,
+	lTimeout time.Duration, lInterval time.Duration) Queue {
+	return Queue{
+		cache.New(rcTimeout, rcInterval),
+		rcTimeout,
+		rcInterval,
+		cache.New(lTimeout, lInterval),
+		lTimeout,
+		lInterval,
+	}
 }
 
 // Listen returns true, nil if the request was already completed and we have it
@@ -40,16 +54,16 @@ func (q Queue) Listen(requestID string) chan bool {
 	if cached, found := q.listeners.Get(requestID); found {
 		listeners := cached.([]chan bool)
 		newListeners := append(listeners, c)
-		q.listeners.Set(requestID, newListeners, q.listenersTimeout)
+		q.listeners.Set(requestID, newListeners, q.lTimeout)
 	} else {
-		q.listeners.Set(requestID, []chan bool{c}, q.listenersTimeout)
+		q.listeners.Set(requestID, []chan bool{c}, q.lTimeout)
 	}
 	return c
 }
 
 // MarkCompleted records that a request was completed.
 func (q Queue) MarkCompleted(requestID string) {
-	q.recentlyCompleted.Set(requestID, true, q.recentlyCompletedTimeout)
+	q.recentlyCompleted.Set(requestID, true, q.rcTimeout)
 	if cached, found := q.listeners.Get(requestID); found {
 		var listeners = cached.([]chan bool)
 		for _, element := range listeners {

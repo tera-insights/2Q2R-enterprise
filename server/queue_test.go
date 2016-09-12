@@ -5,19 +5,12 @@ package server
 import (
 	"testing"
 	"time"
-
-	"github.com/patrickmn/go-cache"
 )
 
-var listenersTimeout = 1 * time.Minute
-var recentlyCompletedTimeout = 3 * time.Second
+var lTimeout = 1 * time.Minute
+var rcTimeout = 3 * time.Second
 var interval = 10 * time.Second
-var q = Queue{
-	recentlyCompletedTimeout: recentlyCompletedTimeout,
-	listenersTimeout:         listenersTimeout,
-	listeners:                cache.New(listenersTimeout, interval),
-	recentlyCompleted:        cache.New(recentlyCompletedTimeout, interval),
-}
+var q = NewQueue(rcTimeout, interval, lTimeout, interval)
 var listenerError = "Did not receive success message from listener channel"
 
 func TestListenOnCompleted(t *testing.T) {

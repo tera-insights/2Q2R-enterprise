@@ -29,6 +29,9 @@ type Config struct {
 	// How frequently the auth/register caches are cleaned
 	CleanTime time.Duration
 
+	ListenerExpirationTime          time.Duration
+	RecentlyCompletedExpirationTime time.Duration
+
 	// BaseURL for this 2Q-2R Server
 	BaseURL string
 }
@@ -160,9 +163,14 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/auth/{requestID}", uh.AuthIFrameHandler, "GET")
 
 	// Register routes
-	rh := RegisterHandler{srv}
+	rh := RegisterHandler{
+		s: srv,
+		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
+			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+	}
 	forMethod(router, "/v1/register/request", rh.RegisterSetupHandler, "POST")
 	forMethod(router, "/v1/register", rh.Register, "POST")
+	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	return router

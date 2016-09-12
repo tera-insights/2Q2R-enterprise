@@ -16,6 +16,7 @@ import (
 // RegisterHandler is the handler for all registration requests.
 type RegisterHandler struct {
 	s *Server
+	q Queue
 }
 
 // RegisterSetupHandler sets up the registration of a new two-factor device.
@@ -96,6 +97,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 // 2. Assert that we have a pending registration request for the challenge
 // 3. Verify the signature in the request
 // 4. Record the valid public key in the database
+// POST /v1/register
 func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := RegisterRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -183,4 +185,11 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// Wait allows the requester to check the result of the registration. It blocks
+// until the registration is complete.
+// GET /v1/register/:requestID/wait
+func (rh RegisterHandler) Wait(w http.ResponseWriter, r *http.Request) {
+
 }
