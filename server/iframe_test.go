@@ -122,7 +122,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	correctData := authenticateData{
 		RequestID:    setupInfo.RequestID,
-		Counter:      12903812,
+		Counter:      1,
 		Keys:         keys,
 		Challenge:    authenticationRequest.Challenge.Challenge,
 		UserID:       asr.UserID,
