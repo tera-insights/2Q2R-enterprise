@@ -29,9 +29,6 @@ type Config struct {
 	// How frequently the auth/register caches are cleaned
 	CleanTime time.Duration
 
-	// In bytes
-	ChallengeLength int
-
 	// BaseURL for this 2Q-2R Server
 	BaseURL string
 }

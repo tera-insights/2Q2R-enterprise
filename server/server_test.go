@@ -13,13 +13,12 @@ import (
 )
 
 var s = New(Config{
-	Port:            8080,
-	DatabaseType:    "sqlite3",
-	DatabaseName:    "test.db",
-	ExpirationTime:  5 * time.Minute,
-	CleanTime:       30 * time.Second,
-	ChallengeLength: 64,
-	BaseURL:         "127.0.0.1:8080",
+	Port:           8080,
+	DatabaseType:   "sqlite3",
+	DatabaseName:   "test.db",
+	ExpirationTime: 5 * time.Minute,
+	CleanTime:      30 * time.Second,
+	BaseURL:        "127.0.0.1:8080",
 })
 var ts = httptest.NewServer(s.GetHandler())
 var goodServerName = "foo"
