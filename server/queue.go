@@ -23,6 +23,7 @@ type Queue struct {
 	listeners                cache.Cache
 	recentlyCompleted        cache.Cache
 	recentlyCompletedTimeout time.Duration
+	listenersTimeout         time.Duration
 }
 
 // Listen returns true, nil if the request was already completed and we have it
@@ -30,19 +31,30 @@ type Queue struct {
 // pointer to a chan. r will send true if and when the request completes and
 // will send false if the request listeners time out before the request
 // completes.
-func (q Queue) Listen(requestID string) *chan bool {
+func (q Queue) Listen(requestID string) chan bool {
 	c := make(chan bool, 1)
 	if _, found := q.recentlyCompleted.Get(requestID); found {
 		c <- true
-		return &c
+		return c
 	}
 	if cached, found := q.listeners.Get(requestID); found {
-		var listeners = cached.([]*chan bool)
-		q.recentlyCompleted.Set(requestID, append(listeners, &c),
-			q.recentlyCompletedTimeout)
+		listeners := cached.([]chan bool)
+		newListeners := append(listeners, c)
+		q.listeners.Set(requestID, newListeners, q.listenersTimeout)
 	} else {
-		q.recentlyCompleted.Set(requestID, []*chan bool{&c},
-			q.recentlyCompletedTimeout)
+		q.listeners.Set(requestID, []chan bool{c}, q.listenersTimeout)
 	}
-	return &c
+	return c
+}
+
+// MarkCompleted records that a request was completed.
+func (q Queue) MarkCompleted(requestID string) {
+	q.recentlyCompleted.Set(requestID, true, q.recentlyCompletedTimeout)
+	if cached, found := q.listeners.Get(requestID); found {
+		var listeners = cached.([]chan bool)
+		for _, element := range listeners {
+			element <- true
+		}
+		q.listeners.Delete(requestID)
+	}
 }
