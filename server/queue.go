@@ -20,8 +20,8 @@ import (
 // Cleans out the both the recently completed list and waiting lists
 // at fixed time intervals.
 type Queue struct {
-	listeners                cache.Cache
-	recentlyCompleted        cache.Cache
+	listeners                *cache.Cache
+	recentlyCompleted        *cache.Cache
 	recentlyCompletedTimeout time.Duration
 	listenersTimeout         time.Duration
 }
