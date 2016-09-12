@@ -91,7 +91,6 @@ type successfulRegistrationData struct {
 }
 
 type failedRegistrationData struct {
-	Challenge    string `json:"challenge"`
 	ErrorMessage string `json:"errorMessage"`
 	ErrorCode    int    `json:"errorStatus"`
 }

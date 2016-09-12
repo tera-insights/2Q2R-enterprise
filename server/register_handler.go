@@ -104,15 +104,29 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Assert that the challenge exists
 	successData := req.Data.(successfulRegistrationData)
+
+	// Decode the client data
 	clientData := u2f.ClientData{}
 	decoded, err := base64.StdEncoding.DecodeString(successData.ClientData)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Message: "Could not decode client data",
+		})
+		return
+	}
 	reader := bytes.NewReader(decoded)
 	decoder = json.NewDecoder(reader)
 	err = decoder.Decode(&clientData)
-	c := u2f.Challenge{}
-	requestID, found := rh.s.cache.challengeToRequestID.Get(string(c.Challenge))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Message: "Could not decode client data",
+		})
+		return
+	}
+
+	// Assert that the challenge exists
+	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
 	if !found {
 		writeJSON(w, http.StatusForbidden, errorResponse{
 			Message: "Challenge does not exist",
@@ -126,20 +140,37 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{
 			Message: "Failed to look up data for valid challenge",
 		})
+		return
 	}
 
-	// Verify app id
-
 	// Verify signature
-	var counter uint32
-
-	var reg u2f.Registration
-	var resp u2f.SignResponse
-	newCounter, err := reg.Authenticate(resp, c, counter)
+	resp := u2f.RegisterResponse{
+		RegistrationData: successData.RegistrationData,
+		ClientData:       successData.ClientData,
+	}
+	reg, err := u2f.Register(resp, rr.Challenge, nil)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not verify signature",
+			Message: "Could not verify signature when registering",
 		})
 		return
 	}
+
+	// Record valid public key in database
+	err = rh.s.DB.Model(&Key{}).Create(Key{
+		KeyID:     randString(32),
+		UserID:    rr.UserID,
+		AppID:     rr.AppID,
+		PublicKey: reg.PubKey,
+		Counter:   0,
+	}).Error
+
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Message: "Could not save key to database",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

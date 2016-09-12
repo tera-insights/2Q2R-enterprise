@@ -10,13 +10,14 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/patrickmn/go-cache"
+	"github.com/tstranex/u2f"
 )
 
 // RegistrationRequest stores data used during the registration of a new
 // device, etc.
 type RegistrationRequest struct {
 	RequestID string
-	Challenge []byte
+	Challenge u2f.Challenge
 	AppID     string
 	UserID    string
 }
@@ -24,7 +25,7 @@ type RegistrationRequest struct {
 // AuthenticationRequest stores data used during authentication.
 type AuthenticationRequest struct {
 	RequestID string
-	Challenge []byte
+	Challenge u2f.Challenge
 	AppID     string
 	UserID    string
 }

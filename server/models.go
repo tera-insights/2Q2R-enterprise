@@ -2,7 +2,11 @@
 
 package server
 
-import "github.com/jinzhu/gorm"
+import (
+	"crypto/ecdsa"
+
+	"github.com/jinzhu/gorm"
+)
 
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
@@ -53,7 +57,7 @@ type Key struct {
 	KeyID     string
 	UserID    string
 	AppID     string
-	PublicKey string
+	PublicKey ecdsa.PublicKey
 	Counter   int
 }
 
