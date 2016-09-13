@@ -86,6 +86,7 @@ func (q Queue) Listen(requestID string) chan int {
 	} else {
 		q.listeners.Set(requestID, []chan int{c}, q.lTimeout)
 		go func() {
+			time.Sleep(q.lTimeout)
 			q.recentlyCompleted.Set(requestID, http.StatusRequestTimeout,
 				q.rcTimeout)
 			q.listeners.Delete(requestID)
