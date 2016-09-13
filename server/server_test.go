@@ -15,7 +15,7 @@ import (
 var s = NewServer(Config{
 	Port:           ":8080",
 	DatabaseType:   "sqlite3",
-	DatabaseName:   "server/test.db",
+	DatabaseName:   "test.db",
 	ExpirationTime: 5 * time.Minute,
 	CleanTime:      30 * time.Second,
 	BaseURL:        "127.0.0.1",
