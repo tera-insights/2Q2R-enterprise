@@ -189,7 +189,9 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 // Wait allows the requester to check the result of the registration. It blocks
 // until the registration is complete.
-// GET /v1/register/:requestID/wait
+// GET /v1/register/{requestID}/wait
 func (rh RegisterHandler) Wait(w http.ResponseWriter, r *http.Request) {
-
+	requestID := mux.Vars(r)["requestID"]
+	c := rh.q.Listen(requestID)
+	w.WriteHeader(<-c)
 }

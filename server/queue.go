@@ -19,6 +19,19 @@ import (
 //
 // Cleans out the both the recently completed list and waiting lists
 // at fixed time intervals.
+
+/**
+
+QUESTIONS:
+1. If a listener is evicted, we send 408 to it. However, if that channel is
+   not listening do we die?
+2. When a client calls MarkCompleted, we send 401 to all the listeners in that
+   queue. We need to assert that we FIRST add the requestID to the recently
+   completed list. This is because a new Listen request might come in while
+   we're iterating over the listeners. This request would be added to the NEW
+   listeners set, hence not iterated over. Moreover it would never check
+   recentlyCompleted.
+*/
 type Queue struct {
 	recentlyCompleted *cache.Cache
 	rcTimeout         time.Duration
@@ -30,7 +43,7 @@ type Queue struct {
 
 func NewQueue(rcTimeout time.Duration, rcInterval time.Duration,
 	lTimeout time.Duration, lInterval time.Duration) Queue {
-	return Queue{
+	q := Queue{
 		cache.New(rcTimeout, rcInterval),
 		rcTimeout,
 		rcInterval,
@@ -38,36 +51,59 @@ func NewQueue(rcTimeout time.Duration, rcInterval time.Duration,
 		lTimeout,
 		lInterval,
 	}
+	q.listeners.OnEvicted(func(requestID string, data interface{}) {
+		listeners := data.([]chan int)
+		for _, listener := range listeners {
+			listener <- 408
+		}
+	})
+	return q
 }
 
-// Listen returns true, nil if the request was already completed and we have it
-// in the cache, then returns (true, nil). Else returns false, r where r is a
-// pointer to a chan. r will send true if and when the request completes and
-// will send false if the request listeners time out before the request
-// completes.
-func (q Queue) Listen(requestID string) chan bool {
-	c := make(chan bool, 1)
-	if _, found := q.recentlyCompleted.Get(requestID); found {
-		c <- true
+// Listen returns a channel that will emit the status code for the request. The
+// options are:
+// 200, for success
+// 401, for requests canceled by the user
+// 408, for requests that timed out
+func (q Queue) Listen(requestID string) chan int {
+	c := make(chan int, 1)
+	if success, found := q.recentlyCompleted.Get(requestID); found {
+		if success.(bool) {
+			c <- 200
+		} else {
+			c <- 401
+		}
 		return c
 	}
 	if cached, found := q.listeners.Get(requestID); found {
-		listeners := cached.([]chan bool)
+		listeners := cached.([]chan int)
 		newListeners := append(listeners, c)
 		q.listeners.Set(requestID, newListeners, q.lTimeout)
 	} else {
-		q.listeners.Set(requestID, []chan bool{c}, q.lTimeout)
+		q.listeners.Set(requestID, []chan int{c}, q.lTimeout)
 	}
 	return c
 }
 
-// MarkCompleted records that a request was completed.
+// MarkCompleted records that a request was successfully completed.
 func (q Queue) MarkCompleted(requestID string) {
 	q.recentlyCompleted.Set(requestID, true, q.rcTimeout)
 	if cached, found := q.listeners.Get(requestID); found {
-		var listeners = cached.([]chan bool)
+		listeners := cached.([]chan int)
 		for _, element := range listeners {
-			element <- true
+			element <- 200
+		}
+		q.listeners.Delete(requestID)
+	}
+}
+
+// MarkRefused records that a request was refused.
+func (q Queue) MarkRefused(requestID string) {
+	q.recentlyCompleted.Set(requestID, false, q.rcTimeout)
+	if cached, found := q.listeners.Get(requestID); found {
+		listeners := cached.([]chan int)
+		for _, element := range listeners {
+			element <- 401
 		}
 		q.listeners.Delete(requestID)
 	}
