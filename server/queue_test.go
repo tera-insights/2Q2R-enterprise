@@ -74,9 +74,5 @@ func TestListenAndTimeout(t *testing.T) {
 func TestListenAndDropListener(t *testing.T) {
 	id := randString(32)
 	q.Listen(id)
-
-	// Wait for the timeout
-	go func() {
-		time.Sleep(lTimeout + 5*time.Second)
-	}()
+	time.Sleep(lTimeout + 1*time.Second)
 }
