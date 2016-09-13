@@ -5,8 +5,6 @@ package server
 import (
 	"testing"
 	"time"
-
-	"github.com/tstranex/u2f"
 )
 
 // Create app server
@@ -53,22 +51,6 @@ func TestIFrameAuthentication(t *testing.T) {
 	// In a separate routine, wait for the registration challenge to be met
 
 	// Sign the challenge and send the result to /v1/register
-	cd := u2f.ClientData{
-		Typ:       "uh",
-		Challenge: string(gleanedData.Challenge),
-		Origin: ts.URL,
-		CIDPubKey: ,
-	}
-	rr := RegisterRequest{
-		Successful: true,
-		Data: successfulRegistrationData{
-			ClientData,       // base64 serialized client data
-			RegistrationData, // base64 binary registration data
-			DeviceName:       "register_e2e_client",
-			Type:             "2Q-2R", // device type and key type
-			FCMToken,         // Firebase Communicator Device token
-		},
-	}
 
 	// Assert that the waiting thread came to a close
 }
