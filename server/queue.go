@@ -3,6 +3,7 @@
 package server
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -54,7 +55,7 @@ func NewQueue(rcTimeout time.Duration, rcInterval time.Duration,
 	q.listeners.OnEvicted(func(requestID string, data interface{}) {
 		listeners := data.([]chan int)
 		for _, listener := range listeners {
-			listener <- 408
+			listener <- http.StatusRequestTimeout
 		}
 	})
 	return q
@@ -69,9 +70,9 @@ func (q Queue) Listen(requestID string) chan int {
 	c := make(chan int, 1)
 	if success, found := q.recentlyCompleted.Get(requestID); found {
 		if success.(bool) {
-			c <- 200
+			c <- http.StatusOK
 		} else {
-			c <- 401
+			c <- http.StatusUnauthorized
 		}
 		return c
 	}
@@ -91,7 +92,7 @@ func (q Queue) MarkCompleted(requestID string) {
 	if cached, found := q.listeners.Get(requestID); found {
 		listeners := cached.([]chan int)
 		for _, element := range listeners {
-			element <- 200
+			element <- http.StatusOK
 		}
 		q.listeners.Delete(requestID)
 	}
@@ -103,7 +104,7 @@ func (q Queue) MarkRefused(requestID string) {
 	if cached, found := q.listeners.Get(requestID); found {
 		listeners := cached.([]chan int)
 		for _, element := range listeners {
-			element <- 401
+			element <- http.StatusUnauthorized
 		}
 		q.listeners.Delete(requestID)
 	}

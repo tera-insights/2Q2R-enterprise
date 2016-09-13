@@ -3,6 +3,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 	"time"
 )
@@ -17,7 +18,7 @@ func TestListenOnCompleted(t *testing.T) {
 	id := randString(32)
 	q.MarkCompleted(id)
 	c := q.Listen(id)
-	if 200 != <-c {
+	if http.StatusOK != <-c {
 		t.Errorf(listenerError)
 	}
 }
@@ -26,7 +27,7 @@ func TestListenOnLaterCompleted(t *testing.T) {
 	id := randString(32)
 	c := q.Listen(id)
 	q.MarkCompleted(id)
-	if 200 != <-c {
+	if http.StatusOK != <-c {
 		t.Errorf(listenerError)
 	}
 }
@@ -36,7 +37,7 @@ func TestMultipleListeners(t *testing.T) {
 	cA := q.Listen(id)
 	cB := q.Listen(id)
 	q.MarkCompleted(id)
-	if 200 != <-cA || 200 != <-cB {
+	if http.StatusOK != <-cA || http.StatusOK != <-cB {
 		t.Errorf(listenerError)
 	}
 }
@@ -46,7 +47,7 @@ func TestListenMarkListen(t *testing.T) {
 	cA := q.Listen(id)
 	q.MarkCompleted(id)
 	cB := q.Listen(id)
-	if 200 != <-cA || 200 != <-cB {
+	if http.StatusOK != <-cA || http.StatusOK != <-cB {
 		t.Errorf(listenerError)
 	}
 }
@@ -55,15 +56,15 @@ func TestListenAndRefuse(t *testing.T) {
 	id := randString(32)
 	c := q.Listen(id)
 	q.MarkRefused(id)
-	if 401 != <-c {
+	if http.StatusUnauthorized != <-c {
 		t.Errorf(listenerError)
 	}
 }
 
-/*func TestListenAndTimeout(t *testing.T) {
+func TestListenAndTimeout(t *testing.T) {
 	id := randString(32)
 	c := q.Listen(id)
-	if 408 != <-c {
+	if http.StatusRequestTimeout != <-c {
 		t.Errorf(listenerError)
 	}
 }
@@ -78,4 +79,4 @@ func TestListenAndDropListener(t *testing.T) {
 	go func() {
 		time.Sleep(lTimeout + 5*time.Second)
 	}()
-}*/
+}

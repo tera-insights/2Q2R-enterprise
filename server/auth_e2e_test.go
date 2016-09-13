@@ -49,18 +49,8 @@ func TestIFrameAuthentication(t *testing.T) {
 	extractEmbeddedData("/register/"+setupInfo.RequestID, gleanedData)
 
 	// In a separate routine, wait for the registration challenge to be met
-	// c := make(chan *http.Response)
-	go func() {
-		// res, _ := http.Get(ts.URL + "/v1/register/" + setupInfo.RequestID + "/wait")
-		// c <- res
-	}()
 
 	// Sign the challenge and send the result to /v1/register
 
 	// Assert that the waiting thread came to a close
-	// res = <-c
-	// if res.StatusCode != 200 {
-	//	t.Errorf("/v1/register/:id/wait failed with status code %d\n",
-	//		res.StatusCode)
-	// }
 }
