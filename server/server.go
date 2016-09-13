@@ -18,7 +18,7 @@ import (
 
 // Config is the configuration for the server.
 type Config struct {
-	Port         int
+	Port         string
 	DatabaseType string
 	DatabaseName string
 
@@ -75,7 +75,7 @@ type authenticateData struct {
 }
 
 // New creates a new 2Q2R server.
-func New(c Config) Server {
+func NewServer(c Config) Server {
 	var s = Server{c, MakeDB(c), MakeCacher(c)}
 	return s
 }
