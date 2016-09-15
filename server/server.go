@@ -158,9 +158,9 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/info/{appID}", ih.AppInfoHandler, "GET")
 
 	// Auth routes
-	uh := AuthHandler{srv}
-	forMethod(router, "/v1/auth/request", uh.AuthRequestSetupHandler, "POST")
-	forMethod(router, "/auth/{requestID}", uh.AuthIFrameHandler, "GET")
+	th := AuthHandler{srv}
+	forMethod(router, "/v1/auth/request", th.AuthRequestSetupHandler, "POST")
+	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
 	rh := RegisterHandler{
