@@ -20,7 +20,7 @@ type RegisterHandler struct {
 }
 
 // RegisterSetupHandler sets up the registration of a new two-factor device.
-// POST /v1/auth/request
+// POST /v1/register/request
 func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
 	req := RegistrationSetupRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -34,6 +34,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		handleError(w, err)
 		return
 	}
+
 	rr := RegistrationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
