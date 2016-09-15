@@ -16,7 +16,7 @@ func Base64Encode(s string) string {
 // CheckBase64 returns any errors encountered when deserializing a
 // (supposedly) base-64 encoded string.
 func CheckBase64(s string) error {
-	_, err := base64.StdEncoding.DecodeString(s)
+	_, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(s)
 	return err
 }
 
