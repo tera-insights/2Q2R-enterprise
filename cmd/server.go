@@ -19,8 +19,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("c.CleanTime = %s\n", c.CleanTime)
 	s := server.NewServer(c)
 	http.Handle("/", s.GetHandler())
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	if c.Secure {
+		fmt.Printf("Listening on HTTPS port %s\n", c.Port)
+		log.Fatal(http.ListenAndServeTLS(c.Port, c.CertFile, c.KeyFile, nil))
+	} else {
+		fmt.Printf("Listening on HTTP port %s\n", c.Port)
+		log.Fatal(http.ListenAndServe(c.Port, nil))
+	}
+
 }

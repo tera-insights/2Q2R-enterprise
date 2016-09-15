@@ -38,6 +38,9 @@ type Config struct {
 	BaseURL string
 
 	Secure bool
+
+	CertFile string
+	KeyFile  string
 }
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
@@ -64,8 +67,10 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		CleanTime:                       viper.GetDuration("CleanTime"),
 		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
 		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
-		BaseURL: viper.GetString("BaseURL"),
-		Secure:  viper.GetBool("Secure"),
+		BaseURL:  viper.GetString("BaseURL"),
+		Secure:   viper.GetBool("Secure"),
+		CertFile: viper.GetString("CertFile"),
+		KeyFile:  viper.GetString("KeyFile"),
 	}, err
 }
 
