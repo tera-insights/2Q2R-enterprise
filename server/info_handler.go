@@ -20,24 +20,24 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 	if CheckBase64(appID) != nil {
 		http.Error(w, "appID was not a valid base-64 string",
 			http.StatusBadRequest)
-	} else {
-		t := DBHandler{DB: ih.s.DB.Model(&AppInfo{})}
-		query := AppInfo{AppID: appID}
-		count := t.CountWhere(query)
-		if count > 0 {
-			var info AppInfo
-			t.FirstWhere(AppInfo{AppID: appID}, &info)
-			reply := AppIDInfoReply{
-				AppName:       info.AppName,
-				BaseURL:       ih.s.c.BaseURL,
-				AppID:         info.AppID,
-				ServerPubKey:  "my_pub_key",
-				ServerKeyType: "ECC-P256",
-			}
-			writeJSON(w, http.StatusOK, reply)
-		} else {
-			http.Error(w, "Could not find information for app with ID "+
-				appID, http.StatusNotFound)
-		}
+		return
 	}
+	t := DBHandler{DB: ih.s.DB.Model(&AppInfo{})}
+	query := AppInfo{AppID: appID}
+	count := t.CountWhere(query)
+	if count > 0 {
+		var info AppInfo
+		t.FirstWhere(query, &info)
+		reply := AppIDInfoReply{
+			AppName:       info.AppName,
+			BaseURL:       ih.s.c.BaseURL,
+			AppID:         info.AppID,
+			ServerPubKey:  "my_pub_key",
+			ServerKeyType: "ECC-P256",
+		}
+		writeJSON(w, http.StatusOK, reply)
+		return
+	}
+	http.Error(w, "Could not find information for app with ID "+appID,
+		http.StatusNotFound)
 }
