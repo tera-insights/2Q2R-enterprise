@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
+	"github.com/spf13/viper"
 )
 
 // Config is the configuration for the server.
@@ -34,6 +36,37 @@ type Config struct {
 
 	// BaseURL for this 2Q-2R Server
 	BaseURL string
+
+	Secure bool
+}
+
+// MakeConfig reads in r as if it were a config file of type ct and returns the
+// resulting config.
+func MakeConfig(r io.Reader, ct string) (Config, error) {
+	viper.SetConfigType(ct)
+
+	viper.SetDefault("Port", ":8080")
+	viper.SetDefault("DatabaseType", "sqlite3")
+	viper.SetDefault("DatabaseName", "2q2r.db")
+	viper.SetDefault("ExpirationTime", 1*time.Minute)
+	viper.SetDefault("CleanTime", 30*time.Second)
+	viper.SetDefault("ListenerExpirationTime", 3*time.Minute)
+	viper.SetDefault("RecentlyCompletedExpirationTime", 5*time.Second)
+	viper.SetDefault("BaseURL", "127.0.0.1")
+	viper.SetDefault("Secure", true)
+
+	err := viper.ReadConfig(r)
+	return Config{
+		Port:                            viper.GetString("Port"),
+		DatabaseType:                    viper.GetString("DatabaseType"),
+		DatabaseName:                    viper.GetString("DatabaseName"),
+		ExpirationTime:                  viper.GetDuration("ExpirationTime"),
+		CleanTime:                       viper.GetDuration("CleanTime"),
+		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
+		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
+		BaseURL: viper.GetString("BaseURL"),
+		Secure:  viper.GetBool("Secure"),
+	}, err
 }
 
 // Server is the type that represents the 2Q2R server.

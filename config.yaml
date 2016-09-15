@@ -1,0 +1,8 @@
+Port: ":8080"
+DatabaseType:                    "sqlite3"
+DatabaseName:                    "test.db"
+ExpirationTime:                  5m
+CleanTime:                       30s
+BaseURL:                         "127.0.0.1"
+ListenerExpirationTime:          3m
+RecentlyCompletedExpirationTime: 1m
