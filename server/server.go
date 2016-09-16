@@ -5,18 +5,21 @@ package server
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
+	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
 
@@ -43,6 +46,10 @@ type Config struct {
 
 	CertFile string
 	KeyFile  string
+
+	// A list of regular expressions mapping to routes that require auth
+	// headers
+	AuthenticationRequiredRoutes []string
 }
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
@@ -59,6 +66,9 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	viper.SetDefault("RecentlyCompletedExpirationTime", 5*time.Second)
 	viper.SetDefault("BaseURL", "127.0.0.1")
 	viper.SetDefault("Secure", true)
+	viper.SetDefault("AuthenticationRequiredRoutes", []string{
+		"/*/register*",
+	})
 
 	err := viper.ReadConfig(r)
 	return Config{
@@ -73,6 +83,7 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		Secure:   viper.GetBool("Secure"),
 		CertFile: viper.GetString("CertFile"),
 		KeyFile:  viper.GetString("KeyFile"),
+		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
 	}, err
 }
 
@@ -114,7 +125,7 @@ type authenticateData struct {
 	ChallengeURL string   `json:"challengeUrl"`
 }
 
-// New creates a new 2Q2R server.
+// NewServer creates a new 2Q2R server.
 func NewServer(c Config) Server {
 	var s = Server{c, MakeDB(c), MakeCacher(c)}
 	return s
@@ -181,19 +192,60 @@ func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 	r.HandleFunc(s, HandleInvalidMethod())
 }
 
-func middleware(handle http.Handler) http.Handler {
+func (srv *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var route []byte
-		var body []byte
-		var key []byte
-		var messageMAC []byte
-		mac := hmac.New(sha256.New, key)
-		mac.Write(route)
-		mac.Write(body)
-		expectedMAC := mac.Sum(nil)
-		if !hmac.Equal(messageMAC, expectedMAC) {
-			panic("NOT EQUAL!")
+		// See if URL is on one of the authentication-required routes
+		needsAuthentication := false
+		for _, regex := range srv.c.AuthenticationRequiredRoutes {
+			if glob.Glob(r.URL.Path, regex) {
+				needsAuthentication = true
+				break
+			}
 		}
+
+		if !needsAuthentication {
+			handle.ServeHTTP(w, r)
+			return
+		}
+
+		authParts := strings.Split(r.Header.Get("authentication"), ":")
+		serverID := authParts[0]
+		messageMAC := authParts[1]
+
+		// Determine which authentication mechanism to use
+		serverInfo := AppServerInfo{}
+		srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+			First(&serverInfo)
+
+		if serverInfo.AuthType != "token" {
+			writeJSON(w, http.StatusBadRequest, "Stored authentication method not supported")
+			return
+		}
+		route := []byte(r.URL.Path)
+		var body []byte
+		_, err := r.Body.Read(body)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		var key []byte
+		mac := hmac.New(sha256.New, serverInfo.PublicKey)
+		mac.Write(route)
+		if len(body) > 0 {
+			mac.Write(body)
+		}
+		expectedMAC := mac.Sum(nil)
+		bytesOfMessageMAC, err := base64.StdEncoding.DecodeString(messageMAC)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		if !hmac.Equal(bytesOfMessageMAC, expectedMAC) {
+			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
+			return
+		}
+
 		handle.ServeHTTP(w, r)
 	})
 }
@@ -230,5 +282,5 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
-	return middleware(router)
+	return srv.middleware(router)
 }
