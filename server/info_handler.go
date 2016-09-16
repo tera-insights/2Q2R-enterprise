@@ -29,11 +29,11 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 		var info AppInfo
 		t.FirstWhere(query, &info)
 		reply := AppIDInfoReply{
-			AppName:       info.AppName,
-			BaseURL:       ih.s.c.BaseURL,
-			AppID:         info.AppID,
-			ServerPubKey:  "my_pub_key",
-			ServerKeyType: "ECC-P256",
+			AppName:   info.AppName,
+			BaseURL:   ih.s.c.BaseURL,
+			AppID:     info.AppID,
+			PublicKey: ih.s.c.Base64EncodedPublicKey,
+			KeyType:   ih.s.c.KeyType,
 		}
 		writeJSON(w, http.StatusOK, reply)
 		return

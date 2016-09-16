@@ -50,6 +50,9 @@ type Config struct {
 	// A list of regular expressions mapping to routes that require auth
 	// headers
 	AuthenticationRequiredRoutes []string
+
+	Base64EncodedPublicKey string
+	KeyType                string
 }
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
@@ -69,6 +72,8 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	viper.SetDefault("AuthenticationRequiredRoutes", []string{
 		"/*/register*",
 	})
+	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
+	viper.SetDefault("KeyType", "ECC-P256")
 
 	err := viper.ReadConfig(r)
 	return Config{
@@ -84,6 +89,8 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		CertFile: viper.GetString("CertFile"),
 		KeyFile:  viper.GetString("KeyFile"),
 		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
+		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
+		KeyType:                      viper.GetString("KeyType"),
 	}, err
 }
 
@@ -228,7 +235,6 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			handleError(w, err)
 			return
 		}
-		var key []byte
 		mac := hmac.New(sha256.New, serverInfo.PublicKey)
 		mac.Write(route)
 		if len(body) > 0 {

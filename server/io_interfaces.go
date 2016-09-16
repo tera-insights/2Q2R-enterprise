@@ -22,14 +22,13 @@ type AppIDInfoReply struct {
 	// string specifying the prefix of all routes
 	BaseURL string `json:"baseURL"`
 
-	// base64Web encoded appID
 	AppID string `json:"appID"`
 
-	// The server public key. Depends on key type
-	ServerPubKey string `json:"serverPubKey"`
+	// base 64 encoded public key of the 2Q2R server
+	PublicKey string `json:"serverPubKey"`
 
-	// The key type. Only P256 supported for now.
-	ServerKeyType string `json:"serverKeyType"`
+	// Only P256 supported for now
+	KeyType string `json:"serverKeyType"`
 }
 
 // NewServerRequest is the request to `POST /v1/admin/server/new`.
@@ -38,7 +37,7 @@ type NewServerRequest struct {
 	AppID       string `json:"appID"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
-	PublicKey   string `json:"publicKey"`
+	PublicKey   []byte `json:"publicKey"`
 	Permissions string `json:"permissions"`
 }
 
