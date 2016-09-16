@@ -12,7 +12,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -168,7 +167,7 @@ func MakeDB(c Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	db.AutoMigrate(&AppInfo{})
 	db.AutoMigrate(&AppServerInfo{})
-	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Key{})
 	if err != nil {
 		panic(fmt.Errorf("Could not open database: %s", err))
 	}
@@ -215,9 +214,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			return
 		}
 
-		authParts := strings.Split(r.Header.Get("authentication"), ":")
-		serverID := authParts[0]
-		messageMAC := authParts[1]
+		serverID, messageMAC := getAuthDataFromHeaders(r)
 
 		// Determine which authentication mechanism to use
 		serverInfo := AppServerInfo{}
@@ -271,6 +268,10 @@ func (srv *Server) GetHandler() http.Handler {
 	// Info routes
 	ih := InfoHandler{srv}
 	forMethod(router, "/v1/info/{appID}", ih.AppInfoHandler, "GET")
+
+	// Key routes
+	kh := keyHandler{srv}
+	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
 
 	// Auth routes
 	th := AuthHandler{srv}
