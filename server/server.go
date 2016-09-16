@@ -3,6 +3,8 @@
 package server
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -179,6 +181,23 @@ func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 	r.HandleFunc(s, HandleInvalidMethod())
 }
 
+func middleware(handle http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var route []byte
+		var body []byte
+		var key []byte
+		var messageMAC []byte
+		mac := hmac.New(sha256.New, key)
+		mac.Write(route)
+		mac.Write(body)
+		expectedMAC := mac.Sum(nil)
+		if !hmac.Equal(messageMAC, expectedMAC) {
+			panic("NOT EQUAL!")
+		}
+		handle.ServeHTTP(w, r)
+	})
+}
+
 // GetHandler returns the routes used by the 2Q2R server.
 func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
@@ -211,5 +230,5 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
-	return router
+	return middleware(router)
 }
