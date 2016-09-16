@@ -37,7 +37,7 @@ type NewServerRequest struct {
 	AppID       string `json:"appID"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
-	PublicKey   []byte `json:"publicKey"`
+	PublicKey   string `json:"publicKey"` // base-64 encoded byte array
 	Permissions string `json:"permissions"`
 }
 
@@ -119,4 +119,9 @@ type AuthenticationSetupReply struct {
 
 	// Url at which the registration iframe can be found. Pass to frontend.
 	AuthURL string `json:"authUrl"`
+}
+
+// Reply to `GET /v1/users/:userID`
+type userExistsReply struct {
+	Exists bool `json:"exists"`
 }

@@ -62,10 +62,3 @@ type Key struct {
 	PublicKey ecdsa.PublicKey
 	Counter   int
 }
-
-// User is the Gorm model that represents a user.
-type User struct {
-	gorm.Model
-
-	UserID string
-}

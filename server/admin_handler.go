@@ -60,7 +60,7 @@ func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request)
 		BaseURL:     req.BaseURL,
 		AppID:       req.AppID,
 		KeyType:     req.KeyType,
-		PublicKey:   req.PublicKey,
+		PublicKey:   []byte(req.PublicKey),
 		Permissions: req.Permissions,
 	})
 	writeJSON(w, http.StatusOK, NewServerReply{
@@ -129,7 +129,7 @@ func (ah *AdminHandler) NewUserHandler(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
-	ah.s.DB.Create(&User{
+	ah.s.DB.Create(&Key{
 		UserID: userID,
 	})
 	writeJSON(w, http.StatusOK, NewUserReply{
