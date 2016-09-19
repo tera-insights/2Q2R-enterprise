@@ -20,16 +20,16 @@ type RegisterHandler struct {
 }
 
 // RegisterSetupHandler sets up the registration of a new two-factor device.
-// POST /v1/register/request
+// GET /v1/register/request/:userID
 func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
-	req := RegistrationSetupRequest{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
+	userID := mux.Vars(r)["userID"]
+	key := Key{}
+	err := rh.s.DB.Model(Key{}).Where(Key{UserID: userID}).First(&key).Error
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	challenge, err := u2f.NewChallenge(req.AppID, []string{req.AppID})
+	challenge, err := u2f.NewChallenge(key.AppID, []string{key.AppID})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -38,16 +38,13 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	rr := RegistrationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
-		AppID:     req.AppID,
-		UserID:    req.UserID,
+		AppID:     key.AppID,
+		UserID:    key.UserID,
 	}
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
-	server := AppServerInfo{}
-	rh.s.DB.Model(AppServerInfo{}).Find(&server,
-		AppServerInfo{ServerID: req.AuthenticationData.ServerID})
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.RequestID,
-		server.BaseURL + "/register/" + rr.RequestID,
+		rh.s.c.BaseURL + "/register/" + rr.RequestID,
 	})
 }
 
