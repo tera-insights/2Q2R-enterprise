@@ -41,7 +41,8 @@ type Config struct {
 	// BaseURL for this 2Q-2R Server
 	BaseURL string
 
-	Secure bool
+	HTTPS       bool
+	LogRequests bool
 
 	CertFile string
 	KeyFile  string
@@ -67,7 +68,8 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	viper.SetDefault("ListenerExpirationTime", 3*time.Minute)
 	viper.SetDefault("RecentlyCompletedExpirationTime", 5*time.Second)
 	viper.SetDefault("BaseURL", "127.0.0.1")
-	viper.SetDefault("Secure", true)
+	viper.SetDefault("HTTPS", true)
+	viper.SetDefault("LogRequests", false)
 	viper.SetDefault("AuthenticationRequiredRoutes", []string{
 		"/*/register*",
 	})
@@ -83,10 +85,11 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		CleanTime:                       viper.GetDuration("CleanTime"),
 		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
 		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
-		BaseURL:  viper.GetString("BaseURL"),
-		Secure:   viper.GetBool("Secure"),
-		CertFile: viper.GetString("CertFile"),
-		KeyFile:  viper.GetString("KeyFile"),
+		BaseURL:     viper.GetString("BaseURL"),
+		HTTPS:       viper.GetBool("HTTPS"),
+		LogRequests: viper.GetBool("LogRequests"),
+		CertFile:    viper.GetString("CertFile"),
+		KeyFile:     viper.GetString("KeyFile"),
 		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
@@ -200,6 +203,10 @@ func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 
 func (srv *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if srv.c.LogRequests {
+			fmt.Printf("%s: %s\n", r.Method, r.URL.Path)
+		}
+
 		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
 		for _, regex := range srv.c.AuthenticationRequiredRoutes {

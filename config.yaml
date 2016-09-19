@@ -6,4 +6,5 @@ CleanTime:                       30s
 BaseURL:                         "127.0.0.1"
 ListenerExpirationTime:          3m
 RecentlyCompletedExpirationTime: 1m
-Secure: false
+HTTPS: false
+LogRequests: true

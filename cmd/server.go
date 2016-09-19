@@ -21,7 +21,7 @@ func main() {
 	}
 	s := server.NewServer(c)
 	http.Handle("/", s.GetHandler())
-	if c.Secure {
+	if c.HTTPS {
 		fmt.Printf("Listening on HTTPS port %s\n", c.Port)
 		log.Fatal(http.ListenAndServeTLS(c.Port, c.CertFile, c.KeyFile, nil))
 	} else {
