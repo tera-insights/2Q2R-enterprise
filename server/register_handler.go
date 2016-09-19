@@ -23,23 +23,24 @@ type RegisterHandler struct {
 // GET /v1/register/request/:userID
 func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
-	key := Key{}
-	err := rh.s.DB.Model(Key{}).Where(Key{UserID: userID}).First(&key).Error
+	serverID, _ := getAuthDataFromHeaders(r)
+	serverInfo := AppServerInfo{}
+	err := rh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+		First(&serverInfo).Error
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	challenge, err := u2f.NewChallenge(key.AppID, []string{key.AppID})
+	challenge, err := u2f.NewChallenge(serverInfo.AppID, []string{serverInfo.AppID})
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
 	rr := RegistrationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
-		AppID:     key.AppID,
-		UserID:    key.UserID,
+		AppID:     serverInfo.AppID,
+		UserID:    userID,
 	}
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
