@@ -20,7 +20,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
-	glob "github.com/ryanuber/go-glob"
+	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
 
@@ -208,7 +208,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
 		for _, regex := range srv.c.AuthenticationRequiredRoutes {
-			if glob.Glob(r.URL.Path, regex) {
+			if glob.Glob(regex, r.URL.Path) {
 				needsAuthentication = true
 				break
 			}
@@ -223,8 +223,12 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 
 		// Determine which authentication mechanism to use
 		serverInfo := AppServerInfo{}
-		srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
-			First(&serverInfo)
+		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+			First(&serverInfo).Error
+		if err != nil {
+			handleError(w, err)
+			return
+		}
 
 		if serverInfo.AuthType != "token" {
 			writeJSON(w, http.StatusBadRequest, "Stored authentication method not supported")
@@ -232,7 +236,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		}
 		route := []byte(r.URL.Path)
 		var body []byte
-		_, err := r.Body.Read(body)
+		_, err = r.Body.Read(body)
 		if err != nil {
 			handleError(w, err)
 			return
