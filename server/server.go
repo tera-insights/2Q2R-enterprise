@@ -12,8 +12,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
@@ -203,10 +205,6 @@ func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 
 func (srv *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if srv.c.LogRequests {
-			fmt.Printf("%s: %s\n", r.Method, r.URL.Path)
-		}
-
 		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
 		for _, regex := range srv.c.AuthenticationRequiredRoutes {
@@ -296,5 +294,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
+	if srv.c.LogRequests {
+		return handlers.LoggingHandler(os.Stdout, srv.middleware(router))
+	}
 	return srv.middleware(router)
 }
