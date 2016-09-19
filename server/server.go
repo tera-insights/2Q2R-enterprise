@@ -234,13 +234,18 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			writeJSON(w, http.StatusBadRequest, "Stored authentication method not supported")
 			return
 		}
+
 		route := []byte(r.URL.Path)
 		var body []byte
-		_, err = r.Body.Read(body)
-		if err != nil {
-			handleError(w, err)
-			return
+		if r.ContentLength > 0 {
+			_, err = r.Body.Read(body)
+			if err != nil {
+				fmt.Printf("err = %s\n", err)
+				handleError(w, err)
+				return
+			}
 		}
+
 		mac := hmac.New(sha256.New, serverInfo.PublicKey)
 		mac.Write(route)
 		if len(body) > 0 {

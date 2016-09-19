@@ -34,6 +34,7 @@ func main() {
 		ServerID: "_T-zi0wzr7GCi4vsfsXsUuKOfmiWLiHBVbmJJPidvhA",
 		BaseURL:  config.BaseURL,
 		AppID:    appID,
+		AuthType: "token",
 	}).Error
 	handle(err)
 }
