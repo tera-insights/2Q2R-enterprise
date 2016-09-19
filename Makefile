@@ -5,6 +5,9 @@ install_dependencies:
 
 test: test_server
 
+server/assets.go: server/assets/*
+	cd server && go-bindata-assetfs -pkg server assets/* && mv bindata_assetfs.go assets.go
+
 test_server:
 	go test 2q2r/server
 	rm server/test.db

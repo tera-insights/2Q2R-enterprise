@@ -25,3 +25,6 @@ _testmain.go
 
 # Test Files
 server/test.db
+
+# Generated
+server/assets.go

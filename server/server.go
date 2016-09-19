@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -76,7 +77,7 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	viper.SetDefault("HTTPS", true)
 	viper.SetDefault("LogRequests", false)
 	viper.SetDefault("AuthenticationRequiredRoutes", []string{
-		"/*/register*",
+		"/*/register/request/*",
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
@@ -224,7 +225,13 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			return
 		}
 
+		// Assert that we can validly parse the authentication headers
 		serverID, messageMAC := getAuthDataFromHeaders(r)
+		authParts := strings.Split(r.Header.Get("authentication"), ":")
+		if len(authParts) != 2 {
+			writeJSON(w, http.StatusBadRequest, "Authentication header invalid")
+			return
+		}
 
 		// Determine which authentication mechanism to use
 		serverInfo := AppServerInfo{}

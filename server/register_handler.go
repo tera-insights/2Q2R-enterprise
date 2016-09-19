@@ -43,9 +43,15 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		UserID:    userID,
 	}
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
+	var url string
+	if rh.s.c.HTTPS {
+		url = "https://"
+	} else {
+		url = "http://"
+	}
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.RequestID,
-		rh.s.c.BaseURL + "/register/" + rr.RequestID,
+		url + rh.s.c.BaseURL + rh.s.c.Port + "/register/" + rr.RequestID,
 	})
 }
 
@@ -53,7 +59,13 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 // GET /register/:id
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
-	t, err := template.ParseFiles("../assets/all.html")
+	var t *template.Template
+	raw, err := Asset("server/assets/all.html")
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	t, err = t.Parse(string(raw))
 	if err != nil {
 		handleError(w, err)
 		return
