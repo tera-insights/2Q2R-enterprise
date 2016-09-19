@@ -55,6 +55,9 @@ type Config struct {
 
 	Base64EncodedPublicKey string
 	KeyType                string
+
+	// For HMAC-based authentication
+	Token string
 }
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
@@ -77,6 +80,7 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
+	viper.SetDefault("Token", "mytoken")
 
 	err := viper.ReadConfig(r)
 	return Config{
@@ -95,6 +99,7 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
+		Token:                        viper.GetString("Token"),
 	}, err
 }
 
@@ -246,7 +251,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			}
 		}
 
-		mac := hmac.New(sha256.New, serverInfo.PublicKey)
+		mac := hmac.New(sha256.New, []byte(srv.c.Token))
 		mac.Write(route)
 		if len(body) > 0 {
 			mac.Write(body)
