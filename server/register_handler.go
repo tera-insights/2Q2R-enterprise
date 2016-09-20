@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"net/http"
 
+	bintemplate "github.com/arschles/go-bindata-html-template"
 	"github.com/gorilla/mux"
 	"github.com/tstranex/u2f"
 )
@@ -59,13 +60,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 // GET /register/:id
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
-	var t *template.Template
-	raw, err := Asset("server/assets/all.html")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	t, err = t.Parse(string(raw))
+	t, err := bintemplate.New("register", Asset).Parse("server/assets/all.html")
 	if err != nil {
 		handleError(w, err)
 		return
