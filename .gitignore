@@ -28,3 +28,4 @@ server/test.db
 
 # Generated
 server/assets.go
+server/assets/lib
