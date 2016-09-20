@@ -87,14 +87,16 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		handleError(w, err)
 		return
 	}
+	base := rh.s.c.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
-		RequestID: requestID,
-		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: cachedRequest.Challenge.Challenge,
-		UserID:    cachedRequest.UserID,
-		AppID:     cachedRequest.AppID,
-		InfoURL:   rh.s.c.BaseURL + "/v1/info/" + cachedRequest.AppID,
-		WaitURL:   rh.s.c.BaseURL + "/v1/register/" + requestID + "/wait",
+		RequestID:   requestID,
+		KeyTypes:    []string{"2q2r", "u2f"},
+		Challenge:   cachedRequest.Challenge.Challenge,
+		UserID:      cachedRequest.UserID,
+		AppID:       cachedRequest.AppID,
+		InfoURL:     base + "/v1/info/" + cachedRequest.AppID,
+		RegisterURL: base + "/v1/register",
+		WaitURL:     base + "/v1/register/" + requestID + "/wait",
 	})
 	if err != nil {
 		handleError(w, err)

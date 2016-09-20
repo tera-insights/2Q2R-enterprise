@@ -70,6 +70,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
 	var keys []string
 	err = ah.s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys).Error
+	base := ah.s.c.getBaseURLWithProtocol()
 	data, err := json.Marshal(authenticateData{
 		RequestID:    requestID,
 		Counter:      1,
@@ -77,9 +78,10 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		Challenge:    cachedRequest.Challenge.Challenge,
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
-		InfoURL:      ah.s.c.BaseURL + "/v1/info/" + cachedRequest.AppID,
-		WaitURL:      ah.s.c.BaseURL + "/v1/auth/" + cachedRequest.RequestID + "/wait",
-		ChallengeURL: ah.s.c.BaseURL + "/v1/auth/" + cachedRequest.RequestID + "/challenge",
+		AuthURL:      base + "/v1/auth/",
+		InfoURL:      base + "/v1/info/" + cachedRequest.AppID,
+		WaitURL:      base + "/v1/auth/" + cachedRequest.RequestID + "/wait",
+		ChallengeURL: base + "/v1/auth/" + cachedRequest.RequestID + "/challenge",
 	})
 	if err != nil {
 		handleError(w, err)

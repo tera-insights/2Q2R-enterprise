@@ -62,6 +62,13 @@ type Config struct {
 	Token string
 }
 
+func (c *Config) getBaseURLWithProtocol() string {
+	if c.HTTPS {
+		return "https://" + c.BaseURL + c.Port
+	}
+	return "http://" + c.BaseURL + c.Port
+}
+
 // MakeConfig reads in r as if it were a config file of type ct and returns the
 // resulting config.
 func MakeConfig(r io.Reader, ct string) (Config, error) {
@@ -121,13 +128,14 @@ type templateData struct {
 
 // Embedded in the templates
 type registerData struct {
-	RequestID string   `json:"id"`
-	KeyTypes  []string `json:"keyTypes"`
-	Challenge []byte   `json:"challenge"`
-	UserID    string   `json:"userID"`
-	AppID     string   `json:"appId"`
-	InfoURL   string   `json:"infoUrl"`
-	WaitURL   string   `json:"waitUrl"`
+	RequestID   string   `json:"id"`
+	KeyTypes    []string `json:"keyTypes"`
+	Challenge   []byte   `json:"challenge"`
+	UserID      string   `json:"userID"`
+	AppID       string   `json:"appId"`
+	InfoURL     string   `json:"infoUrl"`
+	RegisterURL string   `json:"registerUrl"`
+	WaitURL     string   `json:"waitUrl"`
 }
 
 // Embedded in the templates
@@ -138,6 +146,7 @@ type authenticateData struct {
 	Challenge    []byte   `json:"challenge"`
 	UserID       string   `json:"userID"`
 	AppID        string   `json:"appId"`
+	AuthURL      string   `json:"authUrl"`
 	InfoURL      string   `json:"infoUrl"`
 	WaitURL      string   `json:"waitUrl"`
 	ChallengeURL string   `json:"challengeUrl"`
@@ -317,12 +326,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	// Static files
-	libFileServer := http.StripPrefix("/lib/",
-		http.FileServer(rice.MustFindBox("assets/lib").HTTPBox()))
-	jsFileServer := http.StripPrefix("/js/",
-		http.FileServer(rice.MustFindBox("assets/js").HTTPBox()))
-	router.PathPrefix("/lib/").Handler(libFileServer)
-	router.PathPrefix("/js/").Handler(jsFileServer)
+	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
+	router.PathPrefix("/").Handler(fileServer)
 
 	if srv.c.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, srv.middleware(router))
