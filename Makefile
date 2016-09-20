@@ -6,7 +6,7 @@ install_dependencies:
 test: test_server
 
 assets:
-	go-bindata -pkg server -o server/assets.go server/assets
+	cd server && rice embed-go
 
 test_server:
 	go test 2q2r/server

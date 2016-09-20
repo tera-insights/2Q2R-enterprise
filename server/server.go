@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -314,6 +315,14 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
+
+	// Static files
+	libFileServer := http.StripPrefix("/lib/",
+		http.FileServer(rice.MustFindBox("assets/lib").HTTPBox()))
+	jsFileServer := http.StripPrefix("/js/",
+		http.FileServer(rice.MustFindBox("assets/js").HTTPBox()))
+	router.PathPrefix("/lib/").Handler(libFileServer)
+	router.PathPrefix("/js/").Handler(jsFileServer)
 
 	if srv.c.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, srv.middleware(router))

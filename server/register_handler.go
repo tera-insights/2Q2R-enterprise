@@ -9,7 +9,7 @@ import (
 	"html/template"
 	"net/http"
 
-	bintemplate "github.com/arschles/go-bindata-html-template"
+	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"github.com/tstranex/u2f"
 )
@@ -60,7 +60,17 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 // GET /register/:id
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
-	t, err := bintemplate.New("register", Asset).Parse("server/assets/all.html")
+	templateBox, err := rice.FindBox("assets")
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	templateString, err := templateBox.String("all.html")
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	t, err := template.New("register").Parse(templateString)
 	if err != nil {
 		handleError(w, err)
 		return
