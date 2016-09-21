@@ -70,7 +70,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	}
 	tx.Commit()
 
-	challenge, err := u2f.NewChallenge(ltr.AppID, []string{c.baseURL})
+	challenge, err := u2f.NewChallenge(c.baseURL, []string{c.baseURL})
 	if err != nil {
 		return nil, err
 	}

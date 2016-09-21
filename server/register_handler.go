@@ -43,15 +43,9 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		UserID:    userID,
 	}
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
-	var url string
-	if rh.s.c.HTTPS {
-		url = "https://"
-	} else {
-		url = "http://"
-	}
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.RequestID,
-		url + rh.s.c.BaseURL + rh.s.c.Port + "/register/" + rr.RequestID,
+		rh.s.c.getBaseURLWithProtocol() + "/register/" + rr.RequestID,
 	})
 }
 
