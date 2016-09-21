@@ -209,17 +209,8 @@ func MakeCacher(c Config) Cacher {
 	}
 }
 
-// HandleInvalidMethod returns a function that says that the requested method
-// was not allowed.
-func HandleInvalidMethod() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handleError(w, MethodNotAllowedError(r.Method))
-	}
-}
-
 func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
-	r.HandleFunc(s, h).Methods(m)
-	r.HandleFunc(s, HandleInvalidMethod())
+	r.PathPrefix(s).Methods(m).HandlerFunc(h)
 }
 
 func (srv *Server) middleware(handle http.Handler) http.Handler {
