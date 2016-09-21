@@ -3,7 +3,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -31,7 +30,8 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		handleError(w, err)
 		return
 	}
-	challenge, err := u2f.NewChallenge(serverInfo.AppID, []string{rh.s.c.getBaseURLWithProtocol()})
+	challenge, err := u2f.NewChallenge(rh.s.c.getBaseURLWithProtocol(),
+		[]string{rh.s.c.getBaseURLWithProtocol()})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -94,6 +94,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		Challenge:   encodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:      cachedRequest.UserID,
 		AppID:       cachedRequest.AppID,
+		BaseURL:     base,
 		InfoURL:     base + "/v1/info/" + cachedRequest.AppID,
 		RegisterURL: base + "/v1/register",
 		WaitURL:     base + "/v1/register/" + requestID + "/wait",
@@ -154,27 +155,8 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		successData.FCMToken = value.(string)
 	}
 
-	// Decode the client data
-	clientData := u2f.ClientData{}
-	decoded, err := decodeBase64(successData.ClientData)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not decode client data",
-		})
-		return
-	}
-	reader := bytes.NewReader(decoded)
-	decoder = json.NewDecoder(reader)
-	err = decoder.Decode(&clientData)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not decode client data",
-		})
-		return
-	}
-
 	// Assert that the challenge exists
-	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
+	requestID, found := rh.s.cache.challengeToRequestID.Get(mappedValues["challenge"].(string))
 	if !found {
 		writeJSON(w, http.StatusForbidden, errorResponse{
 			Message: "Challenge does not exist",
@@ -205,7 +187,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Record valid public key in database
-	err = rh.s.DB.Model(&Key{}).Create(Key{
+	err = rh.s.DB.Model(&Key{}).Create(&Key{
 		KeyID:     randString(32),
 		UserID:    rr.UserID,
 		AppID:     rr.AppID,
@@ -220,7 +202,10 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	writeJSON(w, http.StatusOK, RegisterResponse{
+		Successful: true,
+		Message:    "OK",
+	})
 }
 
 // Wait allows the requester to check the result of the registration. It blocks

@@ -73,6 +73,12 @@ type RegisterRequest struct {
 	Data interface{} `json:"data"`
 }
 
+// RegisterResponse is the response to `POST /v1/register`.
+type RegisterResponse struct {
+	Successful bool   `json:"successful"`
+	Message    string `json:"message"`
+}
+
 type successfulRegistrationData struct {
 	ClientData       string `json:"clientData"`       // base64 serialized client data
 	RegistrationData string `json:"registrationData"` // base64 binary registration data

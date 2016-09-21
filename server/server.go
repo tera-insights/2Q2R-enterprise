@@ -133,6 +133,7 @@ type registerData struct {
 	Challenge   string   `json:"challenge"` // base-64 URL-encoded
 	UserID      string   `json:"userID"`
 	AppID       string   `json:"appId"`
+	BaseURL     string   `json:"baseUrl"`
 	InfoURL     string   `json:"infoUrl"`
 	RegisterURL string   `json:"registerUrl"`
 	WaitURL     string   `json:"waitUrl"`
@@ -146,6 +147,7 @@ type authenticateData struct {
 	Challenge    string   `json:"challenge"` // base-64 URL-encoded
 	UserID       string   `json:"userID"`
 	AppID        string   `json:"appId"`
+	BaseURL      string   `json:"baseUrl"`
 	AuthURL      string   `json:"authUrl"`
 	InfoURL      string   `json:"infoUrl"`
 	WaitURL      string   `json:"waitUrl"`

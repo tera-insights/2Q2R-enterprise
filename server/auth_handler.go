@@ -78,6 +78,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		Challenge:    encodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
+		BaseURL:      base,
 		AuthURL:      base + "/v1/auth/",
 		InfoURL:      base + "/v1/info/" + cachedRequest.AppID,
 		WaitURL:      base + "/v1/auth/" + cachedRequest.RequestID + "/wait",
