@@ -2,7 +2,11 @@
 
 package server
 
-import "github.com/jinzhu/gorm"
+import (
+	"crypto/ecdsa"
+
+	"github.com/jinzhu/gorm"
+)
 
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
@@ -30,8 +34,31 @@ type AppServerInfo struct {
 	KeyType string
 
 	// JSON
-	PublicKey string
+	PublicKey []byte
 
 	// JSON array containing a subset of ["Register", "Delete", "Login"]
 	Permissions string
+
+	AuthType string // Either token or DSA
+}
+
+// LongTermRequest is the Gorm model for a long-term registration request set
+// up by an admin.
+type LongTermRequest struct {
+	gorm.Model
+
+	HashedRequestID string
+	AppID           string
+	UserID          string
+}
+
+// Key is the Gorm model for a user's stored public key.
+type Key struct {
+	gorm.Model
+
+	KeyID     string
+	UserID    string
+	AppID     string
+	PublicKey ecdsa.PublicKey
+	Counter   int
 }

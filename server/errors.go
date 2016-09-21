@@ -9,9 +9,8 @@ import (
 
 // Taken from https://git.io/viJiC.
 type errorResponse struct {
-	ErrorCode string
-	Message   string
-	Info      interface{} `json:",omitempty"`
+	Message string
+	Info    interface{} `json:",omitempty"`
 }
 
 // StatusError represents an error that has a built-in HTTP status code,
