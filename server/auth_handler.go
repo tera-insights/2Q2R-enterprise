@@ -54,7 +54,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 }
 
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
-// GET /register/:id
+// GET /auth/:id
 func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	t, err := template.ParseFiles("../assets/all.html")
