@@ -32,7 +32,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		handleError(w, err)
 		return
 	}
-	challenge, err := u2f.NewChallenge(req.AppID, []string{req.AppID})
+	challenge, err := u2f.NewChallenge(req.AppID, []string{ah.s.c.getBaseURLWithProtocol()})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -75,7 +75,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		RequestID:    requestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    cachedRequest.Challenge.Challenge,
+		Challenge:    encodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
 		AuthURL:      base + "/v1/auth/",

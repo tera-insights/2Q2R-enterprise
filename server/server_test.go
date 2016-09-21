@@ -4,7 +4,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -24,8 +23,7 @@ var s = NewServer(Config{
 var ts = httptest.NewServer(s.GetHandler())
 var goodServerName = "foo"
 var goodAppName = "bar"
-var badAppID = base64.URLEncoding.WithPadding(base64.NoPadding).
-	EncodeToString([]byte("321saWQgc3RyaW5nCg=="))
+var badAppID = encodeBase64([]byte("321saWQgc3RyaW5nCg=="))
 var goodBaseURL = "2q2r.org"
 var goodKeyType = "P256"
 var goodPublicKey = "notHidden!"

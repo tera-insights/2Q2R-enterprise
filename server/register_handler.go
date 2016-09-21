@@ -4,7 +4,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -32,7 +31,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		handleError(w, err)
 		return
 	}
-	challenge, err := u2f.NewChallenge(serverInfo.AppID, []string{serverInfo.AppID})
+	challenge, err := u2f.NewChallenge(serverInfo.AppID, []string{rh.s.c.getBaseURLWithProtocol()})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -88,10 +87,11 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		return
 	}
 	base := rh.s.c.getBaseURLWithProtocol()
+
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
-		Challenge:   cachedRequest.Challenge.Challenge,
+		Challenge:   encodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:      cachedRequest.UserID,
 		AppID:       cachedRequest.AppID,
 		InfoURL:     base + "/v1/info/" + cachedRequest.AppID,
@@ -134,11 +134,29 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	successData := req.Data.(successfulRegistrationData)
+	mappedValues := req.Data.(map[string]interface{})
+	var successData successfulRegistrationData
+
+	// There were problems with deserialization. This is gross. Will fix later.
+	if value, ok := mappedValues["clientData"]; ok {
+		successData.ClientData = value.(string)
+	}
+	if value, ok := mappedValues["registrationData"]; ok {
+		successData.RegistrationData = value.(string)
+	}
+	if value, ok := mappedValues["deviceName"]; ok {
+		successData.DeviceName = value.(string)
+	}
+	if value, ok := mappedValues["type"]; ok {
+		successData.Type = value.(string)
+	}
+	if value, ok := mappedValues["fcmToken"]; ok {
+		successData.FCMToken = value.(string)
+	}
 
 	// Decode the client data
 	clientData := u2f.ClientData{}
-	decoded, err := base64.StdEncoding.DecodeString(successData.ClientData)
+	decoded, err := decodeBase64(successData.ClientData)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{
 			Message: "Could not decode client data",

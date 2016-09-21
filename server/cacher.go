@@ -32,6 +32,7 @@ type AuthenticationRequest struct {
 
 // Cacher holds various requests. If they are not found, it hits the database.
 type Cacher struct {
+	baseURL                string
 	expiration             time.Duration
 	clean                  time.Duration
 	registrationRequests   *cache.Cache
@@ -48,6 +49,8 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 		ptr := &rr
 		return ptr, nil
 	}
+
+	// For long-term requests
 	ltr := LongTermRequest{}
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
@@ -67,7 +70,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	}
 	tx.Commit()
 
-	challenge, err := u2f.NewChallenge(ltr.AppID, []string{ltr.AppID})
+	challenge, err := u2f.NewChallenge(ltr.AppID, []string{c.baseURL})
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +80,8 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 		AppID:     ltr.AppID,
 	}
 	c.registrationRequests.Set(id, r, c.expiration)
+	s := encodeBase64(r.Challenge.Challenge)
+	c.challengeToRequestID.Set(s, id, c.expiration)
 	return &r, nil
 }
 
@@ -95,9 +100,13 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 // SetAuthenticationRequest puts an AuthenticationRequest into the cache.
 func (c *Cacher) SetAuthenticationRequest(id string, r AuthenticationRequest) {
 	c.authenticationRequests.Set(id, r, c.expiration)
+	s := encodeBase64(r.Challenge.Challenge)
+	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
 // SetRegistrationRequest puts a RegistrationRequest into the cache.
 func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
 	c.registrationRequests.Set(id, r, c.expiration)
+	s := encodeBase64(r.Challenge.Challenge)
+	c.challengeToRequestID.Set(s, id, c.expiration)
 }

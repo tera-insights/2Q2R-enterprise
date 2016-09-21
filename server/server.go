@@ -130,7 +130,7 @@ type templateData struct {
 type registerData struct {
 	RequestID   string   `json:"id"`
 	KeyTypes    []string `json:"keyTypes"`
-	Challenge   []byte   `json:"challenge"`
+	Challenge   string   `json:"challenge"` // base-64 URL-encoded
 	UserID      string   `json:"userID"`
 	AppID       string   `json:"appId"`
 	InfoURL     string   `json:"infoUrl"`
@@ -143,7 +143,7 @@ type authenticateData struct {
 	RequestID    string   `json:"id"`
 	Counter      int      `json:"counter"`
 	Keys         []string `json:"keys"`
-	Challenge    []byte   `json:"challenge"`
+	Challenge    string   `json:"challenge"` // base-64 URL-encoded
 	UserID       string   `json:"userID"`
 	AppID        string   `json:"appId"`
 	AuthURL      string   `json:"authUrl"`
@@ -198,6 +198,7 @@ func MakeDB(c Config) *gorm.DB {
 // MakeCacher returns the cacher specified by the configuration.
 func MakeCacher(c Config) Cacher {
 	return Cacher{
+		baseURL:                c.getBaseURLWithProtocol(),
 		expiration:             c.ExpirationTime,
 		clean:                  c.CleanTime,
 		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
@@ -262,7 +263,6 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		if r.ContentLength > 0 {
 			_, err = r.Body.Read(body)
 			if err != nil {
-				fmt.Printf("err = %s\n", err)
 				handleError(w, err)
 				return
 			}
