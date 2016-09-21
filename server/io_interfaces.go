@@ -119,7 +119,23 @@ type AuthenticationSetupReply struct {
 	AuthURL string `json:"authUrl"`
 }
 
+type authenticateRequest struct {
+	Successful bool        `json:"successful"`
+	Data       interface{} `json:"data"`
+}
+
 // Reply to `GET /v1/users/:userID`
 type userExistsReply struct {
 	Exists bool `json:"exists"`
+}
+
+type successfulAuthenticationData struct {
+	ClientData       string `json:"clientData"`
+	RegistrationData string `json:"registrationData"`
+}
+
+type failedAuthenticationData struct {
+	Challenge    string `json:"challenge"`
+	ErrorMessage string `json:"errorMessage"`
+	ErrorStatus  int    `json:"errorStatus"`
 }

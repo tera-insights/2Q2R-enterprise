@@ -303,8 +303,14 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
 
 	// Auth routes
-	th := AuthHandler{srv}
-	forMethod(router, "/v1/auth/request", th.AuthRequestSetupHandler, "POST")
+	th := AuthHandler{
+		s: srv,
+		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
+			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+	}
+	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
+	forMethod(router, "/v1/auth", th.Authenticate, "POST")
+	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
 	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
