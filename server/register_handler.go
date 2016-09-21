@@ -196,6 +196,8 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rh.q.MarkCompleted(requestID.(string))
+
 	writeJSON(w, http.StatusOK, RegisterResponse{
 		Successful: true,
 		Message:    "OK",
