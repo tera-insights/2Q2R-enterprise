@@ -3,6 +3,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -149,8 +150,27 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		successData.FCMToken = value.(string)
 	}
 
+	// Decode the client data
+	decoded, err := decodeBase64(successData.ClientData)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Message: "Could not decode client data",
+		})
+		return
+	}
+	clientData := u2f.ClientData{}
+	reader := bytes.NewReader(decoded)
+	decoder = json.NewDecoder(reader)
+	err = decoder.Decode(&clientData)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Message: "Could not decode client data",
+		})
+		return
+	}
+
 	// Assert that the challenge exists
-	requestID, found := rh.s.cache.challengeToRequestID.Get(mappedValues["challenge"].(string))
+	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
 	if !found {
 		writeJSON(w, http.StatusForbidden, errorResponse{
 			Message: "Challenge does not exist",
@@ -172,7 +192,9 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		RegistrationData: successData.RegistrationData,
 		ClientData:       successData.ClientData,
 	}
-	reg, err := u2f.Register(resp, *rr.Challenge, nil)
+	reg, err := u2f.Register(resp, *rr.Challenge, &u2f.Config{
+		SkipAttestationVerify: true,
+	})
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{
 			Message: "Could not verify signature when registering",
