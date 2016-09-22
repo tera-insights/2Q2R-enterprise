@@ -82,6 +82,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
 		BaseURL:      base,
+		AppURL:       base,
 		AuthURL:      base + "/v1/auth/",
 		InfoURL:      base + "/v1/info/" + cachedRequest.AppID,
 		WaitURL:      base + "/v1/auth/" + cachedRequest.RequestID + "/wait",
@@ -98,8 +99,9 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// Authenticate performs authentication for a U2F device.
 // POST /v1/auth
-func (ah *AuthHandler) authenticate(w http.ResponseWriter, r *http.Request) {
+func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	req := authenticateRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
@@ -163,15 +165,85 @@ func (ah *AuthHandler) authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	storedKey := Key{}
+	err = ah.s.DB.Model(&Key{}).Where(&Key{
+		UserID: ar.UserID,
+		KeyID:  ar.KeyID,
+	}).First(&storedKey).Error
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Message: "Failed to look up stored key",
+		})
+		return
+	}
+
+	reg := u2f.Registration{
+		PubKey: storedKey.PublicKey,
+	}
 	resp := u2f.SignResponse{}
 
-	var counter uint32
-	newCounter, err := reg.Authenticate(resp, ar.Challenge, counter)
+	newCounter, err := reg.Authenticate(resp, *ar.Challenge, storedKey.Counter)
 	if err != nil {
-		// Authentication failed.
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Message: "Authentication failed",
+		})
 	}
 
 	// Store updated counter in the database.
+	err = ah.s.DB.Model(&Key{}).Where(&Key{
+		UserID: ar.UserID,
+		KeyID:  ar.KeyID,
+	}).Update("counter", newCounter).Error
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Message: "Failed to update counter",
+		})
+	}
 
 	ah.q.MarkCompleted(requestID.(string))
+}
+
+// Wait allows the requester to check the result of the authentication. It
+// blocks until the authentication is complete.
+// GET /v1/auth/{requestID}/wait
+func (ah *AuthHandler) Wait(w http.ResponseWriter, r *http.Request) {
+	requestID := mux.Vars(r)["requestID"]
+	c := ah.q.Listen(requestID)
+	w.WriteHeader(<-c)
+}
+
+// SetKey sets the key for a given authentication request.
+// POST /v1/auth/{requestID}/challenge
+func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
+	requestID := mux.Vars(r)["requestID"]
+	req := setKeyRequest{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	storedKey := Key{}
+	err = ah.s.DB.Model(&Key{}).Where(&Key{KeyID: req.KeyID}).First(&storedKey).Error
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, setKeyReply{
+		KeyID:     req.KeyID,
+		Challenge: encodeBase64(ar.Challenge.Challenge),
+		Counter:   storedKey.Counter,
+		AppID:     storedKey.AppID,
+	})
 }

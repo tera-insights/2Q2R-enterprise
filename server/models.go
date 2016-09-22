@@ -56,9 +56,12 @@ type LongTermRequest struct {
 type Key struct {
 	gorm.Model
 
-	KeyID     string
-	UserID    string
-	AppID     string
+	KeyID  string
+	UserID string
+	AppID  string
+	// Raw serialization data as received from the token. Used by go-u2f.
+	Raw       []byte
 	PublicKey ecdsa.PublicKey
-	Counter   int
+	KeyHandle []byte
+	Counter   uint32
 }

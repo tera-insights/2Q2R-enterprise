@@ -31,6 +31,7 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 		reply := AppIDInfoReply{
 			AppName:   info.AppName,
 			BaseURL:   ih.s.c.getBaseURLWithProtocol(),
+			AppURL:    ih.s.c.getBaseURLWithProtocol(),
 			AppID:     info.AppID,
 			PublicKey: ih.s.c.Base64EncodedPublicKey,
 			KeyType:   ih.s.c.KeyType,

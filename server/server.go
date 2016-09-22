@@ -137,6 +137,7 @@ type registerData struct {
 	InfoURL     string   `json:"infoUrl"`
 	RegisterURL string   `json:"registerUrl"`
 	WaitURL     string   `json:"waitUrl"`
+	AppURL      string   `json:"appUrl"`
 }
 
 // Embedded in the templates
@@ -152,6 +153,7 @@ type authenticateData struct {
 	InfoURL      string   `json:"infoUrl"`
 	WaitURL      string   `json:"waitUrl"`
 	ChallengeURL string   `json:"challengeUrl"`
+	AppURL       string   `json:"appUrl"`
 }
 
 // NewServer creates a new 2Q2R server.
@@ -311,6 +313,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
 	forMethod(router, "/v1/auth", th.Authenticate, "POST")
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
+	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
 	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes

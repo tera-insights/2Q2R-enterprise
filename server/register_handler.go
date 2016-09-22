@@ -90,6 +90,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		UserID:      cachedRequest.UserID,
 		AppID:       cachedRequest.AppID,
 		BaseURL:     base,
+		AppURL:      base,
 		InfoURL:     base + "/v1/info/" + cachedRequest.AppID,
 		RegisterURL: base + "/v1/register",
 		WaitURL:     base + "/v1/register/" + requestID + "/wait",
@@ -207,7 +208,9 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		KeyID:     randString(32),
 		UserID:    rr.UserID,
 		AppID:     rr.AppID,
+		Raw:       []byte(successData.RegistrationData),
 		PublicKey: reg.PubKey,
+		KeyHandle: reg.KeyHandle,
 		Counter:   0,
 	}).Error
 
