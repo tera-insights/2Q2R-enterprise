@@ -5,9 +5,11 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"github.com/tstranex/u2f"
 )
@@ -25,11 +27,13 @@ type AuthHandler struct {
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
-// GET /v1/auth/request
+// GET /v1/auth/request/{userID}
 func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Request) {
-	req := AuthenticationSetupRequest{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
+	userID := mux.Vars(r)["userID"]
+	key := Key{}
+	err := ah.s.DB.Model(&key).First(&key, &Key{
+		UserID: userID,
+	}).Error
 	if err != nil {
 		handleError(w, err)
 		return
@@ -43,13 +47,10 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	cachedRequest := AuthenticationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
-		AppID:     req.AppID,
-		UserID:    req.UserID,
+		AppID:     key.AppID,
+		UserID:    userID,
 	}
 	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
-	server := AppServerInfo{}
-	ah.s.DB.Model(AppServerInfo{}).Find(&server,
-		AppServerInfo{ServerID: req.AuthenticationData.ServerID})
 	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
 		cachedRequest.RequestID,
 		ah.s.c.getBaseURLWithProtocol() + "/auth/" + cachedRequest.RequestID,
@@ -60,7 +61,17 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 // GET /auth/:id
 func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
-	t, err := template.ParseFiles("../assets/all.html")
+	templateBox, err := rice.FindBox("assets")
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	templateString, err := templateBox.String("all.html")
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	t, err := template.New("auth").Parse(templateString)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -71,8 +82,22 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
+	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select("PublicKey").Rows()
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	defer rows.Close()
 	var keys []string
-	err = ah.s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys).Error
+	for rows.Next() {
+		var key string
+		errString := rows.Scan(&key).Error()
+		if err != nil {
+			handleError(w, fmt.Errorf(errString))
+			return
+		}
+		keys = append(keys, key)
+	}
 	base := ah.s.c.getBaseURLWithProtocol()
 	data, err := json.Marshal(authenticateData{
 		RequestID:    requestID,
