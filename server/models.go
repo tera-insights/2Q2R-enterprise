@@ -2,11 +2,7 @@
 
 package server
 
-import (
-	"crypto/ecdsa"
-
-	"github.com/jinzhu/gorm"
-)
+import "github.com/jinzhu/gorm"
 
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
@@ -56,12 +52,11 @@ type LongTermRequest struct {
 type Key struct {
 	gorm.Model
 
-	KeyID  string
-	UserID string
-	AppID  string
-	// Raw serialization data as received from the token. Used by go-u2f.
-	Raw       []byte
-	PublicKey ecdsa.PublicKey
-	KeyHandle []byte
-	Counter   uint32
+	KeyID                  string
+	Type                   string
+	Name                   string
+	UserID                 string
+	AppID                  string
+	MarshalledRegistration []byte // (de-)serialized by go-u2f
+	Counter                uint32
 }

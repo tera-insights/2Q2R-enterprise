@@ -5,7 +5,6 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 
@@ -82,21 +81,27 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
-	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select("PublicKey").Rows()
+	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 	defer rows.Close()
-	var keys []string
+	var keys []keyDataToEmbed
 	for rows.Next() {
-		var key string
-		errString := rows.Scan(&key).Error()
+		var keyID string
+		var keyType string
+		var name string
+		err := rows.Scan(&keyID, &keyType, &name)
 		if err != nil {
-			handleError(w, fmt.Errorf(errString))
+			handleError(w, err)
 			return
 		}
-		keys = append(keys, key)
+		keys = append(keys, keyDataToEmbed{
+			KeyID: keyID,
+			Type:  keyType,
+			Name:  name,
+		})
 	}
 	base := ah.s.c.getBaseURLWithProtocol()
 	data, err := json.Marshal(authenticateData{
@@ -202,8 +207,13 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg := u2f.Registration{
-		PubKey: storedKey.PublicKey,
+	var reg u2f.Registration
+	err = reg.UnmarshalBinary(storedKey.MarshalledRegistration)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Message: "Failed to unmarshal stored registration data",
+		})
+		return
 	}
 	resp := u2f.SignResponse{}
 
