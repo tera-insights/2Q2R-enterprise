@@ -317,9 +317,9 @@ func (srv *Server) GetHandler() http.Handler {
 			srv.c.ListenerExpirationTime, srv.c.CleanTime),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
-	forMethod(router, "/v1/auth", th.Authenticate, "POST")
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
 	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
+	forMethod(router, "/v1/auth", th.Authenticate, "POST")
 	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
@@ -329,8 +329,8 @@ func (srv *Server) GetHandler() http.Handler {
 			srv.c.ListenerExpirationTime, srv.c.CleanTime),
 	}
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
-	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
+	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	// Static files
