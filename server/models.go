@@ -52,11 +52,12 @@ type LongTermRequest struct {
 type Key struct {
 	gorm.Model
 
+	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
 	KeyID                  string
 	Type                   string
 	Name                   string
 	UserID                 string
 	AppID                  string
-	MarshalledRegistration []byte // (de-)serialized by go-u2f
+	MarshalledRegistration []byte // unmarshalled by go-u2f
 	Counter                uint32
 }

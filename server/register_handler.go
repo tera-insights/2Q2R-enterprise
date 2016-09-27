@@ -206,7 +206,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Record valid public key in database
 	marshalledRegistration, err := reg.MarshalBinary()
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
-		KeyID:  randString(32),
+		KeyID:  encodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
 		Name:   successData.DeviceName,
 		UserID: rr.UserID,
