@@ -156,8 +156,8 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	if value, ok := mappedValues["clientData"]; ok {
 		successData.ClientData = value.(string)
 	}
-	if value, ok := mappedValues["registrationData"]; ok {
-		successData.RegistrationData = value.(string)
+	if value, ok := mappedValues["signatureData"]; ok {
+		successData.SignatureData = value.(string)
 	}
 
 	decoded, err := decodeBase64(successData.ClientData)
@@ -215,8 +215,11 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	resp := u2f.SignResponse{}
-
+	resp := u2f.SignResponse{
+		KeyHandle:     ar.KeyID,
+		SignatureData: successData.SignatureData,
+		ClientData:    successData.ClientData,
+	}
 	newCounter, err := reg.Authenticate(resp, *ar.Challenge, storedKey.Counter)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{

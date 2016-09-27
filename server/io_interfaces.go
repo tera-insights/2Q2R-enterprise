@@ -145,8 +145,8 @@ type userExistsReply struct {
 }
 
 type successfulAuthenticationData struct {
-	ClientData       string `json:"clientData"`
-	RegistrationData string `json:"registrationData"`
+	ClientData    string `json:"clientData"`
+	SignatureData string `json:"signatureData"`
 }
 
 type failedAuthenticationData struct {
