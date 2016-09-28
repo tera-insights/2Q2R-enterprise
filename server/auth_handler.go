@@ -33,16 +33,12 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	err := ah.s.DB.Model(&key).First(&key, &Key{
 		UserID: userID,
 	}).Error
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to load key")
+
 	challenge, err := u2f.NewChallenge(ah.s.c.getBaseURLWithProtocol(),
 		[]string{ah.s.c.getBaseURLWithProtocol()})
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to generate challenge")
+
 	cachedRequest := AuthenticationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
@@ -61,42 +57,30 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to load assets")
+
 	templateString, err := templateBox.String("all.html")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to load template")
+
 	t, err := template.New("auth").Parse(templateString)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to generate authentication iFrame")
+
 	cachedRequest, err := ah.s.cache.GetAuthenticationRequest(requestID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalPanic(err, http.StatusBadRequest, err.Error())
+
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
 	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Could not load keys")
+
 	defer rows.Close()
+
 	var keys []keyDataToEmbed
 	for rows.Next() {
 		var keyID string
 		var keyType string
 		var name string
 		err := rows.Scan(&keyID, &keyType, &name)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
+		optionalInternalPanic(err, "Internal server error")
 		keys = append(keys, keyDataToEmbed{
 			KeyID: keyID,
 			Type:  keyType,
@@ -118,10 +102,8 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		WaitURL:      base + "/v1/auth/" + cachedRequest.RequestID + "/wait",
 		ChallengeURL: base + "/v1/auth/" + cachedRequest.RequestID + "/challenge",
 	})
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to render template")
+
 	t.Execute(w, templateData{
 		Name: "Authentication",
 		ID:   "auth",
@@ -135,18 +117,15 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	req := authenticateRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode JSON body")
 
 	// Assert that the authentication presented to us was successful
 	if !req.Successful {
 		failedData := req.Data.(failedAuthenticationData)
-		writeJSON(w, failedData.ErrorStatus, errorResponse{
-			Message: string(failedData.ErrorMessage),
+		panic(bubbledError{
+			StatusCode: failedData.ErrorStatus,
+			Message:    failedData.ErrorMessage,
 		})
-		return
 	}
 
 	mappedValues := req.Data.(map[string]interface{})
@@ -161,82 +140,51 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoded, err := decodeBase64(successData.ClientData)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not decode client data",
-		})
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode client data")
+
 	clientData := u2f.ClientData{}
 	reader := bytes.NewReader(decoded)
 	decoder = json.NewDecoder(reader)
 	err = decoder.Decode(&clientData)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not decode client data",
-		})
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode client data")
 
 	requestID, found := ah.s.cache.challengeToRequestID.Get(clientData.Challenge)
 	if !found {
-		writeJSON(w, http.StatusForbidden, errorResponse{
-			Message: "Challenge does not exist",
+		panic(bubbledError{
+			StatusCode: http.StatusForbidden,
+			Message:    "Challenge does not exist",
 		})
-		return
 	}
 
 	// Get authentication request
 	ar, err := ah.s.cache.GetAuthenticationRequest(requestID.(string))
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Message: "Failed to look up data for valid challenge",
-		})
-		return
-	}
+	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	storedKey := Key{}
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
 		UserID: ar.UserID,
 		KeyID:  ar.KeyID,
 	}).First(&storedKey).Error
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Message: "Failed to look up stored key",
-		})
-		return
-	}
+	optionalInternalPanic(err, "Failed to look up stored key")
 
 	var reg u2f.Registration
 	err = reg.UnmarshalBinary(storedKey.MarshalledRegistration)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Message: "Failed to unmarshal stored registration data",
-		})
-		return
-	}
+	optionalInternalPanic(err, "Failed to unmarshal stored registration data")
+
 	resp := u2f.SignResponse{
 		KeyHandle:     ar.KeyID,
 		SignatureData: successData.SignatureData,
 		ClientData:    successData.ClientData,
 	}
 	newCounter, err := reg.Authenticate(resp, *ar.Challenge, storedKey.Counter)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Authentication failed",
-		})
-	}
+	optionalPanic(err, http.StatusBadRequest, "Authentication failed")
 
 	// Store updated counter in the database.
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
 		UserID: ar.UserID,
 		KeyID:  ar.KeyID,
 	}).Update("counter", newCounter).Error
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Message: "Failed to update counter",
-		})
-	}
+	optionalPanic(err, http.StatusInternalServerError, "Failed to update counter")
 
 	ah.q.MarkCompleted(requestID.(string))
 }
@@ -257,27 +205,18 @@ func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	req := setKeyRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
 	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, err.Error())
+
 	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, err.Error())
+
 	storedKey := Key{}
 	err = ah.s.DB.Model(&Key{}).Where(&Key{KeyID: req.KeyID}).First(&storedKey).Error
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, err.Error())
+
 	writeJSON(w, http.StatusOK, setKeyReply{
 		KeyID:     req.KeyID,
 		Challenge: encodeBase64(ar.Challenge.Challenge),
