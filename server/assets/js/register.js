@@ -84,7 +84,7 @@ addState('u2f-generate', 'u2fRegister',
     }, function (sel) {
         var registerRequests = [{ version: "U2F_V2", challenge: data.challenge }];
         console.log("Sending U2F registratoin");
-        u2f.register(data.baseUrl, registerRequests, [], function (reply) {
+        u2f.register(data.appUrl, registerRequests, [], function (reply) {
             console.log("Registration data: ", reply);
 
             if (reply.errorCode) {

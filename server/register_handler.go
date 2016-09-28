@@ -90,6 +90,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		UserID:      cachedRequest.UserID,
 		AppID:       cachedRequest.AppID,
 		BaseURL:     base,
+		AppURL:      base,
 		InfoURL:     base + "/v1/info/" + cachedRequest.AppID,
 		RegisterURL: base + "/v1/register",
 		WaitURL:     base + "/v1/register/" + requestID + "/wait",
@@ -203,12 +204,15 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Record valid public key in database
+	marshalledRegistration, err := reg.MarshalBinary()
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
-		KeyID:     randString(32),
-		UserID:    rr.UserID,
-		AppID:     rr.AppID,
-		PublicKey: reg.PubKey,
-		Counter:   0,
+		KeyID:  encodeBase64(reg.KeyHandle),
+		Type:   successData.Type,
+		Name:   successData.DeviceName,
+		UserID: rr.UserID,
+		AppID:  rr.AppID,
+		MarshalledRegistration: marshalledRegistration,
+		Counter:                0,
 	}).Error
 
 	if err != nil {

@@ -88,7 +88,7 @@ addState("u2f-login", "u2fAuth",
         $.postJSON(data.challengeUrl, {
             keyID: data.keys[keyIndex].keyID
         }, function (res) {
-            u2f.sign(data.baseUrl, res.challenge, [{
+            u2f.sign(data.appUrl, res.challenge, [{
                 version: "U2F_V2",
                 keyHandle: res.keyID,
                 sessionId: res.counter,

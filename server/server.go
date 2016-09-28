@@ -137,21 +137,29 @@ type registerData struct {
 	InfoURL     string   `json:"infoUrl"`
 	RegisterURL string   `json:"registerUrl"`
 	WaitURL     string   `json:"waitUrl"`
+	AppURL      string   `json:"appUrl"`
+}
+
+type keyDataToEmbed struct {
+	KeyID string `json:"keyID"`
+	Type  string `json:"type"`
+	Name  string `json:"name"`
 }
 
 // Embedded in the templates
 type authenticateData struct {
-	RequestID    string   `json:"id"`
-	Counter      int      `json:"counter"`
-	Keys         []string `json:"keys"`
-	Challenge    string   `json:"challenge"` // base-64 URL-encoded
-	UserID       string   `json:"userID"`
-	AppID        string   `json:"appId"`
-	BaseURL      string   `json:"baseUrl"`
-	AuthURL      string   `json:"authUrl"`
-	InfoURL      string   `json:"infoUrl"`
-	WaitURL      string   `json:"waitUrl"`
-	ChallengeURL string   `json:"challengeUrl"`
+	RequestID    string           `json:"id"`
+	Counter      int              `json:"counter"`
+	Keys         []keyDataToEmbed `json:"keys"`
+	Challenge    string           `json:"challenge"` // base-64 URL-encoded
+	UserID       string           `json:"userID"`
+	AppID        string           `json:"appId"`
+	BaseURL      string           `json:"baseUrl"`
+	AuthURL      string           `json:"authUrl"`
+	InfoURL      string           `json:"infoUrl"`
+	WaitURL      string           `json:"waitUrl"`
+	ChallengeURL string           `json:"challengeUrl"`
+	AppURL       string           `json:"appUrl"`
 }
 
 // NewServer creates a new 2Q2R server.
@@ -303,8 +311,15 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
 
 	// Auth routes
-	th := AuthHandler{srv}
-	forMethod(router, "/v1/auth/request", th.AuthRequestSetupHandler, "POST")
+	th := AuthHandler{
+		s: srv,
+		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
+			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+	}
+	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
+	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
+	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
+	forMethod(router, "/v1/auth", th.Authenticate, "POST")
 	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
@@ -314,8 +329,8 @@ func (srv *Server) GetHandler() http.Handler {
 			srv.c.ListenerExpirationTime, srv.c.CleanTime),
 	}
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
-	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
+	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	// Static files

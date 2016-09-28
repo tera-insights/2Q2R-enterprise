@@ -26,6 +26,7 @@ type RegistrationRequest struct {
 type AuthenticationRequest struct {
 	RequestID string
 	Challenge *u2f.Challenge
+	KeyID     string
 	AppID     string
 	UserID    string
 }
@@ -109,4 +110,14 @@ func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
 	c.registrationRequests.Set(id, r, c.expiration)
 	s := encodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
+}
+
+func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
+	if val, found := c.authenticationRequests.Get(requestID); found {
+		ar := val.(AuthenticationRequest)
+		ar.KeyID = keyID
+		c.authenticationRequests.Set(requestID, ar, c.expiration)
+		return nil
+	}
+	return fmt.Errorf("Could not find authentication request with id %s", requestID)
 }

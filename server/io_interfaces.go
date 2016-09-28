@@ -22,6 +22,8 @@ type AppIDInfoReply struct {
 	// string specifying the prefix of all routes
 	BaseURL string `json:"baseURL"`
 
+	AppURL string `json:"appURL"`
+
 	AppID string `json:"appID"`
 
 	// base 64 encoded public key of the 2Q2R server
@@ -119,7 +121,36 @@ type AuthenticationSetupReply struct {
 	AuthURL string `json:"authUrl"`
 }
 
+type authenticateRequest struct {
+	Successful bool        `json:"successful"`
+	Data       interface{} `json:"data"`
+}
+
+// Request to `POST /v1/auth/{requestID}/challenge`
+type setKeyRequest struct {
+	KeyID string `json:"keyID"`
+}
+
+// Response to `POST /v1/auth/{requestID}/challenge`
+type setKeyReply struct {
+	KeyID     string `json:"keyID"`
+	Challenge string `json:"challenge"`
+	Counter   uint32 `json:"counter"`
+	AppID     string `json:"AppID"`
+}
+
 // Reply to `GET /v1/users/:userID`
 type userExistsReply struct {
 	Exists bool `json:"exists"`
+}
+
+type successfulAuthenticationData struct {
+	ClientData    string `json:"clientData"`
+	SignatureData string `json:"signatureData"`
+}
+
+type failedAuthenticationData struct {
+	Challenge    string `json:"challenge"`
+	ErrorMessage string `json:"errorMessage"`
+	ErrorStatus  int    `json:"errorStatus"`
 }

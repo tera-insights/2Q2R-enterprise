@@ -2,11 +2,7 @@
 
 package server
 
-import (
-	"crypto/ecdsa"
-
-	"github.com/jinzhu/gorm"
-)
+import "github.com/jinzhu/gorm"
 
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
@@ -56,9 +52,12 @@ type LongTermRequest struct {
 type Key struct {
 	gorm.Model
 
-	KeyID     string
-	UserID    string
-	AppID     string
-	PublicKey ecdsa.PublicKey
-	Counter   int
+	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
+	KeyID                  string
+	Type                   string
+	Name                   string
+	UserID                 string
+	AppID                  string
+	MarshalledRegistration []byte // unmarshalled by go-u2f
+	Counter                uint32
 }
