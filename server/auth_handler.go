@@ -66,7 +66,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	optionalInternalPanic(err, "Failed to generate authentication iFrame")
 
 	cachedRequest, err := ah.s.cache.GetAuthenticationRequest(requestID)
-	optionalPanic(err, http.StatusBadRequest, err.Error())
+	optionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
 	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
@@ -208,14 +208,14 @@ func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
 	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyID)
-	optionalInternalPanic(err, err.Error())
+	optionalInternalPanic(err, "Failed to set key for authentication request")
 
 	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
-	optionalInternalPanic(err, err.Error())
+	optionalInternalPanic(err, "Failed to get authentication request")
 
 	storedKey := Key{}
 	err = ah.s.DB.Model(&Key{}).Where(&Key{KeyID: req.KeyID}).First(&storedKey).Error
-	optionalInternalPanic(err, err.Error())
+	optionalBadRequestPanic(err, "Failed to get stored key")
 
 	writeJSON(w, http.StatusOK, setKeyReply{
 		KeyID:     req.KeyID,
