@@ -18,23 +18,17 @@ func (ah *AdminHandler) NewAppHandler(w http.ResponseWriter, r *http.Request) {
 	req := NewAppRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode request body")
+
 	appID := randString(32)
-	if CheckBase64(appID) != nil {
-		http.Error(w, "Could not generate app ID", http.StatusInternalServerError)
-		return
-	}
+	optionalInternalPanic(err, "Could not generate app ID")
+
 	err = ah.s.DB.Create(&AppInfo{
 		AppID:   appID,
 		AppName: req.AppName,
 	}).Error
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Could not create app info")
+
 	writeJSON(w, http.StatusOK, NewAppReply{appID})
 }
 
@@ -44,17 +38,13 @@ func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request)
 	req := NewServerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode request body")
+
 	serverID := randString(32)
-	if CheckBase64(serverID) != nil {
-		http.Error(w, "Server ID was not base-64 encoded",
-			http.StatusBadRequest)
-		return
-	}
-	ah.s.DB.Create(&AppServerInfo{
+	err = CheckBase64(serverID)
+	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
+
+	err = ah.s.DB.Create(&AppServerInfo{
 		ServerID:    serverID,
 		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
@@ -62,7 +52,9 @@ func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request)
 		KeyType:     req.KeyType,
 		PublicKey:   []byte(req.PublicKey),
 		Permissions: req.Permissions,
-	})
+	}).Error
+	optionalInternalPanic(err, "Could not create app server")
+
 	writeJSON(w, http.StatusOK, NewServerReply{
 		ServerName: req.ServerName,
 		ServerID:   serverID,
@@ -75,22 +67,16 @@ func (ah *AdminHandler) DeleteServerHandler(w http.ResponseWriter, r *http.Reque
 	req := DeleteServerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	if CheckBase64(req.ServerID) != nil {
-		http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
-		return
-	}
-	query := AppServerInfo{
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	err = CheckBase64(req.ServerID)
+	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
+
+	err = ah.s.DB.Where(AppServerInfo{
 		ServerID: req.ServerID,
-	}
-	err = ah.s.DB.Where(query).Delete(AppServerInfo{}).Error
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	}).Delete(AppServerInfo{}).Error
+	optionalInternalPanic(err, "Could not delete app server")
+
 	writeJSON(w, http.StatusOK, "Server deleted")
 }
 
@@ -100,14 +86,11 @@ func (ah *AdminHandler) GetServerHandler(w http.ResponseWriter, r *http.Request)
 	req := AppServerInfoRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	if CheckBase64(req.ServerID) != nil {
-		http.Error(w, "Server ID was not base-64 encoded", http.StatusBadRequest)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	err = CheckBase64(req.ServerID)
+	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
+
 	g := DBHandler{DB: ah.s.DB.Model(&AppServerInfo{}), Writer: w}
 	var info AppServerInfo
 	g.FirstWhereWithRespond(AppServerInfo{ServerID: req.ServerID}, &info)
@@ -119,19 +102,20 @@ func (ah *AdminHandler) NewUserHandler(w http.ResponseWriter, r *http.Request) {
 	req := NewUserRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode request body")
+
 	userID := randString(32)
 	if CheckBase64(userID) != nil {
 		http.Error(w, "User ID was not base-64 encoded",
 			http.StatusInternalServerError)
 		return
 	}
-	ah.s.DB.Create(&Key{
+
+	err = ah.s.DB.Create(&Key{
 		UserID: userID,
-	})
+	}).Error
+	optionalInternalPanic(err, "Could not create key for new user")
+
 	writeJSON(w, http.StatusOK, NewUserReply{
 		UserID: userID,
 	})
