@@ -45,3 +45,35 @@ func getAuthDataFromHeaders(r *http.Request) (string, string) {
 	authParts := strings.Split(r.Header.Get("authentication"), ":")
 	return authParts[0], authParts[1]
 }
+
+type bubbledError struct {
+	StatusCode int
+	Message    string
+	Info       interface{}
+}
+
+func optionalPanic(err error, code int, message string) {
+	if err != nil {
+		panic(bubbledError{
+			StatusCode: code,
+			Message:    message,
+		})
+	}
+}
+
+func optionalInternalPanic(err error, message string) {
+	optionalPanic(err, http.StatusInternalServerError, message)
+}
+
+func optionalBadRequestPanic(err error, message string) {
+	optionalPanic(err, http.StatusBadRequest, message)
+}
+
+func panicIfFalse(b bool, c int, m string) {
+	if !b {
+		panic(bubbledError{
+			StatusCode: c,
+			Message:    m,
+		})
+	}
+}

@@ -27,16 +27,12 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	serverInfo := AppServerInfo{}
 	err := rh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
 		First(&serverInfo).Error
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not find app server")
+
 	challenge, err := u2f.NewChallenge(rh.s.c.getBaseURLWithProtocol(),
 		[]string{rh.s.c.getBaseURLWithProtocol()})
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Could not generate challenge")
+
 	rr := RegistrationRequest{
 		RequestID: randString(32),
 		Challenge: challenge,
@@ -55,34 +51,23 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to load assets")
+
 	templateString, err := templateBox.String("all.html")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to load template")
+
 	t, err := template.New("register").Parse(templateString)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to generate registration iFrame")
+
 	cachedRequest, err := rh.s.cache.GetRegistrationRequest(requestID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Failed to get registration request")
+
 	var appInfo AppInfo
 	query := AppInfo{AppID: cachedRequest.AppID}
 	err = rh.s.DB.Model(AppInfo{}).Find(&appInfo, query).Error
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	base := rh.s.c.getBaseURLWithProtocol()
+	optionalInternalPanic(err, "Failed to find app information")
 
+	base := rh.s.c.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
@@ -95,10 +80,8 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		RegisterURL: base + "/v1/register",
 		WaitURL:     base + "/v1/register/" + requestID + "/wait",
 	})
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalInternalPanic(err, "Failed to generate template")
+
 	t.Execute(w, templateData{
 		Name: "Registration",
 		ID:   "register",
@@ -117,18 +100,15 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := RegisterRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode request body")
 
 	// Assert that the registration presented to us was successful
 	if !req.Successful {
 		failedData := req.Data.(failedRegistrationData)
-		writeJSON(w, failedData.ErrorCode, errorResponse{
-			Message: string(failedData.ErrorMessage),
+		panic(bubbledError{
+			StatusCode: failedData.ErrorCode,
+			Message:    failedData.ErrorMessage,
 		})
-		return
 	}
 
 	mappedValues := req.Data.(map[string]interface{})
@@ -153,40 +133,21 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the client data
 	decoded, err := decodeBase64(successData.ClientData)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not decode client data",
-		})
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode client data")
+
 	clientData := u2f.ClientData{}
 	reader := bytes.NewReader(decoded)
 	decoder = json.NewDecoder(reader)
 	err = decoder.Decode(&clientData)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not decode client data",
-		})
-		return
-	}
+	optionalBadRequestPanic(err, "Could not decode client data")
 
 	// Assert that the challenge exists
 	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
-	if !found {
-		writeJSON(w, http.StatusForbidden, errorResponse{
-			Message: "Challenge does not exist",
-		})
-		return
-	}
+	panicIfFalse(found, http.StatusForbidden, "Challenge does not exist")
 
 	// Get challenge data
 	rr, err := rh.s.cache.GetRegistrationRequest(requestID.(string))
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Message: "Failed to look up data for valid challenge",
-		})
-		return
-	}
+	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	// Verify signature
 	resp := u2f.RegisterResponse{
@@ -196,12 +157,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	reg, err := u2f.Register(resp, *rr.Challenge, &u2f.Config{
 		SkipAttestationVerify: true,
 	})
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{
-			Message: "Could not verify signature when registering",
-		})
-		return
-	}
+	optionalBadRequestPanic(err, "Could not verify signature")
 
 	// Record valid public key in database
 	marshalledRegistration, err := reg.MarshalBinary()
@@ -214,16 +170,9 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		MarshalledRegistration: marshalledRegistration,
 		Counter:                0,
 	}).Error
-
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Message: "Could not save key to database",
-		})
-		return
-	}
+	optionalInternalPanic(err, "Could not save key to database")
 
 	rh.q.MarkCompleted(requestID.(string))
-
 	writeJSON(w, http.StatusOK, RegisterResponse{
 		Successful: true,
 		Message:    "OK",

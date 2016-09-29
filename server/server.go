@@ -176,23 +176,6 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
 	return encoder.Encode(data)
 }
 
-// Taken from https://git.io/viJaE.
-func handleError(w http.ResponseWriter, err error) {
-	var statusCode = http.StatusInternalServerError
-	var response = errorResponse{
-		Message: err.Error(),
-	}
-	if serr, ok := err.(StatusError); ok {
-		statusCode = serr.StatusCode()
-		response.Info = serr.Info()
-	}
-	writingErr := writeJSON(w, statusCode, response)
-	if writingErr != nil {
-		log.Printf("Failed to encode error as JSON.\nEncoding error: "+
-			"%v\nOriginal error:%v\n", writingErr, err)
-	}
-}
-
 // MakeDB returns the database specified by the configuration.
 func MakeDB(c Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
@@ -219,6 +202,40 @@ func MakeCacher(c Config) Cacher {
 
 func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
 	r.PathPrefix(s).Methods(m).HandlerFunc(h)
+}
+
+type errorResponse struct {
+	Message string
+	Info    interface{} `json:",omitempty"`
+}
+
+func recoverWrap(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				var statusCode int
+				var response errorResponse
+				if be, ok := err.(bubbledError); ok {
+					statusCode = be.StatusCode
+					response = errorResponse{
+						Message: be.Message,
+						Info:    be.Info,
+					}
+				} else {
+					statusCode = http.StatusInternalServerError
+					response = errorResponse{
+						Message: "Internal server error",
+					}
+				}
+				writingErr := writeJSON(w, statusCode, response)
+				if writingErr != nil {
+					log.Printf("Failed to encode error as JSON.\nEncoding error: "+
+						"%v\nOriginal error:%v\n", writingErr, err)
+				}
+			}
+		}()
+		h.ServeHTTP(w, r)
+	})
 }
 
 func (srv *Server) middleware(handle http.Handler) http.Handler {
@@ -249,24 +266,16 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		serverInfo := AppServerInfo{}
 		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
 			First(&serverInfo).Error
-		if err != nil {
-			handleError(w, err)
-			return
-		}
+		optionalBadRequestPanic(err, "Could not find app server")
 
-		if serverInfo.AuthType != "token" {
-			writeJSON(w, http.StatusBadRequest, "Stored authentication method not supported")
-			return
-		}
+		panicIfFalse(serverInfo.AuthType == "token", http.StatusBadRequest,
+			"Stored authentication method not supported")
 
 		route := []byte(r.URL.Path)
 		var body []byte
 		if r.ContentLength > 0 {
 			_, err = r.Body.Read(body)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
+			optionalInternalPanic(err, "Failed to read request body")
 		}
 
 		mac := hmac.New(sha256.New, []byte(srv.c.Token))
@@ -276,10 +285,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		}
 		expectedMAC := mac.Sum(nil)
 		bytesOfMessageMAC, err := base64.StdEncoding.DecodeString(messageMAC)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
+		optionalInternalPanic(err, "Failed to validate headers")
 
 		if !hmac.Equal(bytesOfMessageMAC, expectedMAC) {
 			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
@@ -336,9 +342,9 @@ func (srv *Server) GetHandler() http.Handler {
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
 	router.PathPrefix("/").Handler(fileServer)
-
+	h := recoverWrap(srv.middleware(router))
 	if srv.c.LogRequests {
-		return handlers.LoggingHandler(os.Stdout, srv.middleware(router))
+		return handlers.LoggingHandler(os.Stdout, h)
 	}
-	return srv.middleware(router)
+	return h
 }
