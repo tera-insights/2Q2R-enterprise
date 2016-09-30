@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func extractEmbeddedData(route string, o interface{}) {
@@ -19,7 +19,7 @@ func extractEmbeddedData(route string, o interface{}) {
 	bytes, _ := ioutil.ReadAll(res.Body)
 	iFrameBody := string(bytes)
 
-	// Assert that data embedded in the iFrame is what we expect
+	// require that data embedded in the iFrame is what we expect
 	startIndex := strings.Index(iFrameBody, "{")
 	endIndex := strings.Index(iFrameBody, ";")
 	embedded := iFrameBody[startIndex:endIndex]
@@ -27,7 +27,8 @@ func extractEmbeddedData(route string, o interface{}) {
 }
 
 func TestRegisterIFrameGeneration(t *testing.T) {
-	res, _ := http.Get("/v1/register/request/bar")
+	res, err := http.Get("/v1/register/request/bar")
+	require.Nil(t, err)
 	setupInfo := new(RegistrationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 
@@ -92,9 +93,8 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	startIndex := strings.Index(iFrameBody, "{")
 	endIndex := strings.Index(iFrameBody, ";")
-	if startIndex == -1 || endIndex == -1 {
-		t.Errorf("Could not find data inside iFrameBody")
-	}
+	require.NotEqual(t, startIndex, -1)
+	require.NotEqual(t, endIndex, -1)
 
 	embedded := iFrameBody[startIndex:endIndex]
 	gleanedData := new(authenticateData)
@@ -109,7 +109,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 
 	query := Key{AppID: asr.AppID, UserID: asr.UserID}
 	rows, err := s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer rows.Close()
 	var keys []keyDataToEmbed
 	for rows.Next() {
@@ -117,7 +117,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		var keyType string
 		var name string
 		err := rows.Scan(&keyID, &keyType, &name)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		keys = append(keys, keyDataToEmbed{
 			KeyID: keyID,
 			Type:  keyType,

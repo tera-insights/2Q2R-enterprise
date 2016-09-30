@@ -9,5 +9,5 @@ assets:
 	cd server && rice embed-go
 
 test_server:
-	go test 2q2r/server
+	go test -v 2q2r/server
 	rm server/test.db
