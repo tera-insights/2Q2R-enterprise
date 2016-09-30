@@ -20,7 +20,7 @@ func (ah *AdminHandler) NewAppHandler(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	appID := randString(32)
+	appID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate app ID")
 
 	err = ah.s.DB.Create(&AppInfo{
@@ -40,9 +40,8 @@ func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	serverID := randString(32)
-	err = CheckBase64(serverID)
-	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
+	serverID, err := randString(32)
+	optionalBadRequestPanic(err, "Could not generate server ID")
 
 	err = ah.s.DB.Create(&AppServerInfo{
 		ServerID:    serverID,
@@ -104,12 +103,8 @@ func (ah *AdminHandler) NewUserHandler(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	userID := randString(32)
-	if CheckBase64(userID) != nil {
-		http.Error(w, "User ID was not base-64 encoded",
-			http.StatusInternalServerError)
-		return
-	}
+	userID, err := randString(32)
+	optionalInternalPanic(err, "Could not generate user ID")
 
 	err = ah.s.DB.Create(&Key{
 		UserID: userID,

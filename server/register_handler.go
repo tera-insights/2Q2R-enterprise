@@ -33,8 +33,11 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		[]string{rh.s.c.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Could not generate challenge")
 
+	requestID, err := randString(32)
+	optionalInternalPanic(err, "Could not generate request ID")
+
 	rr := RegistrationRequest{
-		RequestID: randString(32),
+		RequestID: requestID,
 		Challenge: challenge,
 		AppID:     serverInfo.AppID,
 		UserID:    userID,

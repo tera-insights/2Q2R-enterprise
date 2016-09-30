@@ -39,8 +39,11 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		[]string{ah.s.c.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Failed to generate challenge")
 
+	requestID, err := randString(32)
+	optionalInternalPanic(err, "Failed to generate request ID")
+
 	cachedRequest := AuthenticationRequest{
-		RequestID: randString(32),
+		RequestID: requestID,
 		Challenge: challenge,
 		AppID:     key.AppID,
 		UserID:    userID,
