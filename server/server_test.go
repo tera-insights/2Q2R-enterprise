@@ -5,6 +5,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,7 +21,8 @@ var s = NewServer(Config{
 	CleanTime:      30 * time.Second,
 	BaseURL:        "127.0.0.1",
 })
-var ts = httptest.NewServer(s.GetHandler())
+
+var ts = httptest.NewUnstartedServer(s.GetHandler())
 var goodServerName = "foo"
 var goodAppName = "bar"
 var badAppID = encodeBase64([]byte("321saWQgc3RyaW5nCg=="))
@@ -32,6 +34,13 @@ var goodAppID string
 
 // Create new app for use in other
 func TestMain(m *testing.M) {
+	l, err := net.Listen("tcp", s.c.BaseURL+s.c.Port)
+	if err != nil {
+		panic(fmt.SPrintf("Failed to listen on a port: %+v\n", err))
+	}
+	ts.Listener = l // overwriting the default random port given by httptest
+	ts.Start()
+	defer ts.Close()
 	res, _ := postJSON("/v1/admin/app/new", NewAppRequest{
 		AppName: goodAppName,
 	})
@@ -39,7 +48,6 @@ func TestMain(m *testing.M) {
 	unmarshalJSONBody(res, appReply)
 	goodAppID = appReply.AppID
 	code := m.Run()
-	ts.Close()
 	os.Exit(code)
 }
 
