@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func extractEmbeddedData(route string, o interface{}) {
@@ -25,18 +27,7 @@ func extractEmbeddedData(route string, o interface{}) {
 }
 
 func TestRegisterIFrameGeneration(t *testing.T) {
-	// Set up registration request
-	authData := AuthenticationData{
-		Counter:  0,
-		ServerID: "foo",
-	}
-	registrationRequest := RegistrationSetupRequest{
-		AppID:              goodAppID,
-		Timestamp:          time.Now(),
-		UserID:             "bar",
-		AuthenticationData: authData,
-	}
-	res, _ := postJSON("/v1/register/request", registrationRequest)
+	res, _ := http.Get("/v1/register/request/bar")
 	setupInfo := new(RegistrationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 
@@ -45,7 +36,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	extractEmbeddedData("/register/"+setupInfo.RequestID, gleanedData)
 
 	// Get app info
-	res, _ = http.Get(ts.URL + "/v1/info/" + registrationRequest.AppID)
+	res, _ = http.Get(ts.URL + "/v1/info/" + goodAppID)
 	appInfo := new(AppIDInfoReply)
 	unmarshalJSONBody(res, appInfo)
 
@@ -53,10 +44,10 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	correctData := registerData{
 		RequestID: setupInfo.RequestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: cachedRequest.Challenge.Challenge,
-		UserID:    registrationRequest.UserID,
-		AppID:     registrationRequest.AppID,
-		InfoURL:   appInfo.BaseURL + "/v1/info/" + registrationRequest.AppID,
+		Challenge: encodeBase64(cachedRequest.Challenge.Challenge),
+		UserID:    "bar",
+		AppID:     goodAppID,
+		InfoURL:   appInfo.BaseURL + "/v1/info/" + goodAppID,
 		WaitURL:   appInfo.BaseURL + "/v1/register/" + setupInfo.RequestID + "/wait",
 	}
 	if gleanedData.RequestID != correctData.RequestID {
@@ -117,14 +108,28 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	authenticationRequest, _ := s.cache.GetAuthenticationRequest(setupInfo.RequestID)
 
 	query := Key{AppID: asr.AppID, UserID: asr.UserID}
-	var keys []string
-	s.DB.Model(Key{}).Where(query).Select("PublicKey").Where(keys)
+	rows, err := s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
+	assert.Nil(t, err)
+	defer rows.Close()
+	var keys []keyDataToEmbed
+	for rows.Next() {
+		var keyID string
+		var keyType string
+		var name string
+		err := rows.Scan(&keyID, &keyType, &name)
+		assert.Nil(t, err)
+		keys = append(keys, keyDataToEmbed{
+			KeyID: keyID,
+			Type:  keyType,
+			Name:  name,
+		})
+	}
 
 	correctData := authenticateData{
 		RequestID:    setupInfo.RequestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    authenticationRequest.Challenge.Challenge,
+		Challenge:    encodeBase64(authenticationRequest.Challenge.Challenge),
 		UserID:       asr.UserID,
 		AppID:        asr.AppID,
 		InfoURL:      appInfo.BaseURL + "/v1/info/" + asr.AppID,

@@ -5,6 +5,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -36,7 +37,7 @@ var goodAppID string
 func TestMain(m *testing.M) {
 	l, err := net.Listen("tcp", s.c.BaseURL+s.c.Port)
 	if err != nil {
-		panic(fmt.SPrintf("Failed to listen on a port: %+v\n", err))
+		panic(fmt.Sprintf("Failed to listen on a port: %+v\n", err))
 	}
 	ts.Listener = l // overwriting the default random port given by httptest
 	ts.Start()

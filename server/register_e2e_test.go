@@ -3,8 +3,8 @@
 package server
 
 import (
+	"net/http"
 	"testing"
-	"time"
 )
 
 // Create app server
@@ -30,17 +30,7 @@ func TestIFrameAuthentication(t *testing.T) {
 	unmarshalJSONBody(res, userData)
 
 	// Set up a registration request
-	authData := AuthenticationData{
-		Counter:  0,
-		ServerID: "foo",
-	}
-	registrationRequest := RegistrationSetupRequest{
-		AppID:              goodAppID,
-		Timestamp:          time.Now(),
-		UserID:             userData.UserID,
-		AuthenticationData: authData,
-	}
-	res, _ = postJSON("/v1/register/request", registrationRequest)
+	res, _ = http.Get("/v1/register/request" + userData.UserID)
 	setupInfo := new(RegistrationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 
