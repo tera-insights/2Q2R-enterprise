@@ -5,6 +5,8 @@ package server
 import (
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Create app server
@@ -25,12 +27,14 @@ func TestIFrameAuthentication(t *testing.T) {
 	})
 
 	// Add user to system
-	res, _ := postJSON("/v1/admin/user/new", NewUserRequest{})
+	res, err := postJSON("/v1/admin/user/new", NewUserRequest{})
+	require.Nil(t, err)
 	userData := new(NewUserReply)
 	unmarshalJSONBody(res, userData)
 
 	// Set up a registration request
-	res, _ = http.Get("/v1/register/request" + userData.UserID)
+	res, err = http.Get("/v1/register/request" + userData.UserID)
+	require.Nil(t, err)
 	setupInfo := new(RegistrationSetupReply)
 	unmarshalJSONBody(res, setupInfo)
 
