@@ -1,0 +1,24 @@
+{
+  "name": "frontend",
+  "description": "Frontend of 2q2r-enterprise",
+  "main": "gulpfile.js",
+  "authors": [
+    "Alin Dobra <alin@terainsights.com>"
+  ],
+  "license": "ISC",
+  "homepage": "https://github.com/alinVD/2Q2R-enterprise",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "angular": "^1.5.8",
+    "angular-material": "^1.1.1",
+    "ui-router-extras": "^0.1.2",
+    "jquery": "^3.1.1",
+    "angular-resource": "^1.5.8"
+  }
+}
