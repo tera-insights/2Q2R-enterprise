@@ -136,7 +136,7 @@ type setKeyReply struct {
 	KeyID     string `json:"keyID"`
 	Challenge string `json:"challenge"`
 	Counter   uint32 `json:"counter"`
-	AppID     string `json:"AppID"`
+	AppID     string `json:"appID"`
 }
 
 // Reply to `GET /v1/users/:userID`

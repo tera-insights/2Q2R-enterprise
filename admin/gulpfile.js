@@ -44,6 +44,7 @@ var tsProject = ts.createProject({
 gulp.task('typescript', [], function () {
     var result = gulp.src([
             'src/controllers/*.ts',
+            'src/interfaces/*.ts',
             'src/models/*.ts',
             'src/services/*.ts',
             'src/App.ts'

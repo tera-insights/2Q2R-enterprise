@@ -6,8 +6,8 @@ Enterprise of the 2Q2R server
 
 Make sure that `$GOPATH` is defined. Then: 
 ```
-mkdir $GOPATH/2q2r
-ln -sf $PATH2Q2R/server $GOPATH/2q2r
+mkdir $GOPATH/src/2q2r
+ln -sf $PATH2Q2R/server $GOPATH/src/2q2r
 ```
 where `$PATH2Q2R` is the path to the GIT repository of `2q2r-enterprise`.
 
