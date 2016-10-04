@@ -2,7 +2,6 @@ var gulp = require('gulp');
 var nodemon = require('gulp-nodemon');
 var ts = require('gulp-typescript');
 var concat = require('gulp-concat');
-var order = require('gulp-order');
 var sourcemaps = require('gulp-sourcemaps');
 
 var print = require('gulp-print');
@@ -43,18 +42,17 @@ var tsProject = ts.createProject({
  */
 
 gulp.task('typescript', [], function () {
-    var result = gulp.src('src/**/*.ts')
+    var result = gulp.src([
+            'src/controllers/*.ts',
+            'src/models/*.ts',
+            'src/services/*.ts',
+            'src/App.ts'
+        ])
         .pipe(sourcemaps.init())
         .pipe(ts(tsProject));
 
     return result.js
         .pipe(sourcemaps.write())
-        .pipe(order([
-            'src/controllers/*.js',
-            'src/models/*.js',
-            'src/services/*.js',
-            'src/App.js'
-        ]))
         .pipe(print())
         .pipe(concat('app.min.js'))
         .pipe(gulp.dest(destDir + '/js'));
