@@ -67,6 +67,7 @@ type Admin struct {
 	gorm.Model
 
 	AdminID     string `gorm:"primary_key"`
+	Active      bool
 	Name        string
 	Email       string
 	Permissions string // comma-separated list of permissions
