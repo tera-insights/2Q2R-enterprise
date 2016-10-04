@@ -4,20 +4,56 @@ package main
 
 import (
 	"2q2r/server"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 func main() {
-	r, err := os.Open("./config.yaml")
-	if err != nil {
-		panic(err)
+	var configPath string
+	var configType string
+
+	flag.StringVar(&configPath, "config-path", "./config.yaml",
+		"Path to server configuration file")
+	flag.StringVar(&configType, "config-type", "yaml",
+		"Filetype of config file. Case insensitive. Must be either JSON, "+
+			"YAML, HCL, or Java")
+
+	flag.Parse()
+
+	pathSet := false
+	typeSet := false
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		if f.Name == "config-path" {
+			pathSet = true
+		}
+		if f.Name == "config-type" {
+			typeSet = true
+		}
+	})
+	if !pathSet {
+		fmt.Printf("No config file set! Using default path %s\n",
+			flag.Lookup("config-path").DefValue)
 	}
-	c, err := server.MakeConfig(r, "yaml")
+	if !typeSet {
+		fmt.Printf("No config type set! Using default type %s\n",
+			flag.Lookup("config-type").DefValue)
+	}
+
+	r, err := os.Open(configPath)
 	if err != nil {
-		panic(err)
+		s := fmt.Sprintf("Failed to open config file at path %s\n", configPath)
+		panic(errors.Wrap(err, s))
+	}
+	c, err := server.MakeConfig(r, configType)
+	if err != nil {
+		s := fmt.Sprintf("Failed to create config file of type %s at path %s\n",
+			configType, configPath)
+		panic(errors.Wrap(err, s))
 	}
 	s := server.NewServer(c)
 	http.Handle("/", s.GetHandler())

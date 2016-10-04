@@ -22,6 +22,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
@@ -92,6 +93,9 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	viper.SetDefault("Token", "mytoken")
 
 	err := viper.ReadConfig(r)
+	if err != nil {
+		return Config{}, errors.New("Could not read config file\n")
+	}
 	return Config{
 		Port:                            viper.GetString("Port"),
 		DatabaseType:                    viper.GetString("DatabaseType"),
