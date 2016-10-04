@@ -22,7 +22,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
@@ -72,7 +71,7 @@ func (c *Config) getBaseURLWithProtocol() string {
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
 // resulting config.
-func MakeConfig(r io.Reader, ct string) (Config, error) {
+func MakeConfig(r io.Reader, ct string) *Config {
 	viper.SetConfigType(ct)
 
 	viper.SetDefault("Port", ":8080")
@@ -94,9 +93,9 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 
 	err := viper.ReadConfig(r)
 	if err != nil {
-		return Config{}, errors.New("Could not read config file\n")
+		log.Printf("Could not read config file! Using default options\n")
 	}
-	return Config{
+	return &Config{
 		Port:                            viper.GetString("Port"),
 		DatabaseType:                    viper.GetString("DatabaseType"),
 		DatabaseName:                    viper.GetString("DatabaseName"),
@@ -113,12 +112,12 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
 		Token:                        viper.GetString("Token"),
-	}, err
+	}
 }
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
-	c     Config
+	c     *Config
 	DB    *gorm.DB
 	cache Cacher
 }
@@ -167,7 +166,7 @@ type authenticateData struct {
 }
 
 // NewServer creates a new 2Q2R server.
-func NewServer(c Config) Server {
+func NewServer(c *Config) Server {
 	var s = Server{c, MakeDB(c), MakeCacher(c)}
 	return s
 }
@@ -181,7 +180,7 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
 }
 
 // MakeDB returns the database specified by the configuration.
-func MakeDB(c Config) *gorm.DB {
+func MakeDB(c *Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	db.AutoMigrate(&AppInfo{})
 	db.AutoMigrate(&AppServerInfo{})
@@ -193,7 +192,7 @@ func MakeDB(c Config) *gorm.DB {
 }
 
 // MakeCacher returns the cacher specified by the configuration.
-func MakeCacher(c Config) Cacher {
+func MakeCacher(c *Config) Cacher {
 	return Cacher{
 		baseURL:                c.getBaseURLWithProtocol(),
 		expiration:             c.ExpirationTime,

@@ -49,12 +49,7 @@ func main() {
 		s := fmt.Sprintf("Failed to open config file at path %s\n", configPath)
 		panic(errors.Wrap(err, s))
 	}
-	c, err := server.MakeConfig(r, configType)
-	if err != nil {
-		s := fmt.Sprintf("Failed to create config file of type %s at path %s\n",
-			configType, configPath)
-		panic(errors.Wrap(err, s))
-	}
+	c := server.MakeConfig(r, configType)
 	s := server.NewServer(c)
 	http.Handle("/", s.GetHandler())
 	if c.HTTPS {
