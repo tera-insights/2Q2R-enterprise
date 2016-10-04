@@ -4,6 +4,23 @@ package server
 
 import "time"
 
+// REQUEST POST /v1/admin/new/:code
+type newAdminRequest struct {
+	AdminID     string   `json:"adminID"`
+	Name        string   `json:"name"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
+	IV          string   `json:"iv"`   // encoded w/ web encoding, no padding
+	Seed        string   `json:"seed"` // same encoding
+	PublicKey   []byte   `json:"publicKey"`
+}
+
+// REPLY POST /v1/admin/new/:code
+type newAdminReply struct {
+	RequestID string `json:"requestID"`
+	Route     string `json:"route"`
+}
+
 // NewAppRequest is the request to `POST /v1/app/new`.
 type NewAppRequest struct {
 	AppName string `json:"appName"`

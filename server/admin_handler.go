@@ -5,11 +5,84 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 // AdminHandler is the handler for all registration requests.
 type AdminHandler struct {
 	s *Server
+}
+
+// NewAdmin creates a new admin. If code == "bootstrap", attempts to bootstrap
+// the system. Bootstrapping only works if there are no keys and no admins
+// interface in the system.
+// Replies with a request ID that must be used in order to add a second-factor
+// authentication mechanism.
+// POST /v1/admin/new/{code}
+func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
+	code := mux.Vars(r)["code"]
+	panicIfFalse(code == "bootstrap", http.StatusBadRequest,
+		"Unrecognized activation code")
+
+	req := newAdminRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	adminCount := 0
+	err = ah.s.DB.Model(&Admin{}).Count(&adminCount).Error
+	optionalInternalPanic(err, "Failed to count the admins in the database")
+	panicIfFalse(adminCount == 0, http.StatusBadRequest,
+		"There are already admins in the database")
+
+	keyCount := 0
+	err = ah.s.DB.Model(&Key{}).Count(&keyCount).Error
+	optionalInternalPanic(err, "Failed to count the keys in the database")
+	panicIfFalse(adminCount == 0, http.StatusBadRequest,
+		"There are already keys in the database")
+
+	requestID, err := randString(32)
+	optionalInternalPanic(err, "Could not generate request ID")
+
+	ah.s.cache.SetNewAdminRegisterRequest(requestID, Admin{
+		AdminID:     req.AdminID,
+		Name:        req.Name,
+		Email:       req.Email,
+		Active:      code == "bootstrap",
+		SuperAdmin:  code == "bootstrap",
+		Permissions: strings.Join(req.Permissions, ","),
+		IV:          req.IV,
+		Seed:        req.Seed,
+		PublicKey:   req.PublicKey,
+	})
+	writeJSON(w, http.StatusOK, newAdminReply{
+		RequestID: requestID,
+		Route:     ah.s.c.getBaseURLWithProtocol() + "/admin/register",
+	})
+}
+
+// Waits for the admin to authenticate a particular request. If the
+// authentication is successful, writes the admin and key to the database.
+// GET /v1/admin/{requestID}/wait
+func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
+	requestID := mux.Vars(r)["requestID"]
+	c := ah.q.Listen(requestID)
+	if c != http.StatusOK {
+		w.WriteHeader(<-c)
+		return
+	}
+
+	admin, err := ah.s.cache.getAdmin(requestID)
+	optionalInternalPanic(err, "Failed to find admin to save to database")
+
+	err = ah.s.DB.Model(&Admin{}).Create(&admin)
+	optionalInternalPanic(err, "Failed to save admin to database")
+
+	err = ah.s.DB.Model(&Key{}).Create(&Key{})
+	optionalInternalPanic(err, "Failed to save key to database")
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // NewAppHandler creates a new app.

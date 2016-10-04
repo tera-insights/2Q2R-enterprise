@@ -39,6 +39,7 @@ type Cacher struct {
 	registrationRequests   *cache.Cache
 	authenticationRequests *cache.Cache
 	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
+	requestIDToAdmin       *cache.Cache // Stores admins to be saved
 	db                     *gorm.DB     // Templated on and holds long-term requests
 }
 
@@ -120,4 +121,12 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
 		return nil
 	}
 	return fmt.Errorf("Could not find authentication request with id %s", requestID)
+}
+
+// SetNewAdminRequest stores a new admin and registration request for a
+// particular request ID. If the request is successful, the admin is saved to
+// the DB.
+func (c *Cacher) SetNewAdminRequest(id string, a Admin) {
+	c.requestIDToAdmin.Set(id, admin, c.expiration)
+	r := AdminRegisterRequest{}
 }
