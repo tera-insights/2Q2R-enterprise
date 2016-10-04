@@ -61,3 +61,17 @@ type Key struct {
 	MarshalledRegistration []byte // unmarshalled by go-u2f
 	Counter                uint32
 }
+
+// Admin is the Gorm model for a (super-) admin.
+type Admin struct {
+	gorm.Model
+
+	AdminID     string `gorm:"primary_key"`
+	Name        string
+	Email       string
+	Permissions string // comma-separated list of permissions
+	SuperAdmin  bool   // if so, this essentially has all the permissions
+	IV          string // encoded using encodeBase64 (web encoding, no padding)
+	Seed        string // same encoding
+	PublicKey   []byte
+}

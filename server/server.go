@@ -185,6 +185,7 @@ func MakeDB(c *Config) *gorm.DB {
 	db.AutoMigrate(&AppInfo{})
 	db.AutoMigrate(&AppServerInfo{})
 	db.AutoMigrate(&Key{})
+	db.AutoMigrate(&Admin{})
 	if err != nil {
 		panic(fmt.Errorf("Could not open database: %s", err))
 	}
