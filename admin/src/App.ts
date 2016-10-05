@@ -7,6 +7,7 @@ module admin {
         'ngAria', 'ngMaterial', 'ngResource',
         'ui.router', 'ct.ui.router.extras'
     ])
+        .service('Auth', Auth)
         .controller('MainCtrl', MainCtrl)
         .controller('AdminsCtrl', AdminsCtrl)
         .config((
@@ -15,6 +16,7 @@ module admin {
         ) => {
             $urlRouterProvider.otherwise("/main");
             $stateProvider
+                // REGISTRATION
                 .state('register', {
                     url: "/register",
                     template: "<ui-view />",
@@ -36,6 +38,7 @@ module admin {
                     url: "/return",
                     templateUrl: "views/register.return.html"
                 })
+                // LOGIN
                 .state('login', {
                     url: "/login",
                     template: "<ui-view />",
@@ -56,17 +59,38 @@ module admin {
                     url: "/2q2r",
                     templateUrl: "views/iframe.html"
                 })
+                // DASHBOARD
                 .state('main', {
                     url: "/main",
                     templateUrl: "views/main.html",
                     controller: "MainCtrl",
                     controllerAs: "ctrl"
                 })
+                .state('main.dashboard', {
+                    url: "/dashboard",
+                    templateUrl: "views/dashboard.html"
+                })
                 .state('main.admin',{
-                    url:"/main/admin",
+                    url:"/admin",
                     templateUrl: "views/admins.html",
                     controller: "AdminsCtrl",
                     controllerAs: "ctrl2"
+                })
+                .state('main.apps', {
+                    url: "/apps",
+                    templateUrl: "views/apps.html"
+                })
+                .state('main.users', {
+                    url: "/users",
+                    templateUrl: "views/users.html"
+                })
+                .state('main.2FA', {
+                    url: "/2FA",
+                    templateUrl: "views/2FA.html"
+                })
+                .state('main.settings', {
+                    url: "/settings",
+                    templateUrl: "views/settings.html"
                 })
                 ;
 
