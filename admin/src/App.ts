@@ -5,7 +5,7 @@
 
 module admin {
     var admin = angular.module('2Q2R', [
-        'ngAria', 'ngMaterial', 'ngResource',
+        'ngAria', 'ngMaterial', 'ngResource', 'ngMessages',
         'ui.router', 'ct.ui.router.extras'
     ])
         .service('Auth', Auth)

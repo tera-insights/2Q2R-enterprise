@@ -1,4 +1,5 @@
 /// <reference path="../../typings/index.d.ts" />
+/// <reference path="../services/Auth.ts" />
 
 module admin {
 
@@ -10,8 +11,8 @@ module admin {
 
         }
 
-        static $inject = [];
-        constructor(){
+        static $inject = ['Auth'];
+        constructor(private Auth: Auth){
             
         }
 

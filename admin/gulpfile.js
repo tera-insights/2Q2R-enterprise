@@ -20,6 +20,7 @@ var libJsFiles = [
     'libs/angular-material/angular-material.min.js',
     'libs/angular-aria/angular-aria.min.js',
     'libs/angular-resource/angular-resource.min.js',
+    'libs/angular-messages/angular-messages.min.js',
     'libs/angular-ui-router/release/angular-ui-router.min.js',
     'libs/ui-router-extras/release/ct-ui-router-extras.min.js'
 ];

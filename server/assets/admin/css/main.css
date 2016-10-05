@@ -66,3 +66,26 @@ md-sidenav md-divider {
 .menu-active svg {
   fill: #FB8C00;
 }
+
+/* ngMessages stuff */
+
+.message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 17px;
+    max-width: 50rem;
+    margin-bottom: 3rem;
+}
+
+.error-message {
+    color: maroon;
+}
+
+.error {
+    border-color: red;
+}
+
+ng-messages {
+    display: block;
+}
