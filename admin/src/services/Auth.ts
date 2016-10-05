@@ -16,6 +16,8 @@ module admin {
 
         private loggedIn: boolean = false; // are we logged in?
 
+        
+
         static $inject = ['$http'];
         constructor(private $http: ng.IHttpService) {
             this.userid = "alin@terainsighs.com";

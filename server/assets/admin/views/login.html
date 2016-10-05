@@ -1,1 +1,19 @@
-<h1> Future home of Login </h1>
+<md-content layout-padding>
+    <div>
+        <p>Login to an existing administrator account.</p>
+        <form name="loginForm">
+            <md-input-container class="md-block" flex-gt-sm>
+                <label>Username</label>
+                <input>
+            </md-input-container>
+            <md-input-container class="md-block" flex-gt-sm>
+                <label>Password</label>
+                <input type="password">
+            </md-input-container>
+            <div layout-gt-sm="row">
+                <md-button ng-disabled="true" class="md-raised md-primary">Login</md-button>
+                <md-button class="md-raised">Cancel</md-button>
+            </div>
+        </form>
+    </div>
+</md-content>

@@ -1,6 +1,7 @@
 /// <reference path="../typings/index.d.ts" />
 /// <reference path="controllers/MainCtrl.ts" />
 /// <reference path="controllers/AdminsCtrl.ts" />
+/// <reference path="controllers/LoginCtrl.ts" />
 
 module admin {
     var admin = angular.module('2Q2R', [
@@ -10,6 +11,7 @@ module admin {
         .service('Auth', Auth)
         .controller('MainCtrl', MainCtrl)
         .controller('AdminsCtrl', AdminsCtrl)
+        .controller('LoginCtrl', LoginCtrl)
         .config((
             $stateProvider: angular.ui.IStateProvider,
             $urlRouterProvider: angular.ui.IUrlRouterProvider
@@ -87,6 +89,10 @@ module admin {
                 .state('main.2FA', {
                     url: "/2FA",
                     templateUrl: "views/2FA.html"
+                })
+                .state('main.reports', {
+                    url: "/reports",
+                    templateUrl: "views/reports.html"
                 })
                 .state('main.settings', {
                     url: "/settings",

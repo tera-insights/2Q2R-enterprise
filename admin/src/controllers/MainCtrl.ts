@@ -21,7 +21,7 @@ module admin {
                 {
                     state: "main.admin",
                     name: "Administrators",
-                    icon: "message.svg"
+                    icon: "admin.svg"
                 }
             ], [
                 {
@@ -37,7 +37,7 @@ module admin {
                 {
                     state: "main.2FA",
                     name: "2FA Devices",
-                    icon: "user.svg"
+                    icon: "2FA.svg"
                 },
                 {
                     state: "main.reports",
@@ -47,7 +47,7 @@ module admin {
                 {
                     state: "main.settings",
                     name: "Settings",
-                    icon: "user.svg"
+                    icon: "settings.svg"
                 }],
             [
                 {
