@@ -201,6 +201,8 @@ func MakeCacher(c *Config) Cacher {
 		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
 		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
 		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
+		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
+		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
 	}
 }
 
@@ -305,7 +307,11 @@ func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
 	// Admin routes
-	ah := AdminHandler{srv}
+	ah := AdminHandler{
+		s: srv,
+		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
+			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+	}
 	forMethod(router, "/admin/register", ah.Register, "GET")
 	forMethod(router, "/v1/admin/{requestID}/wait", ah.Wait, "GET")
 	forMethod(router, "/v1/admin/new/{code}", ah.NewAdmin, "POST")

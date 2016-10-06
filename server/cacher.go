@@ -10,6 +10,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/tstranex/u2f"
 )
 
@@ -31,6 +32,12 @@ type AuthenticationRequest struct {
 	UserID    string
 }
 
+// AdminRegistrationRequest is the what admins use to add their initial second
+// factor.
+type AdminRegistrationRequest struct {
+	Challenge string
+}
+
 // Cacher holds various requests. If they are not found, it hits the database.
 type Cacher struct {
 	baseURL                string
@@ -39,7 +46,8 @@ type Cacher struct {
 	registrationRequests   *cache.Cache
 	authenticationRequests *cache.Cache
 	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
-	requestIDToAdmin       *cache.Cache // Stores admins to be saved
+	admins                 *cache.Cache // Request ID to admin to be saved
+	adminRegistrations     *cache.Cache // request ID to AdminRegistrationRequest
 	db                     *gorm.DB     // Templated on and holds long-term requests
 }
 
@@ -123,10 +131,25 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
 	return fmt.Errorf("Could not find authentication request with id %s", requestID)
 }
 
-// SetNewAdminRequest stores a new admin and registration request for a
+// NewAdminRegisterRequest stores a new admin and registration request for a
 // particular request ID. If the request is successful, the admin is saved to
 // the DB.
-func (c *Cacher) SetNewAdminRequest(id string, a Admin) {
-	c.requestIDToAdmin.Set(id, admin, c.expiration)
-	r := AdminRegisterRequest{}
+func (c *Cacher) NewAdminRegisterRequest(id string, a Admin) {
+	c.admins.Set(id, a, c.expiration)
+
+	challenge, err := randString(64)
+	optionalInternalPanic(err, "Failed to generate challenge for admin")
+
+	c.adminRegistrations.Set(id, AdminRegistrationRequest{
+		Challenge: challenge,
+	}, c.expiration)
+}
+
+// GetAdmin returns the admin for a particular request ID.
+func (c *Cacher) GetAdmin(id string) (Admin, error) {
+	if val, found := c.admins.Get(id); found {
+		admin := val.(Admin)
+		return admin, nil
+	}
+	return Admin{}, errors.Errorf("Could not find admin for request %s", id)
 }

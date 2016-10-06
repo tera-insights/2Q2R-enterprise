@@ -66,7 +66,7 @@ type Key struct {
 type Admin struct {
 	gorm.Model
 
-	AdminID     string `gorm:"primary_key"`
+	AdminID     string `gorm:"primary_key"` // can be joined with Key.UserID
 	Active      bool
 	Name        string
 	Email       string

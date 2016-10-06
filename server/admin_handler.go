@@ -13,6 +13,7 @@ import (
 // AdminHandler is the handler for all registration requests.
 type AdminHandler struct {
 	s *Server
+	q Queue
 }
 
 // NewAdmin creates a new admin. If code == "bootstrap", attempts to bootstrap
@@ -45,7 +46,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	requestID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
-	ah.s.cache.SetNewAdminRegisterRequest(requestID, Admin{
+	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
 		AdminID:     req.AdminID,
 		Name:        req.Name,
 		Email:       req.Email,
@@ -62,27 +63,37 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Waits for the admin to authenticate a particular request. If the
+// Wait waits for the admin to authenticate a particular request. If the
 // authentication is successful, writes the admin and key to the database.
 // GET /v1/admin/{requestID}/wait
 func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	c := ah.q.Listen(requestID)
-	if c != http.StatusOK {
-		w.WriteHeader(<-c)
+	response := <-c
+	if response != http.StatusOK {
+		w.WriteHeader(response)
 		return
 	}
 
-	admin, err := ah.s.cache.getAdmin(requestID)
+	admin, err := ah.s.cache.GetAdmin(requestID)
 	optionalInternalPanic(err, "Failed to find admin to save to database")
 
-	err = ah.s.DB.Model(&Admin{}).Create(&admin)
+	err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
 	optionalInternalPanic(err, "Failed to save admin to database")
 
-	err = ah.s.DB.Model(&Key{}).Create(&Key{})
+	keyID, err := randString(32)
+	optionalInternalPanic(err, "Failed to generate key ID")
+	key := Key{
+		KeyID:                  keyID,
+		UserID:                 admin.AdminID,
+		AppID:                  "1", // special app for admins
+		Counter:                0,
+		MarshalledRegistration: admin.PublicKey, // this is bad, will change
+	}
+	err = ah.s.DB.Model(&Key{}).Create(&key).Error
 	optionalInternalPanic(err, "Failed to save key to database")
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(response)
 }
 
 // NewAppHandler creates a new app.
