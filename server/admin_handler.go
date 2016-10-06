@@ -62,9 +62,11 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		Seed:        req.Seed,
 		PublicKey:   req.PublicKey,
 	})
+	base := ah.s.c.getBaseURLWithProtocol() + "/admin"
 	writeJSON(w, http.StatusOK, newAdminReply{
-		RequestID: requestID,
-		Route:     ah.s.c.getBaseURLWithProtocol() + "/admin/register",
+		RequestID:   requestID,
+		IFrameRoute: base + "/register/" + requestID,
+		WaitRoute:   base + "/" + requestID + "/wait",
 	})
 }
 

@@ -20,8 +20,9 @@ type newAdminRequest struct {
 
 // REPLY POST /v1/admin/new/:code
 type newAdminReply struct {
-	RequestID string `json:"requestID"`
-	Route     string `json:"route"`
+	RequestID   string `json:"requestID"`
+	IFrameRoute string `json:"iFrameRoute"`
+	WaitRoute   string `json:"waitRoute"`
 }
 
 // NewAppRequest is the request to `POST /v1/app/new`.
