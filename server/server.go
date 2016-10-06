@@ -312,7 +312,8 @@ func (srv *Server) GetHandler() http.Handler {
 		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
 			srv.c.ListenerExpirationTime, srv.c.CleanTime),
 	}
-	forMethod(router, "/admin/register", ah.Register, "GET")
+	forMethod(router, "/v1/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
+	forMethod(router, "/v1/admin/register", ah.Register, "POST")
 	forMethod(router, "/v1/admin/{requestID}/wait", ah.Wait, "GET")
 	forMethod(router, "/v1/admin/new/{code}", ah.NewAdmin, "POST")
 	forMethod(router, "/v1/admin/app/new", ah.NewAppHandler, "POST")

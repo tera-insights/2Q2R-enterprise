@@ -4,9 +4,11 @@ package server
 
 import (
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"strings"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 )
 
@@ -94,6 +96,47 @@ func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Failed to save key to database")
 
 	w.WriteHeader(response)
+}
+
+// RegisterIFrameHandler returns the iFrame used for the admin to register.
+// GET /v1/admin/register/{requestID}
+func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+	requestID := mux.Vars(r)["requestID"]
+	templateBox, err := rice.FindBox("assets")
+	optionalInternalPanic(err, "Failed to load assets")
+
+	templateString, err := templateBox.String("all.html")
+	optionalInternalPanic(err, "Failed to load template")
+
+	t, err := template.New("register").Parse(templateString)
+	optionalInternalPanic(err, "Failed to generate registration iFrame")
+
+	cachedData, found := ah.s.cache.adminRegistrations.Get(requestID)
+	panicIfFalse(found, http.StatusBadRequest, "Failed to find registration request")
+	request := cachedData.(AdminRegistrationRequest)
+
+	cachedData, found = ah.s.cache.admins.Get(requestID)
+	panicIfFalse(found, http.StatusInternalServerError, "Failed to find cached admin")
+	admin := cachedData.(Admin)
+
+	base := ah.s.c.getBaseURLWithProtocol()
+	data, err := json.Marshal(registerData{
+		RequestID:   requestID,
+		KeyTypes:    []string{"2q2r", "u2f"},
+		Challenge:   request.Challenge,
+		UserID:      admin.AdminID,
+		BaseURL:     base,
+		AppURL:      base,
+		RegisterURL: base + "/v1/admin/register",
+		WaitURL:     base + "/v1/admin/" + requestID + "/wait",
+	})
+	optionalInternalPanic(err, "Failed to generate template")
+
+	t.Execute(w, templateData{
+		Name: "Registration",
+		ID:   "register",
+		Data: template.JS(data),
+	})
 }
 
 // NewAppHandler creates a new app.
