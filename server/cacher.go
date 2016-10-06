@@ -4,7 +4,6 @@ package server
 
 import (
 	"crypto"
-	"fmt"
 	"io"
 	"time"
 
@@ -104,7 +103,7 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 		ptr := &ar
 		return ptr, nil
 	}
-	return nil, fmt.Errorf("Could not find authentication request with id %s", id)
+	return nil, errors.Errorf("Could not find authentication request with id %s", id)
 }
 
 // SetAuthenticationRequest puts an AuthenticationRequest into the cache.
@@ -128,7 +127,7 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
 		c.authenticationRequests.Set(requestID, ar, c.expiration)
 		return nil
 	}
-	return fmt.Errorf("Could not find authentication request with id %s", requestID)
+	return errors.Errorf("Could not find authentication request with id %s", requestID)
 }
 
 // NewAdminRegisterRequest stores a new admin and registration request for a

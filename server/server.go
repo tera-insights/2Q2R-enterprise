@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -22,6 +21,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
@@ -187,7 +187,7 @@ func MakeDB(c *Config) *gorm.DB {
 	db.AutoMigrate(&Key{})
 	db.AutoMigrate(&Admin{})
 	if err != nil {
-		panic(fmt.Errorf("Could not open database: %s", err))
+		panic(errors.Errorf("Could not open database: %s", err))
 	}
 	return db
 }
