@@ -265,9 +265,11 @@ func (ah *AdminHandler) GetServerHandler(w http.ResponseWriter, r *http.Request)
 	err := CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
-	g := DBHandler{DB: ah.s.DB.Model(&AppServerInfo{}), Writer: w}
 	var info AppServerInfo
-	g.FirstWhereWithRespond(AppServerInfo{ServerID: serverID}, &info)
+	err = ah.s.DB.Model(&AppServerInfo{}).Where(&AppServerInfo{ServerID: serverID}).First(&info).Error
+	optionalBadRequestPanic(err, "Failed to find server with specified ID")
+
+	writeJSON(w, http.StatusOK, info)
 }
 
 // NewUserHandler creates a new user for an admin with valid credentials.
