@@ -2,7 +2,10 @@
 
 package server
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
 // REQUEST POST /v1/admin/new/:code
 type newAdminRequest struct {
@@ -48,6 +51,12 @@ type AppIDInfoReply struct {
 
 	// Only P256 supported for now
 	KeyType string `json:"serverKeyType"`
+}
+
+type adminRegisterRequest struct {
+	RequestID string  `json:"requestID"`
+	R         big.Int `json:"r"` // can just be specified as a string
+	S         big.Int `json:"s"`
 }
 
 // NewServerRequest is the request to `POST /v1/admin/server/new`.

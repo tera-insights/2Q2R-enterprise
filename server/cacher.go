@@ -4,6 +4,7 @@ package server
 
 import (
 	"crypto"
+	"crypto/rand"
 	"io"
 	"time"
 
@@ -34,7 +35,7 @@ type AuthenticationRequest struct {
 // AdminRegistrationRequest is the what admins use to add their initial second
 // factor.
 type AdminRegistrationRequest struct {
-	Challenge string
+	Challenge []byte
 }
 
 // Cacher holds various requests. If they are not found, it hits the database.
@@ -136,11 +137,12 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
 func (c *Cacher) NewAdminRegisterRequest(id string, a Admin) {
 	c.admins.Set(id, a, c.expiration)
 
-	challenge, err := randString(64)
-	optionalInternalPanic(err, "Failed to generate challenge for admin")
+	bytes := make([]byte, 32)
+	_, err := rand.Read(bytes)
+	optionalInternalPanic(err, "Failed to generat echallenge for admin")
 
 	c.adminRegistrations.Set(id, AdminRegistrationRequest{
-		Challenge: challenge,
+		Challenge: bytes,
 	}, c.expiration)
 }
 

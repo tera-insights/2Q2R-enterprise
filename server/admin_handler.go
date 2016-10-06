@@ -3,6 +3,9 @@
 package server
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/sha256"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -123,7 +126,7 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
-		Challenge:   request.Challenge,
+		Challenge:   encodeBase64(request.Challenge),
 		UserID:      admin.AdminID,
 		BaseURL:     base,
 		AppURL:      base,
@@ -136,6 +139,53 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 		Name: "Registration",
 		ID:   "register",
 		Data: template.JS(data),
+	})
+}
+
+// Register registers a new second-factor for an admin.
+// POST /v1/admin/register
+func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
+	req := adminRegisterRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Failed to decode request body")
+
+	data, found := ah.s.cache.admins.Get(req.RequestID)
+	panicIfFalse(found, http.StatusBadRequest,
+		"Failed to find admin for registration request")
+
+	admin, ok := data.(Admin)
+	panicIfFalse(ok, http.StatusInternalServerError,
+		"Failed to load admin for registration request")
+
+	data, found = ah.s.cache.adminRegistrations.Get(req.RequestID)
+	panicIfFalse(found, http.StatusBadRequest,
+		"Failed to find stored registration request")
+
+	registerRequest, ok := data.(AdminRegistrationRequest)
+	panicIfFalse(ok, http.StatusInternalServerError,
+		"Failed to load registration request")
+
+	x, y := elliptic.Unmarshal(elliptic.P256(), admin.PublicKey)
+	if x == nil {
+		panic(bubbledError{
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Could not unmarshal stored public key for admin",
+		})
+	}
+
+	pubKey := ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     x,
+		Y:     y,
+	}
+	hash := sha256.Sum256(registerRequest.Challenge)
+	verified := ecdsa.Verify(&pubKey, hash[:], &req.R, &req.S)
+	panicIfFalse(verified, http.StatusBadRequest, "Failed to verify signature")
+
+	ah.q.MarkCompleted(req.RequestID)
+	writeJSON(w, http.StatusOK, RegisterResponse{
+		Successful: true,
+		Message:    "OK",
 	})
 }
 
