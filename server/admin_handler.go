@@ -240,7 +240,7 @@ func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // DeleteServerHandler deletes a server on behalf of a valid admin.
-// POST /v1/admin/server/delete
+// DELETE /v1/admin/server/delete
 func (ah *AdminHandler) DeleteServerHandler(w http.ResponseWriter, r *http.Request) {
 	req := DeleteServerRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -259,19 +259,15 @@ func (ah *AdminHandler) DeleteServerHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // GetServerHandler gets information about a server with a particular ID.
-// POST /v1/admin/server/get
+// GET /v1/admin/server/get/{serverID}
 func (ah *AdminHandler) GetServerHandler(w http.ResponseWriter, r *http.Request) {
-	req := AppServerInfoRequest{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
-	optionalBadRequestPanic(err, "Could not decode request body")
-
-	err = CheckBase64(req.ServerID)
+	serverID := mux.Vars(r)["serverID"]
+	err := CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
 	g := DBHandler{DB: ah.s.DB.Model(&AppServerInfo{}), Writer: w}
 	var info AppServerInfo
-	g.FirstWhereWithRespond(AppServerInfo{ServerID: req.ServerID}, &info)
+	g.FirstWhereWithRespond(AppServerInfo{ServerID: serverID}, &info)
 }
 
 // NewUserHandler creates a new user for an admin with valid credentials.

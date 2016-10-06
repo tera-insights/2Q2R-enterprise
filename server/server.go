@@ -316,10 +316,13 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/register", ah.Register, "POST")
 	forMethod(router, "/v1/admin/{requestID}/wait", ah.Wait, "GET")
 	forMethod(router, "/v1/admin/new/{code}", ah.NewAdmin, "POST")
+
 	forMethod(router, "/v1/admin/app/new", ah.NewAppHandler, "POST")
+
 	forMethod(router, "/v1/admin/server/new", ah.NewServerHandler, "POST")
-	forMethod(router, "/v1/admin/server/delete", ah.DeleteServerHandler, "POST")
-	forMethod(router, "/v1/admin/server/get", ah.GetServerHandler, "POST")
+	forMethod(router, "/v1/admin/server/delete", ah.DeleteServerHandler, "DELETE")
+	forMethod(router, "/v1/admin/server/get/{serverID}", ah.GetServerHandler, "GET")
+
 	forMethod(router, "/v1/admin/user/new", ah.NewUserHandler, "POST")
 
 	// Info routes

@@ -81,11 +81,6 @@ type DeleteServerRequest struct {
 	ServerID string `json:"serverID"`
 }
 
-// AppServerInfoRequest is the request to `POST /v1/admin/server/info`.
-type AppServerInfoRequest struct {
-	ServerID string `json:"serverID"`
-}
-
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
 type RegistrationSetupReply struct {
 	// base64Web encoded random reply id
