@@ -98,6 +98,17 @@ type DeleteServerRequest struct {
 	ServerID string `json:"serverID"`
 }
 
+// Request to `POST /V1/admin/server/update`
+type serverUpdateRequest struct {
+	ServerID    string `json:"serverID"`
+	ServerName  string `json:"serverName"`
+	BaseURL     string `json:"baseURL"`
+	KeyType     string `json:"keyType"`
+	PublicKey   []byte `json:"publicKey"`
+	Permissions string `json:"permissions"`
+	AuthType    string `json:"authType"`
+}
+
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
 type RegistrationSetupReply struct {
 	// base64Web encoded random reply id

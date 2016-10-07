@@ -269,9 +269,9 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// NewServerHandler creates a new server for an admin with valid credentials.
+// NewServer creates a new server for an admin with valid credentials.
 // POST /v1/admin/server/new
-func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	req := NewServerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
@@ -297,9 +297,9 @@ func (ah *AdminHandler) NewServerHandler(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// DeleteServerHandler deletes a server on behalf of a valid admin.
+// DeleteServer deletes a server on behalf of a valid admin.
 // DELETE /v1/admin/server/delete
-func (ah *AdminHandler) DeleteServerHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	req := DeleteServerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
@@ -316,9 +316,9 @@ func (ah *AdminHandler) DeleteServerHandler(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, "Server deleted")
 }
 
-// GetServerHandler gets information about a server with a particular ID.
+// GetServer gets information about a server with a particular ID.
 // GET /v1/admin/server/get/{serverID}
-func (ah *AdminHandler) GetServerHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *AdminHandler) GetServer(w http.ResponseWriter, r *http.Request) {
 	serverID := mux.Vars(r)["serverID"]
 	err := CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
@@ -328,6 +328,30 @@ func (ah *AdminHandler) GetServerHandler(w http.ResponseWriter, r *http.Request)
 	optionalBadRequestPanic(err, "Failed to find server with specified ID")
 
 	writeJSON(w, http.StatusOK, info)
+}
+
+// UpdateServer updates an app server with `ServerID == req.ServerID`.
+// POST /v1/admin/server/update
+func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
+	req := serverUpdateRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+
+	query := ah.s.DB.Where(&AppServerInfo{
+		ServerID: req.ServerID,
+	}).Updates(AppServerInfo{
+		ServerName:  req.ServerName,
+		BaseURL:     req.BaseURL,
+		KeyType:     req.KeyType,
+		PublicKey:   req.PublicKey,
+		Permissions: req.Permissions,
+		AuthType:    req.AuthType,
+	})
+	optionalInternalPanic(query.Error, "Failed to update app server info")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
 }
 
 // NewUserHandler creates a new user for an admin with valid credentials.
