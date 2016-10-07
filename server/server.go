@@ -327,8 +327,6 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/server/update", ah.UpdateServer, "POST")
 	forMethod(router, "/v1/admin/server/delete", ah.DeleteServer, "DELETE")
 
-	forMethod(router, "/v1/admin/user/new", ah.NewUserHandler, "POST")
-
 	// Info routes
 	ih := InfoHandler{srv}
 	forMethod(router, "/v1/info/{appID}", ih.AppInfoHandler, "GET")

@@ -353,24 +353,3 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 		NumAffected: query.RowsAffected,
 	})
 }
-
-// NewUserHandler creates a new user for an admin with valid credentials.
-// POST /v1/admin/user/new
-func (ah *AdminHandler) NewUserHandler(w http.ResponseWriter, r *http.Request) {
-	req := NewUserRequest{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
-	optionalBadRequestPanic(err, "Could not decode request body")
-
-	userID, err := randString(32)
-	optionalInternalPanic(err, "Could not generate user ID")
-
-	err = ah.s.DB.Create(&Key{
-		UserID: userID,
-	}).Error
-	optionalInternalPanic(err, "Could not create key for new user")
-
-	writeJSON(w, http.StatusOK, NewUserReply{
-		UserID: userID,
-	})
-}
