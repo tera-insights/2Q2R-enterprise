@@ -3,12 +3,14 @@
 package server
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"strings"
 
@@ -348,6 +350,49 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 		AuthType:    req.AuthType,
 	})
 	optionalInternalPanic(query.Error, "Failed to update app server info")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
+// NewLongTerm stores a long-term request in the database.
+// POST /v1/admin/ltr/new
+func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
+	req := newLTRRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+
+	id, err := randString(32)
+	optionalInternalPanic(err, "Could not generate request ID")
+	h := crypto.SHA256.New()
+	io.WriteString(h, id)
+	hashedID := string(h.Sum(nil))
+
+	query := ah.s.DB.Create(&LongTermRequest{
+		AppID:           req.AppID,
+		HashedRequestID: hashedID,
+	})
+	optionalInternalPanic(query.Error,
+		"Could not save long-term request to the database")
+
+	writeJSON(w, http.StatusOK, newLTRResponse{
+		RequestID: id,
+	})
+}
+
+// DeleteLongTerm deletes a long-term request from the database.
+// DELETE /v1/admin/ltr/delete
+func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
+	req := deleteLTRRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+
+	query := ah.s.DB.Delete(LongTermRequest{}, &LongTermRequest{
+		AppID:           req.AppID,
+		HashedRequestID: req.HashedRequestID,
+	})
+	optionalInternalPanic(query.Error, "Could not delete long-term request")
 
 	writeJSON(w, http.StatusOK, modificationReply{
 		NumAffected: query.RowsAffected,

@@ -43,9 +43,8 @@ type AppServerInfo struct {
 type LongTermRequest struct {
 	gorm.Model
 
-	HashedRequestID string
-	AppID           string
-	UserID          string
+	HashedRequestID string `json:"hashedRequestID"` // sha-256 hashed
+	AppID           string `json:"appID"`
 }
 
 // Key is the Gorm model for a user's stored public key.

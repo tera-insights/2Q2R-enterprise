@@ -195,3 +195,19 @@ type failedAuthenticationData struct {
 	ErrorMessage string `json:"errorMessage"`
 	ErrorStatus  int    `json:"errorStatus"`
 }
+
+// Request to POST /v1/admin/ltr/new
+type newLTRRequest struct {
+	AppID string `json:"appID"`
+}
+
+// Reply to POST /v1/admin/ltr/new
+type newLTRResponse struct {
+	RequestID string `json:"requestID"`
+}
+
+// Request to DELETE /v1/admin/ltr/delete
+type deleteLTRRequest struct {
+	AppID           string `json:"appID"`
+	HashedRequestID string `json:"hashedRequestID"`
+}
