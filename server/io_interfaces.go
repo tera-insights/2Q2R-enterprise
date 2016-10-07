@@ -30,6 +30,23 @@ type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
+// Request to `POST /V1/admin/app/update`
+type appUpdateRequest struct {
+	AppID   string `json:"appID"`
+	AppName string `json:"appName"`
+}
+
+// Reply to `POST /v1/admin/app/update`
+// Reply to `DELETE /v1/admin/app/delete`
+type modificationReply struct {
+	NumAffected int64 `json:"numAffected"`
+}
+
+// Request to `DELETE /v1/admin/app/delete`
+type appDeleteRequest struct {
+	AppID string `json:"appID"`
+}
+
 // NewAppReply is the response to `POST /v1/app/new`.
 type NewAppReply struct {
 	AppID string `json:"appID"`

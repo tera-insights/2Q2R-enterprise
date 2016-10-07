@@ -7,12 +7,14 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
 // AdminHandler is the handler for all registration requests.
@@ -191,9 +193,9 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// NewAppHandler creates a new app.
-// POst /v1/admin/app/new
-func (ah *AdminHandler) NewAppHandler(w http.ResponseWriter, r *http.Request) {
+// NewApp creates, well, a new app.
+// POST /v1/admin/app/new
+func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	req := NewAppRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
@@ -209,6 +211,62 @@ func (ah *AdminHandler) NewAppHandler(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Could not create app info")
 
 	writeJSON(w, http.StatusOK, NewAppReply{appID})
+}
+
+// GetApp gets an app with a particular app ID.
+// GET /v1/admin/app/get/{appID}
+func (ah *AdminHandler) GetApp(w http.ResponseWriter, r *http.Request) {
+	appID := mux.Vars(r)["appID"]
+	err := CheckBase64(appID)
+	optionalBadRequestPanic(err, "App ID was not base-64")
+
+	var found []AppInfo
+	err = ah.s.DB.Model(&AppInfo{}).Find(&found, &AppInfo{AppID: appID}).Error
+	optionalInternalPanic(err, "Could not read app infos")
+	panicIfFalse(len(found) == 0, http.StatusBadRequest,
+		fmt.Sprintf("Could not find app with id %s", appID))
+
+	writeJSON(w, http.StatusOK, found[0])
+}
+
+// UpdateApp updates an app with a particular app ID.
+// POST /v1/admin/app/update
+func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
+	req := appUpdateRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+
+	// So that we don't overwrite the app name if there is no app name passed
+	panicIfFalse(req.AppName != "", http.StatusBadRequest,
+		"Cannot have an empty app name")
+
+	query := ah.s.DB.Model(&AppInfo{}).Where(&AppInfo{
+		AppID: req.AppID,
+	}).Update(map[string]interface{}{
+		gorm.ToDBName("AppName"): req.AppName,
+	})
+	optionalInternalPanic(query.Error, "Could not update app")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
+// DeleteApp deletes an app with a particular app ID.
+// DELETE /v1/admin/app/delete
+func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
+	req := appDeleteRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+
+	query := ah.s.DB.Delete(AppInfo{}, &AppInfo{
+		AppID: req.AppID,
+	})
+	optionalInternalPanic(query.Error, "Could not delete app")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
 }
 
 // NewServerHandler creates a new server for an admin with valid credentials.
