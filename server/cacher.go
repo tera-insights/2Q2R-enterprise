@@ -139,7 +139,7 @@ func (c *Cacher) NewAdminRegisterRequest(id string, a Admin) {
 
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
-	optionalInternalPanic(err, "Failed to generat echallenge for admin")
+	optionalInternalPanic(err, "Failed to generate echallenge for admin")
 
 	c.adminRegistrations.Set(id, AdminRegistrationRequest{
 		Challenge: bytes,
