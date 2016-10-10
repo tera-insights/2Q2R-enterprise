@@ -11,7 +11,6 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"strings"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
@@ -54,13 +53,16 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	requestID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
+	encodedPermissions, err := json.Marshal(req.Permissions)
+	optionalInternalPanic(err, "Could not encode permissions for storage")
+
 	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
 		AdminID:     req.AdminID,
 		Name:        req.Name,
 		Email:       req.Email,
 		Active:      code == "bootstrap",
 		SuperAdmin:  code == "bootstrap",
-		Permissions: strings.Join(req.Permissions, ","),
+		Permissions: string(encodedPermissions),
 		IV:          req.IV,
 		Seed:        req.Seed,
 		PublicKey:   req.PublicKey,

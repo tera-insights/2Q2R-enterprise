@@ -69,9 +69,9 @@ type Admin struct {
 	Active      bool   `json:"active"`
 	Name        string `json:"name"`
 	Email       string `json:"email"`
-	Permissions string `json:"permissions"` // comma-separated list of permissions
+	Permissions string `json:"permissions"` // JSON-encoded array
 	SuperAdmin  bool   `json:"superAdmin"`  // if so, this essentially has all the permissions
-	IV          string `json:"iv"`          // encoded using encodeBase64 (web encoding, no padding)
+	IV          string `json:"iv"`          // encoded using encodeBase64
 	Seed        string `json:"seed"`        // same encoding
 	PublicKey   []byte `json:"publicKey"`
 }
