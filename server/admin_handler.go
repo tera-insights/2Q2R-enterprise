@@ -8,7 +8,6 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -215,20 +214,14 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, NewAppReply{appID})
 }
 
-// GetApp gets an app with a particular app ID.
-// GET /v1/admin/app/get/{appID}
-func (ah *AdminHandler) GetApp(w http.ResponseWriter, r *http.Request) {
-	appID := mux.Vars(r)["appID"]
-	err := CheckBase64(appID)
-	optionalBadRequestPanic(err, "App ID was not base-64")
-
+// GetApps gets all AppInfos.
+// GET /v1/admin/app/get
+func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 	var found []AppInfo
-	err = ah.s.DB.Model(&AppInfo{}).Find(&found, &AppInfo{AppID: appID}).Error
+	err := ah.s.DB.Model(&AppInfo{}).Find(&found).Error
 	optionalInternalPanic(err, "Could not read app infos")
-	panicIfFalse(len(found) == 0, http.StatusBadRequest,
-		fmt.Sprintf("Could not find app with id %s", appID))
 
-	writeJSON(w, http.StatusOK, found[0])
+	writeJSON(w, http.StatusOK, found)
 }
 
 // UpdateApp updates an app with a particular app ID.
@@ -318,15 +311,11 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, "Server deleted")
 }
 
-// GetServer gets information about a server with a particular ID.
-// GET /v1/admin/server/get/{serverID}
-func (ah *AdminHandler) GetServer(w http.ResponseWriter, r *http.Request) {
-	serverID := mux.Vars(r)["serverID"]
-	err := CheckBase64(serverID)
-	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
-
-	var info AppServerInfo
-	err = ah.s.DB.Model(&AppServerInfo{}).Where(&AppServerInfo{ServerID: serverID}).First(&info).Error
+// GetServers gets information about app servers.
+// GET /v1/admin/server/get
+func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
+	var info []AppServerInfo
+	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
 	optionalBadRequestPanic(err, "Failed to find server with specified ID")
 
 	writeJSON(w, http.StatusOK, info)

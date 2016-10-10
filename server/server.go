@@ -318,12 +318,12 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/admin/new/{code}", ah.NewAdmin, "POST")
 
 	forMethod(router, "/v1/admin/app/new", ah.NewApp, "POST")
-	forMethod(router, "/v1/admin/app/get/{appID}", ah.GetApp, "GET")
+	forMethod(router, "/v1/admin/app/get", ah.GetApps, "GET")
 	forMethod(router, "/v1/admin/app/update", ah.UpdateApp, "POST")
 	forMethod(router, "/v1/admin/app/delete", ah.DeleteApp, "DELETE")
 
 	forMethod(router, "/v1/admin/server/new", ah.NewServer, "POST")
-	forMethod(router, "/v1/admin/server/get/{serverID}", ah.GetServer, "GET")
+	forMethod(router, "/v1/admin/server/get", ah.GetServers, "GET")
 	forMethod(router, "/v1/admin/server/update", ah.UpdateServer, "POST")
 	forMethod(router, "/v1/admin/server/delete", ah.DeleteServer, "DELETE")
 
