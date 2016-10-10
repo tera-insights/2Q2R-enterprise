@@ -65,13 +65,13 @@ type Key struct {
 type Admin struct {
 	gorm.Model
 
-	AdminID     string `gorm:"primary_key"` // can be joined with Key.UserID
-	Active      bool
-	Name        string
-	Email       string
-	Permissions string // comma-separated list of permissions
-	SuperAdmin  bool   // if so, this essentially has all the permissions
-	IV          string // encoded using encodeBase64 (web encoding, no padding)
-	Seed        string // same encoding
-	PublicKey   []byte
+	AdminID     string `gorm:"primary_key" json:"activeID"` // can be joined with Key.UserID
+	Active      bool   `json:"active"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Permissions string `json:"permissions"` // comma-separated list of permissions
+	SuperAdmin  bool   `json:"superAdmin"`  // if so, this essentially has all the permissions
+	IV          string `json:"iv"`          // encoded using encodeBase64 (web encoding, no padding)
+	Seed        string `json:"seed"`        // same encoding
+	PublicKey   []byte `json:"publicKey"`
 }

@@ -194,6 +194,74 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetAdmins lists all the admins.
+// GET /v1/admin/get
+func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
+	var result []Admin
+	err := ah.s.DB.Model(&Admin{}).Find(&result).Error
+	optionalBadRequestPanic(err, "Failed to read admins")
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// UpdateAdmin updates an admin with a specific ID.
+// POST /v1/admin/update
+func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
+	req := adminUpdateRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	query := ah.s.DB.Where(&Admin{
+		AdminID: req.AdminID,
+	}).Updates(Admin{
+		Name:        req.Name,
+		Email:       req.Email,
+		Permissions: req.Permissions,
+		IV:          req.IV,
+		Seed:        req.Seed,
+	})
+	optionalInternalPanic(query.Error, "Failed to update admin")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
+// DeleteAdmin deletes an admin that matches a query.
+// DELETE /v1/admin/delete
+func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
+	req := Admin{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	query := ah.s.DB.Delete(Admin{}, &req)
+	optionalInternalPanic(query.Error, "Failed to delete admins")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
+// ChangeAdminRoles can (de-)activate an admin or make the admin a super.
+// POST /v1/admin/roles
+func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request) {
+	req := adminRoleChangeRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	query := ah.s.DB.Model(&Admin{}).Where(&Admin{
+		AdminID: req.AdminID,
+	}).Updates(map[string]interface{}{
+		gorm.ToDBName("Active"):     req.Active,
+		gorm.ToDBName("SuperAdmin"): req.SuperAdmin,
+	})
+	optionalInternalPanic(query.Error, "Failed to change admin roles")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
 // NewApp creates, well, a new app.
 // POST /v1/admin/app/new
 func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
@@ -316,7 +384,7 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	var info []AppServerInfo
 	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
-	optionalBadRequestPanic(err, "Failed to find server with specified ID")
+	optionalBadRequestPanic(err, "Failed to find servers")
 
 	writeJSON(w, http.StatusOK, info)
 }

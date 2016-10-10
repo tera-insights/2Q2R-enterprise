@@ -25,6 +25,24 @@ type newAdminReply struct {
 	WaitRoute   string `json:"waitRoute"`
 }
 
+// Request to `POST /v1/admin/update`
+type adminUpdateRequest struct {
+	AdminID     string `json:"adminID"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Permissions string `json:"permissions"`
+	IV          string `json:"iv"`
+	Seed        string `json:"seed"`
+	PublicKey   []byte `json:"publicKey"`
+}
+
+// Request to POST /v1/admin/update
+type adminRoleChangeRequest struct {
+	AdminID    string `json:"adminID"`
+	SuperAdmin bool   `json:"superAdmiN"`
+	Active     bool   `json:"active"`
+}
+
 // NewAppRequest is the request to `POST /v1/app/new`.
 type NewAppRequest struct {
 	AppName string `json:"appName"`
