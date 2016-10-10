@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// REQUEST POST /v1/admin/new/:code
+// REQUEST POST /admin/new/:code
 type newAdminRequest struct {
 	AdminID     string   `json:"adminID"`
 	Name        string   `json:"name"`
@@ -18,14 +18,14 @@ type newAdminRequest struct {
 	PublicKey   []byte   `json:"publicKey"`
 }
 
-// REPLY POST /v1/admin/new/:code
+// REPLY POST /admin/new/:code
 type newAdminReply struct {
 	RequestID   string `json:"requestID"`
 	IFrameRoute string `json:"iFrameRoute"`
 	WaitRoute   string `json:"waitRoute"`
 }
 
-// Request to `POST /v1/admin/update`
+// Request to `POST /admin/update`
 type adminUpdateRequest struct {
 	AdminID     string `json:"adminID"`
 	Name        string `json:"name"`
@@ -36,7 +36,7 @@ type adminUpdateRequest struct {
 	PublicKey   []byte `json:"publicKey"`
 }
 
-// Request to POST /v1/admin/update
+// Request to POST /admin/update
 type adminRoleChangeRequest struct {
 	AdminID    string `json:"adminID"`
 	SuperAdmin bool   `json:"superAdmiN"`
@@ -48,19 +48,19 @@ type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// Request to `POST /V1/admin/app/update`
+// Request to `POST /admin/app/update`
 type appUpdateRequest struct {
 	AppID   string `json:"appID"`
 	AppName string `json:"appName"`
 }
 
-// Reply to `POST /v1/admin/app/update`
-// Reply to `DELETE /v1/admin/app/delete`
+// Reply to `POST /admin/app/update`
+// Reply to `DELETE /admin/app/delete`
 type modificationReply struct {
 	NumAffected int64 `json:"numAffected"`
 }
 
-// Request to `DELETE /v1/admin/app/delete`
+// Request to `DELETE /admin/app/delete`
 type appDeleteRequest struct {
 	AppID string `json:"appID"`
 }
@@ -95,7 +95,7 @@ type adminRegisterRequest struct {
 	S         big.Int `json:"s"`
 }
 
-// NewServerRequest is the request to `POST /v1/admin/server/new`.
+// NewServerRequest is the request to `POST /admin/server/new`.
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
@@ -105,18 +105,18 @@ type NewServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// NewServerReply is the response to `POST `/v1/admin/server/new`.
+// NewServerReply is the response to `POST `/admin/server/new`.
 type NewServerReply struct {
 	ServerName string `json:"serverName"`
 	ServerID   string `json:"serverID"`
 }
 
-// DeleteServerRequest is the request to `POST /v1/admin/server/delete`.
+// DeleteServerRequest is the request to `POST /admin/server/delete`.
 type DeleteServerRequest struct {
 	ServerID string `json:"serverID"`
 }
 
-// Request to `POST /V1/admin/server/update`
+// Request to `POST /admin/server/update`
 type serverUpdateRequest struct {
 	ServerID    string `json:"serverID"`
 	ServerName  string `json:"serverName"`
@@ -214,17 +214,17 @@ type failedAuthenticationData struct {
 	ErrorStatus  int    `json:"errorStatus"`
 }
 
-// Request to POST /v1/admin/ltr/new
+// Request to POST /admin/ltr/new
 type newLTRRequest struct {
 	AppID string `json:"appID"`
 }
 
-// Reply to POST /v1/admin/ltr/new
+// Reply to POST /admin/ltr/new
 type newLTRResponse struct {
 	RequestID string `json:"requestID"`
 }
 
-// Request to DELETE /v1/admin/ltr/delete
+// Request to DELETE /admin/ltr/delete
 type deleteLTRRequest struct {
 	AppID           string `json:"appID"`
 	HashedRequestID string `json:"hashedRequestID"`

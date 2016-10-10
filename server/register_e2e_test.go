@@ -17,7 +17,7 @@ func TestIFrameAuthentication(t *testing.T) {
 	serverName := "register_e2e_test"
 
 	// Create app server
-	postJSON("/v1/admin/server/new", NewServerRequest{
+	postJSON("/admin/server/new", NewServerRequest{
 		ServerName:  serverName,
 		AppID:       goodAppID,
 		BaseURL:     goodBaseURL,
@@ -27,7 +27,7 @@ func TestIFrameAuthentication(t *testing.T) {
 	})
 
 	// Add user to system
-	res, err := postJSON("/v1/admin/user/new", NewUserRequest{})
+	res, err := postJSON("/admin/user/new", NewUserRequest{})
 	require.Nil(t, err)
 	userData := new(NewUserReply)
 	unmarshalJSONBody(res, userData)
