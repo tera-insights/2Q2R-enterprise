@@ -51,12 +51,12 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
 	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
 		cachedRequest.RequestID,
-		ah.s.c.getBaseURLWithProtocol() + "/auth/" + cachedRequest.RequestID,
+		ah.s.c.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
 	})
 }
 
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
-// GET /auth/:id
+// GET /v1/auth/:id
 func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")

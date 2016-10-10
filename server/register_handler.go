@@ -45,12 +45,12 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.RequestID,
-		rh.s.c.getBaseURLWithProtocol() + "/register/" + rr.RequestID,
+		rh.s.c.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
 	})
 }
 
 // RegisterIFrameHandler returns the iFrame that is used to perform registration.
-// GET /register/:id
+// GET /v1/register/:id
 func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")

@@ -87,7 +87,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	unmarshalJSONBody(res, setupInfo)
 
 	// Get authentication iFrame
-	res, _ = http.Get(ts.URL + "/auth/" + setupInfo.RequestID)
+	res, _ = http.Get(ts.URL + "/v1/auth/" + setupInfo.RequestID)
 	bytes, _ := ioutil.ReadAll(res.Body)
 	iFrameBody := string(bytes)
 
