@@ -342,6 +342,9 @@ func (srv *Server) GetHandler() http.Handler {
 	// Key routes
 	kh := keyHandler{srv}
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
+	forMethod(router, "/v1/keys/get", kh.GetKeys, "GET")
+	forMethod(router, "/v1/users/{userID}", kh.DeleteUser, "DELETE")
+	forMethod(router, "/v1/keys/{userID}/{keyID}", kh.DeleteKey, "DELETE")
 
 	// Auth routes
 	th := AuthHandler{

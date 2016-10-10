@@ -52,7 +52,7 @@ type Key struct {
 	gorm.Model
 
 	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
-	KeyID                  string
+	KeyID                  string `gorm:"primary_key"`
 	Type                   string
 	Name                   string
 	UserID                 string
