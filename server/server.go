@@ -312,23 +312,28 @@ func (srv *Server) GetHandler() http.Handler {
 		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
 			srv.c.ListenerExpirationTime, srv.c.CleanTime),
 	}
-	forMethod(router, "/v1/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
-	forMethod(router, "/v1/admin/register", ah.Register, "POST")
-	forMethod(router, "/v1/admin/{requestID}/wait", ah.Wait, "GET")
-	forMethod(router, "/v1/admin/new/{code}", ah.NewAdmin, "POST")
+	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
+	forMethod(router, "/admin/register", ah.Register, "POST")
+	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
+	forMethod(router, "/admin/new/{code}", ah.NewAdmin, "POST")
 
-	forMethod(router, "/v1/admin/app/new", ah.NewApp, "POST")
-	forMethod(router, "/v1/admin/app/get", ah.GetApps, "GET")
-	forMethod(router, "/v1/admin/app/update", ah.UpdateApp, "POST")
-	forMethod(router, "/v1/admin/app/delete", ah.DeleteApp, "DELETE")
+	forMethod(router, "/admin/get", ah.GetAdmins, "GET")
+	forMethod(router, "/admin/update", ah.UpdateAdmin, "POST")
+	forMethod(router, "/admin/delete", ah.DeleteAdmin, "DELETE")   // super-admins only
+	forMethod(router, "/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
 
-	forMethod(router, "/v1/admin/server/new", ah.NewServer, "POST")
-	forMethod(router, "/v1/admin/server/get", ah.GetServers, "GET")
-	forMethod(router, "/v1/admin/server/update", ah.UpdateServer, "POST")
-	forMethod(router, "/v1/admin/server/delete", ah.DeleteServer, "DELETE")
+	forMethod(router, "/admin/app/new", ah.NewApp, "POST")
+	forMethod(router, "/admin/app/get", ah.GetApps, "GET")
+	forMethod(router, "/admin/app/update", ah.UpdateApp, "POST")
+	forMethod(router, "/admin/app/delete", ah.DeleteApp, "DELETE")
 
-	forMethod(router, "/v1/admin/ltr/new", ah.NewLongTerm, "POST")
-	forMethod(router, "/v1/admin/ltr/delete", ah.DeleteLongTerm, "DELETE")
+	forMethod(router, "/admin/server/new", ah.NewServer, "POST")
+	forMethod(router, "/admin/server/get", ah.GetServers, "GET")
+	forMethod(router, "/admin/server/update", ah.UpdateServer, "POST")
+	forMethod(router, "/admin/server/delete", ah.DeleteServer, "DELETE")
+
+	forMethod(router, "/admin/ltr/new", ah.NewLongTerm, "POST")
+	forMethod(router, "/admin/ltr/delete", ah.DeleteLongTerm, "DELETE")
 
 	// Info routes
 	ih := InfoHandler{srv}
@@ -337,6 +342,9 @@ func (srv *Server) GetHandler() http.Handler {
 	// Key routes
 	kh := keyHandler{srv}
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
+	forMethod(router, "/v1/keys/get", kh.GetKeys, "GET")
+	forMethod(router, "/v1/users/{userID}", kh.DeleteUser, "DELETE")
+	forMethod(router, "/v1/keys/{userID}/{keyID}", kh.DeleteKey, "DELETE")
 
 	// Auth routes
 	th := AuthHandler{
@@ -348,7 +356,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
 	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
 	forMethod(router, "/v1/auth", th.Authenticate, "POST")
-	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
+	forMethod(router, "/v1/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
 	rh := RegisterHandler{
@@ -359,7 +367,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/v1/register", rh.Register, "POST")
-	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
+	forMethod(router, "/v1/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())

@@ -11,7 +11,6 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"strings"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
@@ -29,7 +28,7 @@ type AdminHandler struct {
 // interface in the system.
 // Replies with a request ID that must be used in order to add a second-factor
 // authentication mechanism.
-// POST /v1/admin/new/{code}
+// POST /admin/new/{code}
 func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	code := mux.Vars(r)["code"]
 	panicIfFalse(code == "bootstrap", http.StatusBadRequest,
@@ -54,18 +53,21 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	requestID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
+	encodedPermissions, err := json.Marshal(req.Permissions)
+	optionalInternalPanic(err, "Could not encode permissions for storage")
+
 	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
 		AdminID:     req.AdminID,
 		Name:        req.Name,
 		Email:       req.Email,
 		Active:      code == "bootstrap",
 		SuperAdmin:  code == "bootstrap",
-		Permissions: strings.Join(req.Permissions, ","),
+		Permissions: string(encodedPermissions),
 		IV:          req.IV,
 		Seed:        req.Seed,
 		PublicKey:   req.PublicKey,
 	})
-	base := ah.s.c.getBaseURLWithProtocol() + "/v1/admin/"
+	base := ah.s.c.getBaseURLWithProtocol() + "/admin/"
 	writeJSON(w, http.StatusOK, newAdminReply{
 		RequestID:   requestID,
 		IFrameRoute: base + "register/" + requestID,
@@ -75,7 +77,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 
 // Wait waits for the admin to authenticate a particular request. If the
 // authentication is successful, writes the admin and key to the database.
-// GET /v1/admin/{requestID}/wait
+// GET /admin/{requestID}/wait
 func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	c := ah.q.Listen(requestID)
@@ -107,7 +109,7 @@ func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterIFrameHandler returns the iFrame used for the admin to register.
-// GET /v1/admin/register/{requestID}
+// GET /admin/register/{requestID}
 func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
@@ -135,8 +137,8 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 		UserID:      admin.AdminID,
 		BaseURL:     base,
 		AppURL:      base,
-		RegisterURL: base + "/v1/admin/register",
-		WaitURL:     base + "/v1/admin/" + requestID + "/wait",
+		RegisterURL: base + "/admin/register",
+		WaitURL:     base + "/admin/" + requestID + "/wait",
 	})
 	optionalInternalPanic(err, "Failed to generate template")
 
@@ -148,7 +150,7 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 }
 
 // Register registers a new second-factor for an admin.
-// POST /v1/admin/register
+// POST /admin/register
 func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := adminRegisterRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -194,8 +196,76 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetAdmins lists all the admins.
+// GET /admin/get
+func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
+	var result []Admin
+	err := ah.s.DB.Model(&Admin{}).Find(&result).Error
+	optionalBadRequestPanic(err, "Failed to read admins")
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// UpdateAdmin updates an admin with a specific ID.
+// POST /admin/update
+func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
+	req := adminUpdateRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	query := ah.s.DB.Where(&Admin{
+		AdminID: req.AdminID,
+	}).Updates(Admin{
+		Name:        req.Name,
+		Email:       req.Email,
+		Permissions: req.Permissions,
+		IV:          req.IV,
+		Seed:        req.Seed,
+	})
+	optionalInternalPanic(query.Error, "Failed to update admin")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
+// DeleteAdmin deletes an admin that matches a query.
+// DELETE /admin/delete
+func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
+	req := Admin{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	query := ah.s.DB.Delete(Admin{}, &req)
+	optionalInternalPanic(query.Error, "Failed to delete admins")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
+// ChangeAdminRoles can (de-)activate an admin or make the admin a super.
+// POST /admin/roles
+func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request) {
+	req := adminRoleChangeRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	query := ah.s.DB.Model(&Admin{}).Where(&Admin{
+		AdminID: req.AdminID,
+	}).Updates(map[string]interface{}{
+		gorm.ToDBName("Active"):     req.Active,
+		gorm.ToDBName("SuperAdmin"): req.SuperAdmin,
+	})
+	optionalInternalPanic(query.Error, "Failed to change admin roles")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}
+
 // NewApp creates, well, a new app.
-// POST /v1/admin/app/new
+// POST /admin/app/new
 func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	req := NewAppRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -215,7 +285,7 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetApps gets all AppInfos.
-// GET /v1/admin/app/get
+// GET /admin/app/get
 func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 	var found []AppInfo
 	err := ah.s.DB.Model(&AppInfo{}).Find(&found).Error
@@ -225,7 +295,7 @@ func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateApp updates an app with a particular app ID.
-// POST /v1/admin/app/update
+// POST /admin/app/update
 func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	req := appUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -248,7 +318,7 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteApp deletes an app with a particular app ID.
-// DELETE /v1/admin/app/delete
+// DELETE /admin/app/delete
 func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 	req := appDeleteRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -265,7 +335,7 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewServer creates a new server for an admin with valid credentials.
-// POST /v1/admin/server/new
+// POST /admin/server/new
 func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	req := NewServerRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -293,7 +363,7 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteServer deletes a server on behalf of a valid admin.
-// DELETE /v1/admin/server/delete
+// DELETE /admin/server/delete
 func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	req := DeleteServerRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -312,17 +382,17 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetServers gets information about app servers.
-// GET /v1/admin/server/get
+// GET /admin/server/get
 func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	var info []AppServerInfo
 	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
-	optionalBadRequestPanic(err, "Failed to find server with specified ID")
+	optionalBadRequestPanic(err, "Failed to find servers")
 
 	writeJSON(w, http.StatusOK, info)
 }
 
 // UpdateServer updates an app server with `ServerID == req.ServerID`.
-// POST /v1/admin/server/update
+// POST /admin/server/update
 func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	req := serverUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -346,7 +416,7 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewLongTerm stores a long-term request in the database.
-// POST /v1/admin/ltr/new
+// POST /admin/ltr/new
 func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	req := newLTRRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -371,7 +441,7 @@ func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLongTerm deletes a long-term request from the database.
-// DELETE /v1/admin/ltr/delete
+// DELETE /admin/ltr/delete
 func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 	req := deleteLTRRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
