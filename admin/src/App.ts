@@ -2,6 +2,8 @@
 /// <reference path="controllers/MainCtrl.ts" />
 /// <reference path="controllers/AdminsCtrl.ts" />
 /// <reference path="controllers/LoginCtrl.ts" />
+/// <reference path="controllers/AppsCtrl.ts" />
+/// <reference path="controllers/modals/AddAppCtrl.ts" />
 
 module admin {
     var admin = angular.module('2Q2R', [
@@ -9,9 +11,12 @@ module admin {
         'ui.router', 'ct.ui.router.extras'
     ])
         .service('Auth', Auth)
+        .service('Apps', Apps)
         .controller('MainCtrl', MainCtrl)
         .controller('AdminsCtrl', AdminsCtrl)
         .controller('LoginCtrl', LoginCtrl)
+        .controller('AppsCtrl', AppsCtrl)
+        .controller('AddAppCtrl', AddAppCtrl)
         .config((
             $stateProvider: angular.ui.IStateProvider,
             $urlRouterProvider: angular.ui.IUrlRouterProvider
@@ -80,7 +85,9 @@ module admin {
                 })
                 .state('main.apps', {
                     url: "/apps",
-                    templateUrl: "views/apps.html"
+                    templateUrl: "views/apps.html",
+                    controller: "AppsCtrl",
+                    controllerAs: "ctrl2"
                 })
                 .state('main.users', {
                     url: "/users",

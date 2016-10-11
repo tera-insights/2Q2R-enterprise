@@ -6,7 +6,7 @@ module admin {
          */
     export interface IAppItem extends ng.resource.IResource<IAppItem> {
         appName: string; // displayable name
-        id: string; // the item ID
+        appID?: string; // The app ID 
         $update?: Function; // just so the compiler leaves us alone 
     }
 
@@ -24,7 +24,7 @@ module admin {
         public resource: IAppResource; // the resource to access backend
 
         static Resource($resource: ng.resource.IResourceService): IAppResource {
-            var resource = $resource("/admin/app/:id", { id: '@id' }, {
+            var resource = $resource("/admin/apps/:id", { id: '@id' }, {
                 'update': { method: 'PUT', params: { id: '@id' } }
             });
             return <IAppResource>resource;

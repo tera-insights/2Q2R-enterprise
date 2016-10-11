@@ -1,5 +1,6 @@
 /// <reference path="../../typings/index.d.ts" />
 /// <reference path="../services/Apps.ts" />
+/// <reference path="./modals/AddAppCtrl.ts" />
 
 module admin {
     /**
@@ -13,13 +14,20 @@ module admin {
 
         private apps: IAppItem[] = [];
 
-        addApp(appName: string, id: string) {
-            var app = new this.App({
-                appName: appName,
-                id: id
+        // Triggered by the FAB
+        newApp() {
+            this.$mdDialog.show({
+                controller: AddAppCtrl,
+                controllerAs: 'cMod',
+                templateUrl: 'views/modals/AddApp.html',
+                clickOutsideToClose: true
+            }).then((app: IAppItem) => {
+                app.$save().then((newApp: IAppItem) => {
+                    this.apps.push(newApp);
+                });
+            }, () => {
+                // TODO: Add nofitifications
             });
-            app.$save();
-            this.apps.push(app);
         }
 
         updateApp(app: IAppItem) {
@@ -29,7 +37,7 @@ module admin {
         removeApp(app) {
             var $index = -1;
             this.apps.forEach((t, i, a) => {
-                if (t.id == app.id)
+                if (t.appID == app.appID)
                     $index = i;
             });
             // Take out current element from todos array
@@ -40,10 +48,12 @@ module admin {
         }
 
         static $inject = [
+            '$mdDialog',
             'Apps'
         ];
 
         constructor(
+            private $mdDialog: ng.material.IDialogService,
             AppsSrvc: Apps
         ) {
             this.App = AppsSrvc.resource;
