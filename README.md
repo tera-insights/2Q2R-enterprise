@@ -10,6 +10,11 @@ ln -sf $PATH2Q2R/server $GOPATH/src/2q2r
 ```
 where `$PATH2Q2R` is the path to the GIT repository of `2q2r-enterprise`.
 
+Run
+```
+make install_dependencies
+```
+
 ## Configuring
 
 Edit the file `config.yaml` and set at least `BaseURL`. The local changes 
