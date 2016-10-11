@@ -1,4 +1,4 @@
-Port: ":8080"
+Port: ":8081"
 DatabaseType:                    "sqlite3"
 DatabaseName:                    "test.db"
 ExpirationTime:                  5m
