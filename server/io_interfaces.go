@@ -2,11 +2,49 @@
 
 package server
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
+
+// REQUEST POST /v1/admin/new/:code
+type newAdminRequest struct {
+	AdminID     string   `json:"adminID"`
+	Name        string   `json:"name"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
+	IV          string   `json:"iv"`   // encoded w/ web encoding, no padding
+	Seed        string   `json:"seed"` // same encoding
+	PublicKey   []byte   `json:"publicKey"`
+}
+
+// REPLY POST /v1/admin/new/:code
+type newAdminReply struct {
+	RequestID   string `json:"requestID"`
+	IFrameRoute string `json:"iFrameRoute"`
+	WaitRoute   string `json:"waitRoute"`
+}
 
 // NewAppRequest is the request to `POST /v1/app/new`.
 type NewAppRequest struct {
 	AppName string `json:"appName"`
+}
+
+// Request to `POST /V1/admin/app/update`
+type appUpdateRequest struct {
+	AppID   string `json:"appID"`
+	AppName string `json:"appName"`
+}
+
+// Reply to `POST /v1/admin/app/update`
+// Reply to `DELETE /v1/admin/app/delete`
+type modificationReply struct {
+	NumAffected int64 `json:"numAffected"`
+}
+
+// Request to `DELETE /v1/admin/app/delete`
+type appDeleteRequest struct {
+	AppID string `json:"appID"`
 }
 
 // NewAppReply is the response to `POST /v1/app/new`.
@@ -33,6 +71,12 @@ type AppIDInfoReply struct {
 	KeyType string `json:"serverKeyType"`
 }
 
+type adminRegisterRequest struct {
+	RequestID string  `json:"requestID"`
+	R         big.Int `json:"r"` // can just be specified as a string
+	S         big.Int `json:"s"`
+}
+
 // NewServerRequest is the request to `POST /v1/admin/server/new`.
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
@@ -54,9 +98,15 @@ type DeleteServerRequest struct {
 	ServerID string `json:"serverID"`
 }
 
-// AppServerInfoRequest is the request to `POST /v1/admin/server/info`.
-type AppServerInfoRequest struct {
-	ServerID string `json:"serverID"`
+// Request to `POST /V1/admin/server/update`
+type serverUpdateRequest struct {
+	ServerID    string `json:"serverID"`
+	ServerName  string `json:"serverName"`
+	BaseURL     string `json:"baseURL"`
+	KeyType     string `json:"keyType"`
+	PublicKey   []byte `json:"publicKey"`
+	Permissions string `json:"permissions"`
+	AuthType    string `json:"authType"`
 }
 
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
@@ -92,15 +142,6 @@ type successfulRegistrationData struct {
 type failedRegistrationData struct {
 	ErrorMessage string `json:"errorMessage"`
 	ErrorCode    int    `json:"errorStatus"`
-}
-
-// NewUserRequest is the request to `POST /v1/admin/user/new`.
-type NewUserRequest struct {
-}
-
-// NewUserReply is the reply to `POST /v1/admin/user/new`.
-type NewUserReply struct {
-	UserID string `json:"userID"`
 }
 
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
@@ -153,4 +194,20 @@ type failedAuthenticationData struct {
 	Challenge    string `json:"challenge"`
 	ErrorMessage string `json:"errorMessage"`
 	ErrorStatus  int    `json:"errorStatus"`
+}
+
+// Request to POST /v1/admin/ltr/new
+type newLTRRequest struct {
+	AppID string `json:"appID"`
+}
+
+// Reply to POST /v1/admin/ltr/new
+type newLTRResponse struct {
+	RequestID string `json:"requestID"`
+}
+
+// Request to DELETE /v1/admin/ltr/delete
+type deleteLTRRequest struct {
+	AppID           string `json:"appID"`
+	HashedRequestID string `json:"hashedRequestID"`
 }

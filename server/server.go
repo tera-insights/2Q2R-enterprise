@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -22,6 +21,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
@@ -71,7 +71,7 @@ func (c *Config) getBaseURLWithProtocol() string {
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
 // resulting config.
-func MakeConfig(r io.Reader, ct string) (Config, error) {
+func MakeConfig(r io.Reader, ct string) *Config {
 	viper.SetConfigType(ct)
 
 	viper.SetDefault("Port", ":8080")
@@ -92,7 +92,10 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 	viper.SetDefault("Token", "mytoken")
 
 	err := viper.ReadConfig(r)
-	return Config{
+	if err != nil {
+		log.Printf("Could not read config file! Using default options\n")
+	}
+	return &Config{
 		Port:                            viper.GetString("Port"),
 		DatabaseType:                    viper.GetString("DatabaseType"),
 		DatabaseName:                    viper.GetString("DatabaseName"),
@@ -109,12 +112,12 @@ func MakeConfig(r io.Reader, ct string) (Config, error) {
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
 		Token:                        viper.GetString("Token"),
-	}, err
+	}
 }
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
-	c     Config
+	c     *Config
 	DB    *gorm.DB
 	cache Cacher
 }
@@ -163,7 +166,7 @@ type authenticateData struct {
 }
 
 // NewServer creates a new 2Q2R server.
-func NewServer(c Config) Server {
+func NewServer(c *Config) Server {
 	var s = Server{c, MakeDB(c), MakeCacher(c)}
 	return s
 }
@@ -177,19 +180,20 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
 }
 
 // MakeDB returns the database specified by the configuration.
-func MakeDB(c Config) *gorm.DB {
+func MakeDB(c *Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	db.AutoMigrate(&AppInfo{})
 	db.AutoMigrate(&AppServerInfo{})
 	db.AutoMigrate(&Key{})
+	db.AutoMigrate(&Admin{})
 	if err != nil {
-		panic(fmt.Errorf("Could not open database: %s", err))
+		panic(errors.Errorf("Could not open database: %s", err))
 	}
 	return db
 }
 
 // MakeCacher returns the cacher specified by the configuration.
-func MakeCacher(c Config) Cacher {
+func MakeCacher(c *Config) Cacher {
 	return Cacher{
 		baseURL:                c.getBaseURLWithProtocol(),
 		expiration:             c.ExpirationTime,
@@ -197,6 +201,8 @@ func MakeCacher(c Config) Cacher {
 		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
 		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
 		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
+		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
+		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
 	}
 }
 
@@ -301,12 +307,28 @@ func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
 	// Admin routes
-	ah := AdminHandler{srv}
-	forMethod(router, "/v1/admin/app/new", ah.NewAppHandler, "POST")
-	forMethod(router, "/v1/admin/server/new", ah.NewServerHandler, "POST")
-	forMethod(router, "/v1/admin/server/delete", ah.DeleteServerHandler, "POST")
-	forMethod(router, "/v1/admin/server/get", ah.GetServerHandler, "POST")
-	forMethod(router, "/v1/admin/user/new", ah.NewUserHandler, "POST")
+	ah := AdminHandler{
+		s: srv,
+		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
+			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+	}
+	forMethod(router, "/v1/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
+	forMethod(router, "/v1/admin/register", ah.Register, "POST")
+	forMethod(router, "/v1/admin/{requestID}/wait", ah.Wait, "GET")
+	forMethod(router, "/v1/admin/new/{code}", ah.NewAdmin, "POST")
+
+	forMethod(router, "/v1/admin/app/new", ah.NewApp, "POST")
+	forMethod(router, "/v1/admin/app/get", ah.GetApps, "GET")
+	forMethod(router, "/v1/admin/app/update", ah.UpdateApp, "POST")
+	forMethod(router, "/v1/admin/app/delete", ah.DeleteApp, "DELETE")
+
+	forMethod(router, "/v1/admin/server/new", ah.NewServer, "POST")
+	forMethod(router, "/v1/admin/server/get", ah.GetServers, "GET")
+	forMethod(router, "/v1/admin/server/update", ah.UpdateServer, "POST")
+	forMethod(router, "/v1/admin/server/delete", ah.DeleteServer, "DELETE")
+
+	forMethod(router, "/v1/admin/ltr/new", ah.NewLongTerm, "POST")
+	forMethod(router, "/v1/admin/ltr/delete", ah.DeleteLongTerm, "DELETE")
 
 	// Info routes
 	ih := InfoHandler{srv}

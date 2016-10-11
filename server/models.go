@@ -43,9 +43,8 @@ type AppServerInfo struct {
 type LongTermRequest struct {
 	gorm.Model
 
-	HashedRequestID string
-	AppID           string
-	UserID          string
+	HashedRequestID string `json:"hashedRequestID"` // sha-256 hashed
+	AppID           string `json:"appID"`
 }
 
 // Key is the Gorm model for a user's stored public key.
@@ -60,4 +59,19 @@ type Key struct {
 	AppID                  string
 	MarshalledRegistration []byte // unmarshalled by go-u2f
 	Counter                uint32
+}
+
+// Admin is the Gorm model for a (super-) admin.
+type Admin struct {
+	gorm.Model
+
+	AdminID     string `gorm:"primary_key"` // can be joined with Key.UserID
+	Active      bool
+	Name        string
+	Email       string
+	Permissions string // comma-separated list of permissions
+	SuperAdmin  bool   // if so, this essentially has all the permissions
+	IV          string // encoded using encodeBase64 (web encoding, no padding)
+	Seed        string // same encoding
+	PublicKey   []byte
 }
