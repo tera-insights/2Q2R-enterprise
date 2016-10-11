@@ -204,7 +204,7 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAdmins lists all the admins.
-// GET /admin/admins
+// GET /admin/admin
 func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
 	var result []Admin
 	err := ah.s.DB.Model(&Admin{}).Find(&result).Error
@@ -214,7 +214,7 @@ func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateAdmin updates an admin with a specific ID.
-// PUT /admin/admins/{adminID}
+// PUT /admin/admin/{adminID}
 func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	req := adminUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -245,7 +245,7 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAdmin deletes an admin that matches a query.
-// DELETE /admin/admins/{adminID}
+// DELETE /admin/admin/{adminID}
 func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 	adminID := mux.Vars(r)["adminID"]
 	err := CheckBase64(adminID)
@@ -262,7 +262,7 @@ func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // ChangeAdminRoles can (de-)activate an admin or make the admin a super.
-// POST /admin/admins/roles
+// POST /admin/admin/roles
 func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request) {
 	req := adminRoleChangeRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -286,7 +286,7 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 }
 
 // GetApps gets all AppInfos.
-// GET /admin/apps
+// GET /admin/app
 func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 	var found []AppInfo
 	err := ah.s.DB.Model(&AppInfo{}).Find(&found).Error
@@ -296,7 +296,7 @@ func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewApp creates a new app.
-// POST /admin/apps
+// POST /admin/app
 func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	req := NewAppRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -317,7 +317,7 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateApp updates an app with a particular app ID.
-// PUT /admin/apps/{appID}
+// PUT /admin/app/{appID}
 func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	req := appUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -348,7 +348,7 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteApp deletes an app with a particular app ID.
-// DELETE /admin/apps/{appID}
+// DELETE /admin/app/{appID}
 func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 	appID := mux.Vars(r)["appID"]
 	err := CheckBase64(appID)
@@ -365,7 +365,7 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewServer creates a new server for an admin with valid credentials.
-// POST /admin/servers
+// POST /admin/server
 func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	req := NewServerRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -391,7 +391,7 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteServer deletes a server on behalf of a valid admin.
-// DELETE /admin/servers/{serverID}
+// DELETE /admin/server/{serverID}
 func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	serverID := mux.Vars(r)["serverID"]
 	err := CheckBase64(serverID)
@@ -406,7 +406,7 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetServers gets information about app servers.
-// GET /admin/servers
+// GET /admin/server
 func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	var info []AppServerInfo
 	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
@@ -416,7 +416,7 @@ func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateServer updates an app server with `ServerID == req.ServerID`.
-// PUT /admin/servers/{serverID}
+// PUT /admin/server/{serverID}
 func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	req := serverUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)

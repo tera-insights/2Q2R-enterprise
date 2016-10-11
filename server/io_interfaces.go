@@ -25,7 +25,7 @@ type newAdminReply struct {
 	WaitRoute   string `json:"waitRoute"`
 }
 
-// Request to POST /admin/admins/{adminID}
+// Request to POST /admin/admin/{adminID}
 type adminUpdateRequest struct {
 	Name        string `json:"name"`
 	Email       string `json:"email"`
@@ -35,19 +35,19 @@ type adminUpdateRequest struct {
 	PublicKey   []byte `json:"publicKey"`
 }
 
-// Request to POST /admin/admins/roles
+// Request to POST /admin/admin/roles
 type adminRoleChangeRequest struct {
 	AdminID string `json:"adminID"`
 	Role    string `json:"role"`
 	Status  string `json:"status"`
 }
 
-// NewAppRequest is the request to POST /admin/apps
+// NewAppRequest is the request to POST /admin/app
 type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// Request to PUT /admin/apps/{appID}
+// Request to PUT /admin/app/{appID}
 type appUpdateRequest struct {
 	AppName string `json:"appName"`
 }
@@ -81,7 +81,7 @@ type adminRegisterRequest struct {
 	S         big.Int `json:"s"`
 }
 
-// NewServerRequest is the request to POST /admin/servers
+// NewServerRequest is the request to POST /admin/server
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
@@ -91,7 +91,7 @@ type NewServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// Request to PUT /admin/servers/{serverID}
+// Request to PUT /admin/server/{serverID}
 type serverUpdateRequest struct {
 	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`

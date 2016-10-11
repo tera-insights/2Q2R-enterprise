@@ -317,20 +317,20 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 	forMethod(router, "/admin/new/{code}", ah.NewAdmin, "POST")
 
-	forMethod(router, "/admin/admins", ah.GetAdmins, "GET")
-	forMethod(router, "/admin/admins/roles", ah.ChangeAdminRoles, "POST") // super-admins only
-	forMethod(router, "/admin/admins/{adminID}", ah.UpdateAdmin, "PUT")
-	forMethod(router, "/admin/admins/{adminID}", ah.DeleteAdmin, "DELETE") // super-admins only
+	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")
+	forMethod(router, "/admin/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
+	forMethod(router, "/admin/admin/{adminID}", ah.UpdateAdmin, "PUT")
+	forMethod(router, "/admin/admin/{adminID}", ah.DeleteAdmin, "DELETE") // super-admins only
 
-	forMethod(router, "/admin/apps", ah.GetApps, "GET")
-	forMethod(router, "/admin/apps", ah.NewApp, "POST")
-	forMethod(router, "/admin/apps/{appID}", ah.UpdateApp, "POST")
-	forMethod(router, "/admin/apps/{appID}", ah.DeleteApp, "DELETE")
+	forMethod(router, "/admin/app", ah.GetApps, "GET")
+	forMethod(router, "/admin/app", ah.NewApp, "POST")
+	forMethod(router, "/admin/app/{appID}", ah.UpdateApp, "POST")
+	forMethod(router, "/admin/app/{appID}", ah.DeleteApp, "DELETE")
 
-	forMethod(router, "/admin/servers", ah.GetServers, "GET")
-	forMethod(router, "/admin/servers", ah.NewServer, "POST")
-	forMethod(router, "/admin/servers/{serverID}", ah.UpdateServer, "PUT")
-	forMethod(router, "/admin/servers/{serverID}", ah.DeleteServer, "DELETE")
+	forMethod(router, "/admin/server", ah.GetServers, "GET")
+	forMethod(router, "/admin/server", ah.NewServer, "POST")
+	forMethod(router, "/admin/server/{serverID}", ah.UpdateServer, "PUT")
+	forMethod(router, "/admin/server/{serverID}", ah.DeleteServer, "DELETE")
 
 	forMethod(router, "/admin/ltr/new", ah.NewLongTerm, "POST")
 	forMethod(router, "/admin/ltr/delete", ah.DeleteLongTerm, "DELETE")
