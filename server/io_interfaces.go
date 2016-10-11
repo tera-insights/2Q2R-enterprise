@@ -43,31 +43,23 @@ type adminRoleChangeRequest struct {
 	Active     bool   `json:"active"`
 }
 
-// NewAppRequest is the request to `POST /v1/app/new`.
+// NewAppRequest is the request to POST /admin/apps
 type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// Request to `POST /admin/app/update`
+// NewAppReply is the response to POST /apps/new
+type NewAppReply struct {
+	AppID string `json:"appID"`
+}
+
+// Request to PUT /admin/apps/{appID}
 type appUpdateRequest struct {
-	AppID   string `json:"appID"`
 	AppName string `json:"appName"`
 }
 
-// Reply to `POST /admin/app/update`
-// Reply to `DELETE /admin/app/delete`
 type modificationReply struct {
 	NumAffected int64 `json:"numAffected"`
-}
-
-// Request to `DELETE /admin/app/delete`
-type appDeleteRequest struct {
-	AppID string `json:"appID"`
-}
-
-// NewAppReply is the response to `POST /v1/app/new`.
-type NewAppReply struct {
-	AppID string `json:"appID"`
 }
 
 // AppIDInfoReply is the reply to `GET /v1/info/:appID`.

@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	ts.Listener = l // overwriting the default random port given by httptest
 	ts.Start()
 	defer ts.Close()
-	res, _ := postJSON("/admin/app/new", NewAppRequest{
+	res, _ := postJSON("/admin/apps", NewAppRequest{
 		AppName: goodAppName,
 	})
 	appReply := new(NewAppReply)
