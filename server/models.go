@@ -68,11 +68,11 @@ type Admin struct {
 	gorm.Model
 
 	AdminID     string `gorm:"primary_key" json:"activeID"` // can be joined with Key.UserID
-	Active      bool   `json:"active"`
+	Status      string `json:"status"`                      // either active or inactive
 	Name        string `json:"name"`
 	Email       string `json:"email"`
 	Permissions string `json:"permissions"` // JSON-encoded array
-	SuperAdmin  bool   `json:"superAdmin"`  // if so, this essentially has all the permissions
+	Role        string `json:"role"`        // if superadmin, this has all permissions
 	IV          string `json:"iv"`          // encoded using encodeBase64
 	Seed        string `json:"seed"`        // same encoding
 	PublicKey   []byte `json:"publicKey"`

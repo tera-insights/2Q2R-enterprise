@@ -56,12 +56,19 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	encodedPermissions, err := json.Marshal(req.Permissions)
 	optionalInternalPanic(err, "Could not encode permissions for storage")
 
+	role := "admin"
+	status := "inactive"
+	if code == "bootstrap" {
+		role = "superadmin"
+		status = "active"
+	}
+
 	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
 		AdminID:     req.AdminID,
 		Name:        req.Name,
 		Email:       req.Email,
-		Active:      code == "bootstrap",
-		SuperAdmin:  code == "bootstrap",
+		Role:        role,
+		Status:      status,
 		Permissions: string(encodedPermissions),
 		IV:          req.IV,
 		Seed:        req.Seed,
@@ -253,9 +260,9 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 
 	query := ah.s.DB.Model(&Admin{}).Where(&Admin{
 		AdminID: req.AdminID,
-	}).Updates(map[string]interface{}{
-		gorm.ToDBName("Active"):     req.Active,
-		gorm.ToDBName("SuperAdmin"): req.SuperAdmin,
+	}).Updates(Admin{
+		Role:   req.Role,
+		Status: req.Status,
 	})
 	optionalInternalPanic(query.Error, "Failed to change admin roles")
 
