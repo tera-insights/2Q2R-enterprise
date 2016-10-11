@@ -3,6 +3,7 @@
 /// <reference path="controllers/AdminsCtrl.ts" />
 /// <reference path="controllers/LoginCtrl.ts" />
 /// <reference path="controllers/AppsCtrl.ts" />
+/// <reference path="controllers/ServersCtrl.ts" />
 /// <reference path="controllers/modals/AddAppCtrl.ts" />
 
 module admin {
@@ -12,11 +13,13 @@ module admin {
     ])
         .service('Auth', Auth)
         .service('Apps', Apps)
+        .service('Servers', Servers)
         .controller('MainCtrl', MainCtrl)
         .controller('AdminsCtrl', AdminsCtrl)
         .controller('LoginCtrl', LoginCtrl)
         .controller('AppsCtrl', AppsCtrl)
         .controller('AddAppCtrl', AddAppCtrl)
+        .controller('ServersCtrl', ServersCtrl)
         .config((
             $stateProvider: angular.ui.IStateProvider,
             $urlRouterProvider: angular.ui.IUrlRouterProvider
@@ -87,6 +90,12 @@ module admin {
                     url: "/apps",
                     templateUrl: "views/apps.html",
                     controller: "AppsCtrl",
+                    controllerAs: "ctrl2"
+                })
+                .state('main.servers', {
+                    url: "/servers",
+                    templateUrl: "views/servers.html",
+                    controller: "ServersCtrl",
                     controllerAs: "ctrl2"
                 })
                 .state('main.users', {

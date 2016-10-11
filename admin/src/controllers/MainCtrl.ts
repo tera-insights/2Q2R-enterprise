@@ -30,6 +30,11 @@ module admin {
                     icon: "application.svg"
                 },
                 {
+                    state: "main.servers",
+                    name: "Servers",
+                    icon: "server.svg"
+                },
+                {
                     state: "main.users",
                     name: "Users",
                     icon: "user.svg"
