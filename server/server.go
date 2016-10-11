@@ -317,10 +317,10 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 	forMethod(router, "/admin/new/{code}", ah.NewAdmin, "POST")
 
-	forMethod(router, "/admin/get", ah.GetAdmins, "GET")
-	forMethod(router, "/admin/update", ah.UpdateAdmin, "POST")
-	forMethod(router, "/admin/delete", ah.DeleteAdmin, "DELETE")   // super-admins only
-	forMethod(router, "/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
+	forMethod(router, "/admin/admins", ah.GetAdmins, "GET")
+	forMethod(router, "/admin/admins/roles", ah.ChangeAdminRoles, "POST") // super-admins only
+	forMethod(router, "/admin/admins/{adminID}", ah.UpdateAdmin, "PUT")
+	forMethod(router, "/admin/admins/{adminID}", ah.DeleteAdmin, "DELETE") // super-admins only
 
 	forMethod(router, "/admin/apps", ah.GetApps, "GET")
 	forMethod(router, "/admin/apps", ah.NewApp, "POST")
