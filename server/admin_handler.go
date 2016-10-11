@@ -204,7 +204,7 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAdmins lists all the admins.
-// GET /admin/get
+// GET /admin/admins
 func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
 	var result []Admin
 	err := ah.s.DB.Model(&Admin{}).Find(&result).Error
@@ -214,14 +214,18 @@ func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateAdmin updates an admin with a specific ID.
-// POST /admin/update
+// PUT /admin/admins/{adminID}
 func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	req := adminUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
+	adminID := mux.Vars(r)["adminID"]
+	err = CheckBase64(adminID)
+	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
+
 	query := ah.s.DB.Where(&Admin{
-		AdminID: req.AdminID,
+		AdminID: adminID,
 	}).Updates(Admin{
 		Name:        req.Name,
 		Email:       req.Email,
@@ -237,13 +241,15 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAdmin deletes an admin that matches a query.
-// DELETE /admin/delete
+// DELETE /admin/admins/{adminID}
 func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
-	req := Admin{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	optionalBadRequestPanic(err, "Could not decode request body")
+	adminID := mux.Vars(r)["adminID"]
+	err := CheckBase64(adminID)
+	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
 
-	query := ah.s.DB.Delete(Admin{}, &req)
+	query := ah.s.DB.Delete(Admin{}, &Admin{
+		AdminID: adminID,
+	})
 	optionalInternalPanic(query.Error, "Failed to delete admins")
 
 	writeJSON(w, http.StatusOK, modificationReply{
@@ -252,7 +258,7 @@ func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // ChangeAdminRoles can (de-)activate an admin or make the admin a super.
-// POST /admin/roles
+// POST /admin/admins/roles
 func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request) {
 	req := adminRoleChangeRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)

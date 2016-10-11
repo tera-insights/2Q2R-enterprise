@@ -25,9 +25,8 @@ type newAdminReply struct {
 	WaitRoute   string `json:"waitRoute"`
 }
 
-// Request to POST /admin/update
+// Request to POST /admin/admins/{adminID}
 type adminUpdateRequest struct {
-	AdminID     string `json:"adminID"`
 	Name        string `json:"name"`
 	Email       string `json:"email"`
 	Permissions string `json:"permissions"`
@@ -36,7 +35,7 @@ type adminUpdateRequest struct {
 	PublicKey   []byte `json:"publicKey"`
 }
 
-// Request to POST /admin/roles
+// Request to POST /admin/admins/roles
 type adminRoleChangeRequest struct {
 	AdminID string `json:"adminID"`
 	Role    string `json:"role"`
