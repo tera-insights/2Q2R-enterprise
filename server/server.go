@@ -322,15 +322,15 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/delete", ah.DeleteAdmin, "DELETE")   // super-admins only
 	forMethod(router, "/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
 
-	forMethod(router, "/admin/app/new", ah.NewApp, "POST")
-	forMethod(router, "/admin/app/get", ah.GetApps, "GET")
-	forMethod(router, "/admin/app/update", ah.UpdateApp, "POST")
-	forMethod(router, "/admin/app/delete", ah.DeleteApp, "DELETE")
+	forMethod(router, "/admin/apps", ah.GetApps, "GET")
+	forMethod(router, "/admin/apps", ah.NewApp, "POST")
+	forMethod(router, "/admin/apps/{appID}", ah.UpdateApp, "POST")
+	forMethod(router, "/admin/apps/{appID}", ah.DeleteApp, "DELETE")
 
-	forMethod(router, "/admin/server/new", ah.NewServer, "POST")
-	forMethod(router, "/admin/server/get", ah.GetServers, "GET")
-	forMethod(router, "/admin/server/update", ah.UpdateServer, "POST")
-	forMethod(router, "/admin/server/delete", ah.DeleteServer, "DELETE")
+	forMethod(router, "/admin/servers", ah.GetServers, "GET")
+	forMethod(router, "/admin/servers", ah.NewServer, "POST")
+	forMethod(router, "/admin/servers/{serverID}", ah.UpdateServer, "PUT")
+	forMethod(router, "/admin/servers/{serverID}", ah.DeleteServer, "DELETE")
 
 	forMethod(router, "/admin/ltr/new", ah.NewLongTerm, "POST")
 	forMethod(router, "/admin/ltr/delete", ah.DeleteLongTerm, "DELETE")

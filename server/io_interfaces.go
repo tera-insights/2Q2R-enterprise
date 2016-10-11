@@ -43,31 +43,23 @@ type adminRoleChangeRequest struct {
 	Active     bool   `json:"active"`
 }
 
-// NewAppRequest is the request to `POST /v1/app/new`.
+// NewAppRequest is the request to POST /admin/apps
 type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// Request to `POST /admin/app/update`
+// NewAppReply is the response to POST /apps/new
+type NewAppReply struct {
+	AppID string `json:"appID"`
+}
+
+// Request to PUT /admin/apps/{appID}
 type appUpdateRequest struct {
-	AppID   string `json:"appID"`
 	AppName string `json:"appName"`
 }
 
-// Reply to `POST /admin/app/update`
-// Reply to `DELETE /admin/app/delete`
 type modificationReply struct {
 	NumAffected int64 `json:"numAffected"`
-}
-
-// Request to `DELETE /admin/app/delete`
-type appDeleteRequest struct {
-	AppID string `json:"appID"`
-}
-
-// NewAppReply is the response to `POST /v1/app/new`.
-type NewAppReply struct {
-	AppID string `json:"appID"`
 }
 
 // AppIDInfoReply is the reply to `GET /v1/info/:appID`.
@@ -95,7 +87,7 @@ type adminRegisterRequest struct {
 	S         big.Int `json:"s"`
 }
 
-// NewServerRequest is the request to `POST /admin/server/new`.
+// NewServerRequest is the request to POST /admin/servers
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
@@ -105,20 +97,14 @@ type NewServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// NewServerReply is the response to `POST `/admin/server/new`.
+// NewServerReply is the response to POST /admin/servers
 type NewServerReply struct {
 	ServerName string `json:"serverName"`
 	ServerID   string `json:"serverID"`
 }
 
-// DeleteServerRequest is the request to `POST /admin/server/delete`.
-type DeleteServerRequest struct {
-	ServerID string `json:"serverID"`
-}
-
-// Request to `POST /admin/server/update`
+// Request to PUT /admin/servers/{serverID}
 type serverUpdateRequest struct {
-	ServerID    string `json:"serverID"`
 	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`

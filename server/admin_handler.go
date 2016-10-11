@@ -264,8 +264,18 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// NewApp creates, well, a new app.
-// POST /admin/app/new
+// GetApps gets all AppInfos.
+// GET /admin/apps
+func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
+	var found []AppInfo
+	err := ah.s.DB.Model(&AppInfo{}).Find(&found).Error
+	optionalInternalPanic(err, "Could not read app infos")
+
+	writeJSON(w, http.StatusOK, found)
+}
+
+// NewApp creates a new app.
+// POST /admin/apps
 func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	req := NewAppRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -284,29 +294,23 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, NewAppReply{appID})
 }
 
-// GetApps gets all AppInfos.
-// GET /admin/app/get
-func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
-	var found []AppInfo
-	err := ah.s.DB.Model(&AppInfo{}).Find(&found).Error
-	optionalInternalPanic(err, "Could not read app infos")
-
-	writeJSON(w, http.StatusOK, found)
-}
-
 // UpdateApp updates an app with a particular app ID.
-// POST /admin/app/update
+// PUT /admin/apps/{appID}
 func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	req := appUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+
+	appID := mux.Vars(r)["appID"]
+	err = CheckBase64(appID)
+	optionalBadRequestPanic(err, "App ID was not base-64 encoded")
 
 	// So that we don't overwrite the app name if there is no app name passed
 	panicIfFalse(req.AppName != "", http.StatusBadRequest,
 		"Cannot have an empty app name")
 
 	query := ah.s.DB.Model(&AppInfo{}).Where(&AppInfo{
-		AppID: req.AppID,
+		AppID: appID,
 	}).Update(map[string]interface{}{
 		gorm.ToDBName("AppName"): req.AppName,
 	})
@@ -318,14 +322,14 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteApp deletes an app with a particular app ID.
-// DELETE /admin/app/delete
+// DELETE /admin/apps/{appID}
 func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
-	req := appDeleteRequest{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	optionalBadRequestPanic(err, "Could not decode request body as JSON")
+	appID := mux.Vars(r)["appID"]
+	err := CheckBase64(appID)
+	optionalBadRequestPanic(err, "App ID was not base-64 encoded")
 
 	query := ah.s.DB.Delete(AppInfo{}, &AppInfo{
-		AppID: req.AppID,
+		AppID: appID,
 	})
 	optionalInternalPanic(query.Error, "Could not delete app")
 
@@ -335,7 +339,7 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewServer creates a new server for an admin with valid credentials.
-// POST /admin/server/new
+// POST /admin/servers
 func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	req := NewServerRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -363,18 +367,14 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteServer deletes a server on behalf of a valid admin.
-// DELETE /admin/server/delete
+// DELETE /admin/servers/{serverID}
 func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
-	req := DeleteServerRequest{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
-	optionalBadRequestPanic(err, "Could not decode request body")
-
-	err = CheckBase64(req.ServerID)
+	serverID := mux.Vars(r)["serverID"]
+	err := CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
 	err = ah.s.DB.Where(AppServerInfo{
-		ServerID: req.ServerID,
+		ServerID: serverID,
 	}).Delete(AppServerInfo{}).Error
 	optionalInternalPanic(err, "Could not delete app server")
 
@@ -382,7 +382,7 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetServers gets information about app servers.
-// GET /admin/server/get
+// GET /admin/servers
 func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	var info []AppServerInfo
 	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
@@ -392,14 +392,18 @@ func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateServer updates an app server with `ServerID == req.ServerID`.
-// POST /admin/server/update
+// PUT /admin/servers/{serverID}
 func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	req := serverUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
 
+	serverID := mux.Vars(r)["serverID"]
+	err = CheckBase64(serverID)
+	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
+
 	query := ah.s.DB.Where(&AppServerInfo{
-		ServerID: req.ServerID,
+		ServerID: serverID,
 	}).Updates(AppServerInfo{
 		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,

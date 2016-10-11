@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	ts.Listener = l // overwriting the default random port given by httptest
 	ts.Start()
 	defer ts.Close()
-	res, _ := postJSON("/admin/app/new", NewAppRequest{
+	res, _ := postJSON("/admin/apps", NewAppRequest{
 		AppName: goodAppName,
 	})
 	appReply := new(NewAppReply)
@@ -71,7 +71,7 @@ func checkStatus(t *testing.T, expected int, r *http.Response) {
 
 func TestCreateNewApp(t *testing.T) {
 	// Create new server
-	res, _ := postJSON("/admin/server/new", NewServerRequest{
+	res, _ := postJSON("/admin/servers", NewServerRequest{
 		ServerName:  goodServerName,
 		AppID:       goodAppID,
 		BaseURL:     goodBaseURL,
@@ -94,7 +94,7 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Test server info
-	res, _ = postJSON("/admin/server/get", AppServerInfoRequest{
+	res, _ = postJSON("/admin/servers", AppServerInfoRequest{
 		ServerID: newReply.ServerID,
 	})
 	serverInfo := new(AppServerInfo)
@@ -104,11 +104,11 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Delete server
-	res, _ = postJSON("/admin/server/delete", DeleteServerRequest{})
+	res, _ = postJSON("/admin/servers/"+serverInfo.ServerID, DeleteServerRequest{})
 	checkStatus(t, http.StatusOK, res)
 
 	// Assert that server was deleted
-	res, _ = postJSON("/admin/server/get", AppServerInfoRequest{
+	res, _ = postJSON("/admin/servers", AppServerInfoRequest{
 		ServerID: newReply.ServerID,
 	})
 	deletedServerInfo := new(AppServerInfo)
