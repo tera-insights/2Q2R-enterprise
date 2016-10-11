@@ -95,7 +95,7 @@ type adminRegisterRequest struct {
 	S         big.Int `json:"s"`
 }
 
-// NewServerRequest is the request to `POST /admin/server/new`.
+// NewServerRequest is the request to POST /admin/servers
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
@@ -105,20 +105,14 @@ type NewServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// NewServerReply is the response to `POST `/admin/server/new`.
+// NewServerReply is the response to POST /admin/servers
 type NewServerReply struct {
 	ServerName string `json:"serverName"`
 	ServerID   string `json:"serverID"`
 }
 
-// DeleteServerRequest is the request to `POST /admin/server/delete`.
-type DeleteServerRequest struct {
-	ServerID string `json:"serverID"`
-}
-
-// Request to `POST /admin/server/update`
+// Request to PUT /admin/servers/{serverID}
 type serverUpdateRequest struct {
-	ServerID    string `json:"serverID"`
 	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`

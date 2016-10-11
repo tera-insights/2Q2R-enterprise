@@ -335,7 +335,7 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewServer creates a new server for an admin with valid credentials.
-// POST /admin/server/new
+// POST /admin/servers
 func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	req := NewServerRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -363,18 +363,14 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteServer deletes a server on behalf of a valid admin.
-// DELETE /admin/server/delete
+// DELETE /admin/servers/{serverID}
 func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
-	req := DeleteServerRequest{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
-	optionalBadRequestPanic(err, "Could not decode request body")
-
-	err = CheckBase64(req.ServerID)
+	serverID := mux.Vars(r)["serverID"]
+	err := CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
 	err = ah.s.DB.Where(AppServerInfo{
-		ServerID: req.ServerID,
+		ServerID: serverID,
 	}).Delete(AppServerInfo{}).Error
 	optionalInternalPanic(err, "Could not delete app server")
 
@@ -382,7 +378,7 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetServers gets information about app servers.
-// GET /admin/server/get
+// GET /admin/servers
 func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	var info []AppServerInfo
 	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
@@ -392,14 +388,18 @@ func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateServer updates an app server with `ServerID == req.ServerID`.
-// POST /admin/server/update
+// PUT /admin/servers/{serverID}
 func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	req := serverUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
 
+	serverID := mux.Vars(r)["serverID"]
+	err = CheckBase64(serverID)
+	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
+
 	query := ah.s.DB.Where(&AppServerInfo{
-		ServerID: req.ServerID,
+		ServerID: serverID,
 	}).Updates(AppServerInfo{
 		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
