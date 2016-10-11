@@ -18,6 +18,7 @@ module admin {
          */
         accept() {
             // no need to pass the semester since calee has it.
+            this.server.appID = this.appID;
             this.$mdDialog.hide(this.server);
         }
 
@@ -30,11 +31,13 @@ module admin {
 
         static $inject = [
             '$mdDialog',
-            'Servers'
+            'Servers',
+            'apps'
         ];
         constructor(
             private $mdDialog: ng.material.IDialogService,
-            ServersSrvc: Servers
+            ServersSrvc: Servers,
+            private apps: IAppItem[]
         ) {
              var Server = ServersSrvc.resource;
              this.server = new Server({
@@ -45,6 +48,7 @@ module admin {
                  publicKey: "",
                  permissions: ""
              }); 
+             this.appID = this.apps[0].appID;
         }
     }
 

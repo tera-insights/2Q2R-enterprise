@@ -1,4 +1,5 @@
 /// <reference path="../typings/index.d.ts" />
+
 /// <reference path="controllers/MainCtrl.ts" />
 /// <reference path="controllers/AdminsCtrl.ts" />
 /// <reference path="controllers/LoginCtrl.ts" />
@@ -20,6 +21,7 @@ module admin {
         .controller('AppsCtrl', AppsCtrl)
         .controller('AddAppCtrl', AddAppCtrl)
         .controller('ServersCtrl', ServersCtrl)
+        .controller('AddServerCtrl', AddServerCtrl)
         .config((
             $stateProvider: angular.ui.IStateProvider,
             $urlRouterProvider: angular.ui.IUrlRouterProvider
