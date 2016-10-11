@@ -224,7 +224,7 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	err = CheckBase64(adminID)
 	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
 
-	query := ah.s.DB.Where(&Admin{
+	err = ah.s.DB.Where(&Admin{
 		AdminID: adminID,
 	}).Updates(Admin{
 		Name:        req.Name,
@@ -232,12 +232,16 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 		Permissions: req.Permissions,
 		IV:          req.IV,
 		Seed:        req.Seed,
-	})
-	optionalInternalPanic(query.Error, "Failed to update admin")
+	}).Error
+	optionalInternalPanic(err, "Failed to update admin")
 
-	writeJSON(w, http.StatusOK, modificationReply{
-		NumAffected: query.RowsAffected,
-	})
+	var updated Admin
+	err = ah.s.DB.First(&updated, &Admin{
+		AdminID: adminID,
+	}).Error
+	optionalInternalPanic(err, "Failed to read updated admin")
+
+	writeJSON(w, http.StatusOK, updated)
 }
 
 // DeleteAdmin deletes an admin that matches a query.
@@ -264,17 +268,21 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	query := ah.s.DB.Model(&Admin{}).Where(&Admin{
+	err = ah.s.DB.Model(&Admin{}).Where(&Admin{
 		AdminID: req.AdminID,
 	}).Updates(Admin{
 		Role:   req.Role,
 		Status: req.Status,
-	})
-	optionalInternalPanic(query.Error, "Failed to change admin roles")
+	}).Error
+	optionalInternalPanic(err, "Failed to change admin roles")
 
-	writeJSON(w, http.StatusOK, modificationReply{
-		NumAffected: query.RowsAffected,
-	})
+	var updated Admin
+	err = ah.s.DB.First(&updated, &Admin{
+		AdminID: req.AdminID,
+	}).Error
+	optionalInternalPanic(err, "Could not read updated admin")
+
+	writeJSON(w, http.StatusOK, updated)
 }
 
 // GetApps gets all AppInfos.
@@ -298,13 +306,14 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	appID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate app ID")
 
-	err = ah.s.DB.Create(&AppInfo{
+	info := AppInfo{
 		AppID:   appID,
 		AppName: req.AppName,
-	}).Error
+	}
+	err = ah.s.DB.Create(&info).Error
 	optionalInternalPanic(err, "Could not create app info")
 
-	writeJSON(w, http.StatusOK, NewAppReply{appID})
+	writeJSON(w, http.StatusOK, info)
 }
 
 // UpdateApp updates an app with a particular app ID.
@@ -322,16 +331,20 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	panicIfFalse(req.AppName != "", http.StatusBadRequest,
 		"Cannot have an empty app name")
 
-	query := ah.s.DB.Model(&AppInfo{}).Where(&AppInfo{
+	err = ah.s.DB.Model(&AppInfo{}).Where(&AppInfo{
 		AppID: appID,
 	}).Update(map[string]interface{}{
 		gorm.ToDBName("AppName"): req.AppName,
-	})
-	optionalInternalPanic(query.Error, "Could not update app")
+	}).Error
+	optionalInternalPanic(err, "Could not update app")
 
-	writeJSON(w, http.StatusOK, modificationReply{
-		NumAffected: query.RowsAffected,
-	})
+	var updated AppInfo
+	err = ah.s.DB.Where(&updated, &AppInfo{
+		AppID: appID,
+	}).Error
+	optionalInternalPanic(err, "Could not read updated app")
+
+	writeJSON(w, http.StatusOK, updated)
 }
 
 // DeleteApp deletes an app with a particular app ID.
@@ -362,7 +375,7 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	serverID, err := randString(32)
 	optionalBadRequestPanic(err, "Could not generate server ID")
 
-	err = ah.s.DB.Create(&AppServerInfo{
+	info := AppServerInfo{
 		ServerID:    serverID,
 		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
@@ -370,13 +383,11 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 		KeyType:     req.KeyType,
 		PublicKey:   []byte(req.PublicKey),
 		Permissions: req.Permissions,
-	}).Error
+	}
+	err = ah.s.DB.Create(&info).Error
 	optionalInternalPanic(err, "Could not create app server")
 
-	writeJSON(w, http.StatusOK, NewServerReply{
-		ServerName: req.ServerName,
-		ServerID:   serverID,
-	})
+	writeJSON(w, http.StatusOK, info)
 }
 
 // DeleteServer deletes a server on behalf of a valid admin.
@@ -415,7 +426,7 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	err = CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
-	query := ah.s.DB.Where(&AppServerInfo{
+	err = ah.s.DB.Where(&AppServerInfo{
 		ServerID: serverID,
 	}).Updates(AppServerInfo{
 		ServerName:  req.ServerName,
@@ -424,12 +435,16 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 		PublicKey:   req.PublicKey,
 		Permissions: req.Permissions,
 		AuthType:    req.AuthType,
-	})
-	optionalInternalPanic(query.Error, "Failed to update app server info")
+	}).Error
+	optionalInternalPanic(err, "Failed to update app server info")
 
-	writeJSON(w, http.StatusOK, modificationReply{
-		NumAffected: query.RowsAffected,
-	})
+	var updated AppServerInfo
+	err = ah.s.DB.First(&updated, &AppServerInfo{
+		ServerID: serverID,
+	}).Error
+	optionalInternalPanic(err, "Failed to read updated app server info")
+
+	writeJSON(w, http.StatusOK, updated)
 }
 
 // NewLongTerm stores a long-term request in the database.

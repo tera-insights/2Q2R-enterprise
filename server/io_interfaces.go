@@ -47,11 +47,6 @@ type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// NewAppReply is the response to POST /apps/new
-type NewAppReply struct {
-	AppID string `json:"appID"`
-}
-
 // Request to PUT /admin/apps/{appID}
 type appUpdateRequest struct {
 	AppName string `json:"appName"`
@@ -94,12 +89,6 @@ type NewServerRequest struct {
 	KeyType     string `json:"keyType"`
 	PublicKey   string `json:"publicKey"` // base-64 encoded byte array
 	Permissions string `json:"permissions"`
-}
-
-// NewServerReply is the response to POST /admin/servers
-type NewServerReply struct {
-	ServerName string `json:"serverName"`
-	ServerID   string `json:"serverID"`
 }
 
 // Request to PUT /admin/servers/{serverID}
