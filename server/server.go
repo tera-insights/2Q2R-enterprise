@@ -186,6 +186,7 @@ func MakeDB(c *Config) *gorm.DB {
 	db.AutoMigrate(&AppServerInfo{})
 	db.AutoMigrate(&Key{})
 	db.AutoMigrate(&Admin{})
+	db.AutoMigrate(&SigningKey{})
 	if err != nil {
 		panic(errors.Errorf("Could not open database: %s", err))
 	}
@@ -202,6 +203,7 @@ func MakeCacher(c *Config) Cacher {
 		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
 		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
 		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
+		signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
 		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
 	}
 }

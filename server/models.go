@@ -67,13 +67,21 @@ type Key struct {
 type Admin struct {
 	gorm.Model
 
-	AdminID     string `gorm:"primary_key" json:"activeID"` // can be joined with Key.UserID
-	Status      string `json:"status"`                      // either active or inactive
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Permissions string `json:"permissions"` // JSON-encoded array
-	Role        string `json:"role"`        // if superadmin, this has all permissions
-	IV          string `json:"iv"`          // encoded using encodeBase64
-	Seed        string `json:"seed"`        // same encoding
-	PublicKey   []byte `json:"publicKey"`
+	AdminID             string `gorm:"primary_key" json:"activeID"` // can be joined with Key.UserID
+	Status              string `json:"status"`                      // either active or inactive
+	Name                string `json:"name"`
+	Email               string `json:"email"`
+	Permissions         string `json:"permissions"`         // JSON-encoded array
+	Role                string `json:"role"`                // if superadmin, this has all permissions
+	PrimarySigningKeyID string `json:"primarySigningKeyID"` // FK into the SigningKey relation
+}
+
+// SigningKey is the Gorm model for keys that the admin uses to sign things.
+type SigningKey struct {
+	gorm.Model
+
+	SigningKeyID string `gorm:"primary_key" json:"signingKeyID"`
+	IV           string `json:"iv"`   // encoded using encodeBase64
+	Salt         string `json:"salt"` // same encoding
+	PublicKey    []byte `json:"publicKey"`
 }

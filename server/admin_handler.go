@@ -63,16 +63,24 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		status = "active"
 	}
 
+	adminID, err := randString(32)
+	optionalInternalPanic(err, "Could not generate admin ID")
+
+	keyID, err := randString(32)
+	optionalInternalPanic(err, "Could not generate key ID")
+
 	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
-		AdminID:     req.AdminID,
+		AdminID:     adminID,
 		Name:        req.Name,
 		Email:       req.Email,
 		Role:        role,
 		Status:      status,
 		Permissions: string(encodedPermissions),
-		IV:          req.IV,
-		Seed:        req.Seed,
-		PublicKey:   req.PublicKey,
+	}, SigningKey{
+		SigningKeyID: keyID,
+		IV:           req.IV,
+		Salt:         req.Salt,
+		PublicKey:    req.PublicKey,
 	})
 	base := ah.s.c.getBaseURLWithProtocol() + "/admin/"
 	writeJSON(w, http.StatusOK, newAdminReply{
@@ -94,22 +102,14 @@ func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	admin, err := ah.s.cache.GetAdmin(requestID)
+	admin, signingKey, err := ah.s.cache.GetAdmin(requestID)
 	optionalInternalPanic(err, "Failed to find admin to save to database")
 
 	err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
 	optionalInternalPanic(err, "Failed to save admin to database")
 
-	keyID, err := randString(32)
 	optionalInternalPanic(err, "Failed to generate key ID")
-	key := Key{
-		KeyID:                  keyID,
-		UserID:                 admin.AdminID,
-		AppID:                  "1", // special app for admins
-		Counter:                0,
-		MarshalledRegistration: admin.PublicKey, // this is bad, will change
-	}
-	err = ah.s.DB.Model(&Key{}).Create(&key).Error
+	err = ah.s.DB.Model(&SigningKey{}).Create(&signingKey).Error
 	optionalInternalPanic(err, "Failed to save key to database")
 
 	w.WriteHeader(response)
@@ -163,15 +163,10 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Failed to decode request body")
 
-	data, found := ah.s.cache.admins.Get(req.RequestID)
-	panicIfFalse(found, http.StatusBadRequest,
-		"Failed to find admin for registration request")
+	_, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
+	optionalBadRequestPanic(err, "Failed to find signing key for registration request")
 
-	admin, ok := data.(Admin)
-	panicIfFalse(ok, http.StatusInternalServerError,
-		"Failed to load admin for registration request")
-
-	data, found = ah.s.cache.adminRegistrations.Get(req.RequestID)
+	data, found := ah.s.cache.adminRegistrations.Get(req.RequestID)
 	panicIfFalse(found, http.StatusBadRequest,
 		"Failed to find stored registration request")
 
@@ -179,7 +174,7 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	panicIfFalse(ok, http.StatusInternalServerError,
 		"Failed to load registration request")
 
-	x, y := elliptic.Unmarshal(elliptic.P256(), admin.PublicKey)
+	x, y := elliptic.Unmarshal(elliptic.P256(), signingKey.PublicKey)
 	if x == nil {
 		panic(bubbledError{
 			StatusCode: http.StatusInternalServerError,
@@ -227,11 +222,9 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	err = ah.s.DB.Where(&Admin{
 		AdminID: adminID,
 	}).Updates(Admin{
-		Name:        req.Name,
-		Email:       req.Email,
-		Permissions: req.Permissions,
-		IV:          req.IV,
-		Seed:        req.Seed,
+		Name:                req.Name,
+		Email:               req.Email,
+		PrimarySigningKeyID: req.PrimarySigningKeyID,
 	}).Error
 	optionalInternalPanic(err, "Failed to update admin")
 
@@ -271,8 +264,9 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 	err = ah.s.DB.Model(&Admin{}).Where(&Admin{
 		AdminID: req.AdminID,
 	}).Updates(Admin{
-		Role:   req.Role,
-		Status: req.Status,
+		Role:        req.Role,
+		Status:      req.Status,
+		Permissions: req.Permissions,
 	}).Error
 	optionalInternalPanic(err, "Failed to change admin roles")
 

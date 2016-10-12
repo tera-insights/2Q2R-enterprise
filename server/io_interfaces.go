@@ -9,12 +9,11 @@ import (
 
 // REQUEST POST /admin/new/:code
 type newAdminRequest struct {
-	AdminID     string   `json:"adminID"`
 	Name        string   `json:"name"`
 	Email       string   `json:"email"`
 	Permissions []string `json:"permissions"`
-	IV          string   `json:"iv"`   // encoded w/ web encoding, no padding
-	Seed        string   `json:"seed"` // same encoding
+	IV          string   `json:"iv"`   // encoded with web encoding, no padding
+	Salt        string   `json:"salt"` // same encoding
 	PublicKey   []byte   `json:"publicKey"`
 }
 
@@ -27,19 +26,17 @@ type newAdminReply struct {
 
 // Request to POST /admin/admin/{adminID}
 type adminUpdateRequest struct {
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Permissions string `json:"permissions"`
-	IV          string `json:"iv"`
-	Seed        string `json:"seed"`
-	PublicKey   []byte `json:"publicKey"`
+	Name                string `json:"name"`
+	Email               string `json:"email"`
+	PrimarySigningKeyID string `json:"primarySigningKeyID"`
 }
 
 // Request to POST /admin/admin/roles
 type adminRoleChangeRequest struct {
-	AdminID string `json:"adminID"`
-	Role    string `json:"role"`
-	Status  string `json:"status"`
+	AdminID     string `json:"adminID"`
+	Role        string `json:"role"`
+	Status      string `json:"status"`
+	Permissions string `json:"permissions"`
 }
 
 // NewAppRequest is the request to POST /admin/app
