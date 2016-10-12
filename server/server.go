@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -22,6 +21,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	cache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 )
@@ -185,8 +185,10 @@ func MakeDB(c *Config) *gorm.DB {
 	db.AutoMigrate(&AppInfo{})
 	db.AutoMigrate(&AppServerInfo{})
 	db.AutoMigrate(&Key{})
+	db.AutoMigrate(&Admin{})
+	db.AutoMigrate(&SigningKey{})
 	if err != nil {
-		panic(fmt.Errorf("Could not open database: %s", err))
+		panic(errors.Errorf("Could not open database: %s", err))
 	}
 	return db
 }
@@ -200,6 +202,9 @@ func MakeCacher(c *Config) Cacher {
 		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
 		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
 		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
+		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
+		signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
+		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
 	}
 }
 
@@ -304,12 +309,35 @@ func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
 	// Admin routes
-	ah := AdminHandler{srv}
-	forMethod(router, "/v1/admin/app/new", ah.NewAppHandler, "POST")
-	forMethod(router, "/v1/admin/server/new", ah.NewServerHandler, "POST")
-	forMethod(router, "/v1/admin/server/delete", ah.DeleteServerHandler, "POST")
-	forMethod(router, "/v1/admin/server/get", ah.GetServerHandler, "POST")
-	forMethod(router, "/v1/admin/user/new", ah.NewUserHandler, "POST")
+	ah := AdminHandler{
+		s: srv,
+		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
+			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+	}
+	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
+	forMethod(router, "/admin/register", ah.Register, "POST")
+	forMethod(router, "/admin/new/{code}", ah.NewAdmin, "POST")
+	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
+
+	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")
+	forMethod(router, "/admin/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
+	forMethod(router, "/admin/admin/{adminID}", ah.UpdateAdmin, "PUT")
+	forMethod(router, "/admin/admin/{adminID}", ah.DeleteAdmin, "DELETE") // super-admins only
+
+	forMethod(router, "/admin/app", ah.GetApps, "GET")
+	forMethod(router, "/admin/app", ah.NewApp, "POST")
+	forMethod(router, "/admin/app/{appID}", ah.UpdateApp, "POST")
+	forMethod(router, "/admin/app/{appID}", ah.DeleteApp, "DELETE")
+
+	forMethod(router, "/admin/server", ah.GetServers, "GET")
+	forMethod(router, "/admin/server", ah.NewServer, "POST")
+	forMethod(router, "/admin/server/{serverID}", ah.UpdateServer, "PUT")
+	forMethod(router, "/admin/server/{serverID}", ah.DeleteServer, "DELETE")
+
+	forMethod(router, "/admin/signing-key", ah.GetSigningKeys, "GET")
+
+	forMethod(router, "/admin/ltr", ah.NewLongTerm, "POST")
+	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
 
 	// Info routes
 	ih := InfoHandler{srv}
@@ -318,6 +346,9 @@ func (srv *Server) GetHandler() http.Handler {
 	// Key routes
 	kh := keyHandler{srv}
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
+	forMethod(router, "/v1/keys/get", kh.GetKeys, "GET")
+	forMethod(router, "/v1/users/{userID}", kh.DeleteUser, "DELETE")
+	forMethod(router, "/v1/keys/{userID}/{keyID}", kh.DeleteKey, "DELETE")
 
 	// Auth routes
 	th := AuthHandler{
@@ -329,7 +360,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
 	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
 	forMethod(router, "/v1/auth", th.Authenticate, "POST")
-	forMethod(router, "/auth/{requestID}", th.AuthIFrameHandler, "GET")
+	forMethod(router, "/v1/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
 	rh := RegisterHandler{
@@ -340,7 +371,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/v1/register", rh.Register, "POST")
-	forMethod(router, "/register/{requestID}", rh.RegisterIFrameHandler, "GET")
+	forMethod(router, "/v1/register/{requestID}", rh.RegisterIFrameHandler, "GET")
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())

@@ -2,16 +2,55 @@
 
 package server
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
-// NewAppRequest is the request to `POST /v1/app/new`.
+// REQUEST POST /admin/new/:code
+type newAdminRequest struct {
+	Name        string   `json:"name"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
+	IV          string   `json:"iv"`   // encoded with web encoding, no padding
+	Salt        string   `json:"salt"` // same encoding
+	PublicKey   []byte   `json:"publicKey"`
+}
+
+// REPLY POST /admin/new/:code
+type newAdminReply struct {
+	RequestID   string `json:"requestID"`
+	IFrameRoute string `json:"iFrameRoute"`
+	WaitRoute   string `json:"waitRoute"`
+}
+
+// Request to POST /admin/admin/{adminID}
+type adminUpdateRequest struct {
+	Name                string `json:"name"`
+	Email               string `json:"email"`
+	PrimarySigningKeyID string `json:"primarySigningKeyID"`
+}
+
+// Request to POST /admin/admin/roles
+type adminRoleChangeRequest struct {
+	AdminID     string `json:"adminID"`
+	Role        string `json:"role"`
+	Status      string `json:"status"`
+	Permissions string `json:"permissions"`
+}
+
+// NewAppRequest is the request to POST /admin/app
 type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// NewAppReply is the response to `POST /v1/app/new`.
-type NewAppReply struct {
-	AppID string `json:"appID"`
+// Request to PUT /admin/app/{appID}
+type appUpdateRequest struct {
+	AppName string `json:"appName"`
+}
+
+type modificationReply struct {
+	NumAffected int64 `json:"numAffected"`
 }
 
 // AppIDInfoReply is the reply to `GET /v1/info/:appID`.
@@ -33,7 +72,13 @@ type AppIDInfoReply struct {
 	KeyType string `json:"serverKeyType"`
 }
 
-// NewServerRequest is the request to `POST /v1/admin/server/new`.
+type adminRegisterRequest struct {
+	RequestID string  `json:"requestID"`
+	R         big.Int `json:"r"` // can just be specified as a string
+	S         big.Int `json:"s"`
+}
+
+// NewServerRequest is the request to POST /admin/server
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
@@ -43,20 +88,14 @@ type NewServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// NewServerReply is the response to `POST `/v1/admin/server/new`.
-type NewServerReply struct {
-	ServerName string `json:"serverName"`
-	ServerID   string `json:"serverID"`
-}
-
-// DeleteServerRequest is the request to `POST /v1/admin/server/delete`.
-type DeleteServerRequest struct {
-	ServerID string `json:"serverID"`
-}
-
-// AppServerInfoRequest is the request to `POST /v1/admin/server/info`.
-type AppServerInfoRequest struct {
-	ServerID string `json:"serverID"`
+// Request to PUT /admin/server/{serverID}
+type serverUpdateRequest struct {
+	ServerName  string `json:"serverName"`
+	BaseURL     string `json:"baseURL"`
+	KeyType     string `json:"keyType"`
+	PublicKey   []byte `json:"publicKey"`
+	Permissions string `json:"permissions"`
+	AuthType    string `json:"authType"`
 }
 
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
@@ -92,15 +131,6 @@ type successfulRegistrationData struct {
 type failedRegistrationData struct {
 	ErrorMessage string `json:"errorMessage"`
 	ErrorCode    int    `json:"errorStatus"`
-}
-
-// NewUserRequest is the request to `POST /v1/admin/user/new`.
-type NewUserRequest struct {
-}
-
-// NewUserReply is the reply to `POST /v1/admin/user/new`.
-type NewUserReply struct {
-	UserID string `json:"userID"`
 }
 
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
@@ -153,4 +183,20 @@ type failedAuthenticationData struct {
 	Challenge    string `json:"challenge"`
 	ErrorMessage string `json:"errorMessage"`
 	ErrorStatus  int    `json:"errorStatus"`
+}
+
+// Request to POST /admin/ltr
+type newLTRRequest struct {
+	AppID string `json:"appID"`
+}
+
+// Reply to POST /admin/ltr
+type newLTRResponse struct {
+	RequestID string `json:"requestID"`
+}
+
+// Request to DELETE /admin/ltr
+type deleteLTRRequest struct {
+	AppID           string `json:"appID"`
+	HashedRequestID string `json:"hashedRequestID"`
 }

@@ -17,17 +17,17 @@ type InfoHandler struct {
 // GET /v1/info/:appID
 func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 	appID := mux.Vars(r)["appID"]
-	if CheckBase64(appID) != nil {
-		http.Error(w, "appID was not a valid base-64 string",
-			http.StatusBadRequest)
-		return
-	}
-	t := DBHandler{DB: ih.s.DB.Model(&AppInfo{})}
+	err := CheckBase64(appID)
+	optionalBadRequestPanic(err, "App ID was not a valid base-64 string")
+
 	query := AppInfo{AppID: appID}
-	count := t.CountWhere(query)
+	count := 0
+	err = ih.s.DB.Model(&AppInfo{}).Where(&query).Count(&count).Error
+	optionalInternalPanic(err, "Failed to count apps inside database")
+
 	if count > 0 {
 		var info AppInfo
-		t.FirstWhere(query, &info)
+		err = ih.s.DB.Model(&AppInfo{}).Where(&query).First(&info).Error
 		reply := AppIDInfoReply{
 			AppName:   info.AppName,
 			BaseURL:   ih.s.c.getBaseURLWithProtocol(),

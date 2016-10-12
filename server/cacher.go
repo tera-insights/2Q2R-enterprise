@@ -4,12 +4,13 @@ package server
 
 import (
 	"crypto"
-	"fmt"
+	"crypto/rand"
 	"io"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/tstranex/u2f"
 )
 
@@ -31,6 +32,12 @@ type AuthenticationRequest struct {
 	UserID    string
 }
 
+// AdminRegistrationRequest is the what admins use to add their initial second
+// factor.
+type AdminRegistrationRequest struct {
+	Challenge []byte
+}
+
 // Cacher holds various requests. If they are not found, it hits the database.
 type Cacher struct {
 	baseURL                string
@@ -39,6 +46,9 @@ type Cacher struct {
 	registrationRequests   *cache.Cache
 	authenticationRequests *cache.Cache
 	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
+	admins                 *cache.Cache // Request ID to admin to be saved
+	signingKeys            *cache.Cache // Request ID to signing key to be saved
+	adminRegistrations     *cache.Cache // request ID to AdminRegistrationRequest
 	db                     *gorm.DB     // Templated on and holds long-term requests
 }
 
@@ -95,7 +105,7 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 		ptr := &ar
 		return ptr, nil
 	}
-	return nil, fmt.Errorf("Could not find authentication request with id %s", id)
+	return nil, errors.Errorf("Could not find authentication request with id %s", id)
 }
 
 // SetAuthenticationRequest puts an AuthenticationRequest into the cache.
@@ -119,5 +129,35 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
 		c.authenticationRequests.Set(requestID, ar, c.expiration)
 		return nil
 	}
-	return fmt.Errorf("Could not find authentication request with id %s", requestID)
+	return errors.Errorf("Could not find authentication request with id %s", requestID)
+}
+
+// NewAdminRegisterRequest stores a new admin, signing key, and registration
+// request for a particular request ID. If the request is successful, the admin
+// is saved to the DB.
+func (c *Cacher) NewAdminRegisterRequest(id string, a Admin, sk SigningKey) {
+	c.admins.Set(id, a, c.expiration)
+	c.signingKeys.Set(id, a, c.expiration)
+
+	bytes := make([]byte, 32)
+	_, err := rand.Read(bytes)
+	optionalInternalPanic(err, "Failed to generate echallenge for admin")
+
+	c.adminRegistrations.Set(id, AdminRegistrationRequest{
+		Challenge: bytes,
+	}, c.expiration)
+}
+
+// GetAdmin returns the admin for a particular request ID.
+func (c *Cacher) GetAdmin(id string) (Admin, SigningKey, error) {
+	if val, found := c.admins.Get(id); found {
+		admin := val.(Admin)
+		if val, found = c.signingKeys.Get(id); found {
+			signingKey := val.(SigningKey)
+			return admin, signingKey, nil
+		}
+		return admin, SigningKey{},
+			errors.Errorf("Could not find signing key for request %s", id)
+	}
+	return Admin{}, SigningKey{}, errors.Errorf("Could not find admin for request %s", id)
 }

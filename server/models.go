@@ -8,34 +8,34 @@ import "github.com/jinzhu/gorm"
 type AppInfo struct {
 	gorm.Model
 
-	AppID   string
-	AppName string
+	AppID   string `json:"appID"`
+	AppName string `json:"appName"`
 }
 
 // AppServerInfo is the Gorm model that holds information about an app server.
 type AppServerInfo struct {
 	gorm.Model
 
-	ServerID string
-
-	ServerName string
+	ServerID   string `json:"serverID"`
+	ServerName string `json:"serverName"`
 
 	// Base URL for users to connect to
-	BaseURL string
+	BaseURL string `json:"baseURL"`
 
 	// A server can only serve one app
-	AppID string
+	AppID string `json:"appID"`
 
 	// P256, etc.
-	KeyType string
+	KeyType string `json:"keyType"`
 
 	// JSON
-	PublicKey []byte
+	PublicKey []byte `json:"publicKey"`
 
 	// JSON array containing a subset of ["Register", "Delete", "Login"]
-	Permissions string
+	Permissions string `json:"permissions"`
 
-	AuthType string // Either token or DSA
+	// Either token or DSA
+	AuthType string `json:"authType"`
 }
 
 // LongTermRequest is the Gorm model for a long-term registration request set
@@ -43,9 +43,8 @@ type AppServerInfo struct {
 type LongTermRequest struct {
 	gorm.Model
 
-	HashedRequestID string
-	AppID           string
-	UserID          string
+	HashedRequestID string `json:"hashedRequestID"` // sha-256 hashed
+	AppID           string `json:"appID"`
 }
 
 // Key is the Gorm model for a user's stored public key.
@@ -53,11 +52,36 @@ type Key struct {
 	gorm.Model
 
 	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
-	KeyID                  string
-	Type                   string
-	Name                   string
-	UserID                 string
-	AppID                  string
-	MarshalledRegistration []byte // unmarshalled by go-u2f
-	Counter                uint32
+	KeyID  string `gorm:"primary_key" json:"keyID"`
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	UserID string `json:"userID"`
+	AppID  string `json:"appID"`
+
+	// unmarshalled by go-u2f
+	MarshalledRegistration []byte `json:"marshalledRegistration"`
+	Counter                uint32 `json:"counter"`
+}
+
+// Admin is the Gorm model for a (super-) admin.
+type Admin struct {
+	gorm.Model
+
+	AdminID             string `gorm:"primary_key" json:"activeID"` // can be joined with Key.UserID
+	Status              string `json:"status"`                      // either active or inactive
+	Name                string `json:"name"`
+	Email               string `json:"email"`
+	Permissions         string `json:"permissions"`         // JSON-encoded array
+	Role                string `json:"role"`                // if superadmin, this has all permissions
+	PrimarySigningKeyID string `json:"primarySigningKeyID"` // FK into the SigningKey relation
+}
+
+// SigningKey is the Gorm model for keys that the admin uses to sign things.
+type SigningKey struct {
+	gorm.Model
+
+	SigningKeyID string `gorm:"primary_key" json:"signingKeyID"`
+	IV           string `json:"iv"`   // encoded using encodeBase64
+	Salt         string `json:"salt"` // same encoding
+	PublicKey    []byte `json:"publicKey"`
 }
