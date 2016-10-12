@@ -442,7 +442,7 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewLongTerm stores a long-term request in the database.
-// POST /admin/ltr/new
+// POST /admin/ltr
 func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	req := newLTRRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -467,7 +467,7 @@ func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLongTerm deletes a long-term request from the database.
-// DELETE /admin/ltr/delete
+// DELETE /admin/ltr
 func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 	req := deleteLTRRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)

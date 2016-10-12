@@ -334,8 +334,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/server/{serverID}", ah.UpdateServer, "PUT")
 	forMethod(router, "/admin/server/{serverID}", ah.DeleteServer, "DELETE")
 
-	forMethod(router, "/admin/ltr/new", ah.NewLongTerm, "POST")
-	forMethod(router, "/admin/ltr/delete", ah.DeleteLongTerm, "DELETE")
+	forMethod(router, "/admin/ltr", ah.NewLongTerm, "POST")
+	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
 
 	// Info routes
 	ih := InfoHandler{srv}
