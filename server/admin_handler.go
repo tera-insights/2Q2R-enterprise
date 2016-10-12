@@ -30,38 +30,58 @@ type AdminHandler struct {
 // authentication mechanism.
 // POST /admin/new/{code}
 func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
-	code := mux.Vars(r)["code"]
-	panicIfFalse(code == "bootstrap", http.StatusBadRequest,
-		"Unrecognized activation code")
+	var requestID string // generated if {code} == bootstrap, else set to {code}
+	var role string      // either superadmin or admin
+	var status string    // either active or inactive
 
 	req := newAdminRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	adminCount := 0
-	err = ah.s.DB.Model(&Admin{}).Count(&adminCount).Error
-	optionalInternalPanic(err, "Failed to count the admins in the database")
-	panicIfFalse(adminCount == 0, http.StatusBadRequest,
-		"There are already admins in the database")
+	if mux.Vars(r)["code"] == "bootstrap" {
+		role = "superadmin"
+		status = "active"
+		requestID, err = randString(32)
+		optionalInternalPanic(err, "Could not generate request ID")
 
-	keyCount := 0
-	err = ah.s.DB.Model(&Key{}).Count(&keyCount).Error
-	optionalInternalPanic(err, "Failed to count the keys in the database")
-	panicIfFalse(adminCount == 0, http.StatusBadRequest,
-		"There are already keys in the database")
+		// Assert that there are no admins in the database
+		count := 0
+		err = ah.s.DB.Model(&Admin{}).Count(&count).Error
+		optionalInternalPanic(err, "Failed to count admins")
+		panicIfFalse(count == 0, http.StatusForbidden,
+			"There are already admins in the database")
 
-	requestID, err := randString(32)
-	optionalInternalPanic(err, "Could not generate request ID")
+		// Assert that there are no keys in the database
+		err = ah.s.DB.Model(&Key{}).Count(&count).Error
+		optionalInternalPanic(err, "Failed to count keys")
+		panicIfFalse(count == 0, http.StatusForbidden,
+			"There are already keys in the database")
+
+		// Assert that there are no signing keys in the database
+		err = ah.s.DB.Model(&SigningKey{}).Count(&count).Error
+		optionalInternalPanic(err, "Failed to count signing keys")
+		panicIfFalse(count == 0, http.StatusForbidden,
+			"There are already signing keys in the database")
+	} else {
+		role = "admin"
+		status = "inactive"
+		requestID = mux.Vars(r)["code"]
+
+		h := crypto.SHA256.New()
+		io.WriteString(h, requestID)
+
+		// Asserting that there is a stored long-term request for the code
+		count := 0
+		err = ah.s.DB.Model(&LongTermRequest{}).Where(LongTermRequest{
+			AppID:           "1",
+			HashedRequestID: string(h.Sum(nil)),
+		}).Count(&count).Error
+		panicIfFalse(count == 1, http.StatusForbidden,
+			"Did not find exactly one stored request for the passed ID")
+	}
 
 	encodedPermissions, err := json.Marshal(req.Permissions)
 	optionalInternalPanic(err, "Could not encode permissions for storage")
-
-	role := "admin"
-	status := "inactive"
-	if code == "bootstrap" {
-		role = "superadmin"
-		status = "active"
-	}
 
 	adminID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate admin ID")
@@ -82,6 +102,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		Salt:         req.Salt,
 		PublicKey:    req.PublicKey,
 	})
+
 	base := ah.s.c.getBaseURLWithProtocol() + "/admin/"
 	writeJSON(w, http.StatusOK, newAdminReply{
 		RequestID:   requestID,

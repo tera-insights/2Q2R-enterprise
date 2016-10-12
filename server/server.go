@@ -316,8 +316,8 @@ func (srv *Server) GetHandler() http.Handler {
 	}
 	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
 	forMethod(router, "/admin/register", ah.Register, "POST")
-	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 	forMethod(router, "/admin/new/{code}", ah.NewAdmin, "POST")
+	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 
 	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")
 	forMethod(router, "/admin/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
