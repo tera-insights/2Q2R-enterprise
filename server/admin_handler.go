@@ -504,3 +504,13 @@ func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 		NumAffected: query.RowsAffected,
 	})
 }
+
+// GetSigningKeys returns all signing keys in the database.
+// GET /admin/signing-key
+func (ah *AdminHandler) GetSigningKeys(w http.ResponseWriter, r *http.Request) {
+	var result []SigningKey
+	err := ah.s.DB.Model(&SigningKey{}).Find(&result).Error
+	optionalInternalPanic(err, "Could not read signing keys")
+
+	writeJSON(w, http.StatusOK, result)
+}

@@ -334,6 +334,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/server/{serverID}", ah.UpdateServer, "PUT")
 	forMethod(router, "/admin/server/{serverID}", ah.DeleteServer, "DELETE")
 
+	forMethod(router, "/admin/signing-key", ah.GetSigningKeys, "GET")
+
 	forMethod(router, "/admin/ltr", ah.NewLongTerm, "POST")
 	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
 
