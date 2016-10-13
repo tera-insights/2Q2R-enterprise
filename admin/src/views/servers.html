@@ -22,16 +22,23 @@
         <md-toolbar layout="row" class="md-hue-3">
             <div class="md-toolbar-tools">
                 <span>Servers</span>
+                <span flex></span>
+                <md-button class="md-icon-button" aria-label="Refresh" ng-click="ctrl2.refresh()">
+                            <md-icon md-svg-icon="img/icons/refresh.svg"></md-icon>
+                </md-button>
             </div>
         </md-toolbar>
         <md-content>
             <md-list class="md-dense" flex>
-                <md-list-item class="md-3-line" ng-repeat="server in ctrl2.selectedServers">
+                <md-list-item class="md-3-line" ng-repeat="server in ctrl2.selectedServers" layout="row">
                     <div class="md-list-item-text" layout="column">
                         <h3>{{ server.serverName }}</h3>
-                        <h4>{{ server.baseURL }}</h4>
-                        <h4>{{ server.serverID }}</h4>
+                        <p>{{ server.baseURL }}</p>
+                        <p>{{ server.serverID }}</p>
                     </div>
+                    <md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.removeServer(server)">
+                            <md-icon md-svg-icon="img/icons/delete.svg"></md-icon>
+                    </md-button>
                 </md-list-item>
                 <md-list-item>
                     <p ng-if="ctrl2.selectedAppID == null">No Application Selected</p>

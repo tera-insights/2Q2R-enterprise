@@ -27,11 +27,11 @@ export class ServersCtrl {
             controller: AddServerCtrl,
             controllerAs: 'cMod',
             templateUrl: 'views/modals/AddServer.html',
-            clickOutsideToClose: true,
-            locals: {
-                apps: this.apps
-            }
+            clickOutsideToClose: true
         }).then((server: IServerItem) => {
+            server.appID = this.selectedAppID;
+            server.keyType = 'P-256';
+            server.publicKey = ''; // TODO: Generate a key pair using Crypto-Subtle and present the user with the private (or secret).
             server.$save().then((newServer: IServerItem) => {
                 this.servers.push(newServer);
             });
@@ -45,12 +45,15 @@ export class ServersCtrl {
     }
 
     removeServer(server: IServerItem) {
-
+        server.$delete().then(() => {
+            // TODO: delete server from list
+        });
     }
 
     // Get all the info from backend again
     refresh() {
-        this.apps = this.App.query() ;
+        console.log("Refreshed servers!");
+        this.apps = this.App.query();
 
         this.servers = this.Server.query( () => {
             this.serversByAppID = _.groupBy(this.servers, 'appID');

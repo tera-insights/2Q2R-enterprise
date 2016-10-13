@@ -37,13 +37,11 @@ export class AddServerCtrl {
 
     static $inject = [
         '$mdDialog',
-        'Servers',
-        'apps'
+        'Servers'
     ];
     constructor(
         private $mdDialog: ng.material.IDialogService,
-        ServersSrvc: Servers,
-        private apps: IAppItem[]
+        ServersSrvc: Servers
     ) {
             var Server = ServersSrvc.resource;
             this.server = new Server({

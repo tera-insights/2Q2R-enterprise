@@ -11,8 +11,8 @@
         </div>
     </md-toolbar>
 
-    <md-dialog-content>
-        <form class="ui form">
+    <md-dialog-content class="md-padding">
+        <form name="serverForm" class="ui form">
             <div class="field">
                 <md-input-container class="md-block" flex-gt-sm>
                     <label>Name</label>
@@ -28,7 +28,7 @@
             <div class="field">
                 <md-input-container>
                     <label>Permissions</label>
-                    <md-select ng-model="selectedPermissions" multiple>
+                    <md-select ng-model="selectedPermissions" multiple required flex-gt-sm>
                         <md-option ng-repeat="perm in cMod.availablePermissions" value="{{ perm }}">{{ perm }}</md-option>
                     </md-select>
                 </md-input-container>
@@ -37,7 +37,7 @@
     </md-dialog-content>
     <md-dialog-actions class="order-fix" layout="row">
         <span flex></span>
-        <md-button md-autofocus ng-click="cMod.accept()">Accept</md-button>
+        <md-button md-autofocus ng-disabled="serverForm.$invalid" ng-click="cMod.accept()">Accept</md-button>
         <md-button ng-click="cMod.cancel()">Cancel</md-button>
     </md-dialog-actions>
 </md-dialog>

@@ -55,39 +55,16 @@ gulp.task("typescript", function () {
         .pipe(gulp.dest(path.join(destDir,"js")));
 });
 
-/**
- * We need to force a specifc order for typescript assets due to 
- * the fact that App.ts has to be last
- */
-
-gulp.task('ttypescript', [], function () {
-    var result = gulp.src([
-        'src/controllers/**/*.ts',
-        'src/interfaces/**/*.ts',
-        'src/models/**/*.ts',
-        'src/services/**/*.ts',
-        'src/App.ts'
-    ])
-        .pipe(sourcemaps.init())
-        .pipe(tsProject());
-
-    return result.js
-        .pipe(sourcemaps.write())
-        .pipe(print())
-        .pipe(concat('app.min.js'))
-        .pipe(gulp.dest(destDir + '/js'));
-});
-
 gulp.task('libs js', function () {
     return gulp.src(libJsFiles)
         .pipe(concat('libs.min.js'))
-        .pipe(gulp.dest(destDir + '/js'));
+        .pipe(gulp.dest(path.join(destDir, 'js')));
 });
 
 gulp.task('libs css', function () {
     return gulp.src(libCssFiles)
         .pipe(concat('libs.min.css'))
-        .pipe(gulp.dest(destDir + '/css'));
+        .pipe(gulp.dest(path.join(destDir, 'css')));
 });
 
 gulp.task('copy assets', function () {
