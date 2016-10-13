@@ -11,14 +11,20 @@ import { Servers, IServerItem, IServerResource } from '../../services/Servers';
  */
 export class AddServerCtrl {
     private server: IServerItem;
-    private appID: string; // selected appID
+    private availablePermissions: string[] = [
+        'Register',
+        'Authenticate',
+        'Analytics'
+    ];
+
+    private selectedPermissions: string[] = [];
 
     /**
      * Accept function. Closes modal
      */
     accept() {
         // no need to pass the semester since calee has it.
-        this.server.appID = this.appID;
+        this.server.permissions = this.selectedPermissions.join(',');
         this.$mdDialog.hide(this.server);
     }
 
@@ -39,15 +45,14 @@ export class AddServerCtrl {
         ServersSrvc: Servers,
         private apps: IAppItem[]
     ) {
-        var Server = ServersSrvc.resource;
-        this.server = new Server({
-            serverName: "",
-            appID: "",
-            baseURL: "",
-            keyType: "",
-            publicKey: "",
-            permissions: ""
-        });
-        this.appID = this.apps[0].appID;
+            var Server = ServersSrvc.resource;
+            this.server = new Server({
+                serverName: "",
+                appID: "",
+                baseURL: "",
+                keyType: "P-256",
+                publicKey: "",
+                permissions: ""
+            });
     }
 }

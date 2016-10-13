@@ -14,17 +14,24 @@
     <md-dialog-content>
         <form class="ui form">
             <div class="field">
-                <md-select ng-model="cMod.appID" placeholder="Select application">
-                    <md-option ng-value="app.appID" ng-repeat="app in cMod.apps">{{app.appName}}</md-option>
-                </md-select>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Name</label>
+                    <input type="text" ng-model="cMod.server.serverName" id="serverName" name="serverName" required>
+                </md-input-container>
             </div>
             <div class="field">
-                <div class="two fields">
-                    <div class="eight wide field">
-                        <label>Name</label>
-                        <input type="text" placeholder="Name" ng-model="cMod.server.serverName">
-                    </div>
-                </div>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Base URL</label>
+                    <input type="text" ng-model="cMod.server.baseURL" id="baseURL" name="baseURL" required>
+                </md-input-container>
+            </div>
+            <div class="field">
+                <md-input-container>
+                    <label>Permissions</label>
+                    <md-select ng-model="selectedPermissions" multiple>
+                        <md-option ng-repeat="perm in cMod.availablePermissions" value="{{ perm }}">{{ perm }}</md-option>
+                    </md-select>
+                </md-input-container>
             </div>
         </form>
     </md-dialog-content>
