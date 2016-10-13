@@ -11,6 +11,20 @@ module admin {
 
         private apps: IAppItem[] = [];
         private servers: IServerItem[] = [];
+        private selectedServers: IServerItem[] = [];
+        private selectedAppID: string = null;
+
+        selectApp(app: IAppItem) {
+            var selSrvrs: IServerItem[] = [];
+
+            this.servers.forEach((t, i, a) => {
+                if (t.appID == app.appID)
+                    selSrvrs.push(t);
+            });
+
+            this.selectedServers = selSrvrs;
+            this.selectedAppID = app.appID;
+        }
 
         newServer() {
             this.$mdDialog.show({
