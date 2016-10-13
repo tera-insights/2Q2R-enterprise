@@ -1,8 +1,7 @@
 
 /// <reference path="../../../typings/index.d.ts" />
-/// <reference path="../../services/Apps.ts" />
 
-module admin {
+import { Apps, IAppItem } from '../../services/Apps';
 
     /**
      * Controller of add app modal. 
@@ -42,5 +41,3 @@ module admin {
              }); 
         }
     }
-
-}

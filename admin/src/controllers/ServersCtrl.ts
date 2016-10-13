@@ -1,78 +1,75 @@
 /// <reference path="../../typings/index.d.ts" />
-/// <reference path="../services/Servers.ts" />
-/// <reference path="../services/Apps.ts" />
-/// <reference path="../controllers/modals/AddServerCtrl.ts" />
 
-module admin {
+import * as _ from 'lodash';
+import { Servers, IServerItem, IServerResource } from '../services/Servers';
+import { Apps, IAppItem, IAppResource } from '../services/Apps';
+import { AddServerCtrl } from './modals/AddServerCtrl';
 
-    export class ServersCtrl {
-        private Server: IServerResource;
-        private App: IAppResource;
+export class ServersCtrl {
+    private Server: IServerResource;
+    private App: IAppResource;
 
-        private apps: IAppItem[] = [];
-        private servers: IServerItem[] = [];
-        private selectedServers: IServerItem[] = [];
-        private selectedAppID: string = null;
+    private apps: IAppItem[] = [];
+    private servers: IServerItem[] = [];
+    private selectedServers: IServerItem[] = [];
+    private selectedAppID: string = null;
 
-        selectApp(app: IAppItem) {
-            var selSrvrs: IServerItem[] = [];
+    // Aux datascructures to organize Apps and Servers
+    private serversByAppID: { [appID: string] : IServerItem[] } = {};
 
-            this.servers.forEach((t, i, a) => {
-                if (t.appID == app.appID)
-                    selSrvrs.push(t);
+    selectApp(app: IAppItem) {
+        this.selectedServers = this.serversByAppID[app.appID]; 
+        this.selectedAppID = app.appID;
+    }
+
+    newServer() {
+        this.$mdDialog.show({
+            controller: AddServerCtrl,
+            controllerAs: 'cMod',
+            templateUrl: 'views/modals/AddServer.html',
+            clickOutsideToClose: true,
+            locals: {
+                apps: this.apps
+            }
+        }).then((server: IServerItem) => {
+            server.$save().then((newServer: IServerItem) => {
+                this.servers.push(newServer);
             });
+        }, () => {
+            // TODO: Add nofitifications
+        });
+    }
 
-            this.selectedServers = selSrvrs;
-            this.selectedAppID = app.appID;
-        }
+    updateServer(server: IServerItem) {
 
-        newServer() {
-            this.$mdDialog.show({
-                controller: AddServerCtrl,
-                controllerAs: 'cMod',
-                templateUrl: 'views/modals/AddServer.html',
-                clickOutsideToClose: true,
-                locals: {
-                    apps: this.apps
-                }
-            }).then((server: IServerItem) => {
-                server.$save().then((newServer: IServerItem) => {
-                    this.servers.push(newServer);
-                });
-            }, () => {
-                // TODO: Add nofitifications
-            });
-        }
+    }
 
-        updateServer(server: IServerItem) {
+    removeServer(server: IServerItem) {
 
-        }
+    }
 
-        removeServer(server: IServerItem) {
+    // Get all the info from backend again
+    refresh() {
+        this.apps = this.App.query() ;
 
-        }
+        this.servers = this.Server.query( () => {
+            this.serversByAppID = _.groupBy(this.servers, 'appID');
+        });
+    }
 
-        // Get all the info from backend again
-        refresh() {
-            this.servers = this.Server.query();
-            this.apps = this.App.query();
-        }
-
-        static $inject = [
-            '$mdDialog',
-            'Apps',
-            'Servers'
-        ];
-        constructor(
-            private $mdDialog: ng.material.IDialogService,
-            AppsSrvc: Apps,
-            ServersSrvc: Servers
-        ) {
-            this.Server = ServersSrvc.resource;
-            this.App = AppsSrvc.resource;
-            this.refresh();
-        }
-
+    static $inject = [
+        '$mdDialog',
+        'Apps',
+        'Servers'
+    ];
+    constructor(
+        private $mdDialog: ng.material.IDialogService,
+        AppsSrvc: Apps,
+        ServersSrvc: Servers
+    ) {
+        this.Server = ServersSrvc.resource;
+        this.App = AppsSrvc.resource;
+        this.refresh();
     }
 
 }

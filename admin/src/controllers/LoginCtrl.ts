@@ -1,20 +1,17 @@
 /// <reference path="../../typings/index.d.ts" />
-/// <reference path="../services/Auth.ts" />
 
-module admin {
+import { Auth } from '../services/Auth';
 
-    export class LoginCtrl {
+export class LoginCtrl {
 
-        login(userid: string, password: string) {
+    login(userid: string, password: string) {
 
-            
 
-        }
 
-        static $inject = ['Auth'];
-        constructor(private Auth: Auth){
-            
-        }
+    }
+
+    static $inject = ['Auth'];
+    constructor(private Auth: Auth) {
 
     }
 

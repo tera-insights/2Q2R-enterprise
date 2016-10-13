@@ -3,11 +3,13 @@ var nodemon = require('gulp-nodemon');
 var ts = require('gulp-typescript');
 var concat = require('gulp-concat');
 var sourcemaps = require('gulp-sourcemaps');
-
+var browserify = require("browserify");
+var tsify = require("tsify");
+var path = require("path");
 var print = require('gulp-print');
-
-var destDir = '../server/assets/admin/';
-
+var source = require("vinyl-source-stream");
+//var destDir = '../server/assets/admin/';
+var destDir = path.join(__dirname, "..", "server", "assets", "admin");
 
 /**
  * Add all the bower assets to these lists so they can be concatenated 
@@ -22,7 +24,8 @@ var libJsFiles = [
     'libs/angular-resource/angular-resource.min.js',
     'libs/angular-messages/angular-messages.min.js',
     'libs/angular-ui-router/release/angular-ui-router.min.js',
-    'libs/ui-router-extras/release/ct-ui-router-extras.min.js'
+    'libs/ui-router-extras/release/ct-ui-router-extras.min.js',
+    'libs/lodash/dist/lodash.min.js'
 ];
 
 var libCssFiles = [
@@ -33,8 +36,23 @@ var libCssFiles = [
 var tsProject = ts.createProject({
     module: "commonjs",
     target: "es5",
+    removeComments: true,
     preserveConstEnums: true,
     sourceMap: true
+});
+
+
+// Creates one large javascript file 
+gulp.task("typescript", function () {
+    var bundler = browserify({ basedir: "./" })
+        .add(path.join("./src", "App.ts"))
+        .plugin(tsify, tsProject);
+    return bundler.bundle()
+        .on("error", function (error) {
+            console.log(error.toString());
+        })
+        .pipe(source('app.min.js'))
+        .pipe(gulp.dest(path.join(destDir,"js")));
 });
 
 /**
@@ -42,16 +60,16 @@ var tsProject = ts.createProject({
  * the fact that App.ts has to be last
  */
 
-gulp.task('typescript', [], function () {
+gulp.task('ttypescript', [], function () {
     var result = gulp.src([
-            'src/controllers/**/*.ts',
-            'src/interfaces/**/*.ts',
-            'src/models/**/*.ts',
-            'src/services/**/*.ts',
-            'src/App.ts'
-        ])
+        'src/controllers/**/*.ts',
+        'src/interfaces/**/*.ts',
+        'src/models/**/*.ts',
+        'src/services/**/*.ts',
+        'src/App.ts'
+    ])
         .pipe(sourcemaps.init())
-        .pipe(ts(tsProject));
+        .pipe(tsProject());
 
     return result.js
         .pipe(sourcemaps.write())
