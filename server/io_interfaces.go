@@ -9,11 +9,12 @@ import (
 
 // REQUEST POST /admin/new/:code
 type newAdminRequest struct {
+	AdminID     string   `json:"adminID"`
 	Name        string   `json:"name"`
 	Email       string   `json:"email"`
 	Permissions []string `json:"permissions"`
-	IV          string   `json:"iv"`   // encoded with web encoding, no padding
-	Salt        string   `json:"salt"` // same encoding
+	IV          string   `json:"iv"`   // encoded w/ web encoding, no padding
+	Seed        string   `json:"seed"` // same encoding
 	PublicKey   []byte   `json:"publicKey"`
 }
 
@@ -24,27 +25,34 @@ type newAdminReply struct {
 	WaitRoute   string `json:"waitRoute"`
 }
 
-// Request to POST /admin/admin/{adminID}
+// Request to POST /admin/admins/{adminID}
 type adminUpdateRequest struct {
-	Name                string `json:"name"`
-	Email               string `json:"email"`
-	PrimarySigningKeyID string `json:"primarySigningKeyID"`
-}
-
-// Request to POST /admin/admin/roles
-type adminRoleChangeRequest struct {
-	AdminID     string `json:"adminID"`
-	Role        string `json:"role"`
-	Status      string `json:"status"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
 	Permissions string `json:"permissions"`
+	IV          string `json:"iv"`
+	Seed        string `json:"seed"`
+	PublicKey   []byte `json:"publicKey"`
 }
 
-// NewAppRequest is the request to POST /admin/app
+// Request to POST /admin/admins/roles
+type adminRoleChangeRequest struct {
+	AdminID string `json:"adminID"`
+	Role    string `json:"role"`
+	Status  string `json:"status"`
+}
+
+// NewAppRequest is the request to POST /admin/apps
 type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// Request to PUT /admin/app/{appID}
+// NewAppReply is the response to POST /apps/new
+type NewAppReply struct {
+	AppID string `json:"appID"`
+}
+
+// Request to PUT /admin/apps/{appID}
 type appUpdateRequest struct {
 	AppName string `json:"appName"`
 }
@@ -78,7 +86,7 @@ type adminRegisterRequest struct {
 	S         big.Int `json:"s"`
 }
 
-// NewServerRequest is the request to POST /admin/server
+// NewServerRequest is the request to POST /admin/servers
 type NewServerRequest struct {
 	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
@@ -88,7 +96,13 @@ type NewServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// Request to PUT /admin/server/{serverID}
+// NewServerReply is the response to POST /admin/servers
+type NewServerReply struct {
+	ServerName string `json:"serverName"`
+	ServerID   string `json:"serverID"`
+}
+
+// Request to PUT /admin/servers/{serverID}
 type serverUpdateRequest struct {
 	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`
@@ -166,7 +180,7 @@ type setKeyReply struct {
 	KeyID     string `json:"keyID"`
 	Challenge string `json:"challenge"`
 	Counter   uint32 `json:"counter"`
-	AppID     string `json:"AppID"`
+	AppID     string `json:"appID"`
 }
 
 // Reply to `GET /v1/users/:userID`
@@ -185,17 +199,17 @@ type failedAuthenticationData struct {
 	ErrorStatus  int    `json:"errorStatus"`
 }
 
-// Request to POST /admin/ltr
+// Request to POST /admin/ltr/new
 type newLTRRequest struct {
 	AppID string `json:"appID"`
 }
 
-// Reply to POST /admin/ltr
+// Reply to POST /admin/ltr/new
 type newLTRResponse struct {
 	RequestID string `json:"requestID"`
 }
 
-// Request to DELETE /admin/ltr
+// Request to DELETE /admin/ltr/delete
 type deleteLTRRequest struct {
 	AppID           string `json:"appID"`
 	HashedRequestID string `json:"hashedRequestID"`

@@ -47,7 +47,6 @@ type Cacher struct {
 	authenticationRequests *cache.Cache
 	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
 	admins                 *cache.Cache // Request ID to admin to be saved
-	signingKeys            *cache.Cache // Request ID to signing key to be saved
 	adminRegistrations     *cache.Cache // request ID to AdminRegistrationRequest
 	db                     *gorm.DB     // Templated on and holds long-term requests
 }
@@ -132,12 +131,11 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
 	return errors.Errorf("Could not find authentication request with id %s", requestID)
 }
 
-// NewAdminRegisterRequest stores a new admin, signing key, and registration
-// request for a particular request ID. If the request is successful, the admin
-// is saved to the DB.
-func (c *Cacher) NewAdminRegisterRequest(id string, a Admin, sk SigningKey) {
+// NewAdminRegisterRequest stores a new admin and registration request for a
+// particular request ID. If the request is successful, the admin is saved to
+// the DB.
+func (c *Cacher) NewAdminRegisterRequest(id string, a Admin) {
 	c.admins.Set(id, a, c.expiration)
-	c.signingKeys.Set(id, a, c.expiration)
 
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
@@ -149,15 +147,10 @@ func (c *Cacher) NewAdminRegisterRequest(id string, a Admin, sk SigningKey) {
 }
 
 // GetAdmin returns the admin for a particular request ID.
-func (c *Cacher) GetAdmin(id string) (Admin, SigningKey, error) {
+func (c *Cacher) GetAdmin(id string) (Admin, error) {
 	if val, found := c.admins.Get(id); found {
 		admin := val.(Admin)
-		if val, found = c.signingKeys.Get(id); found {
-			signingKey := val.(SigningKey)
-			return admin, signingKey, nil
-		}
-		return admin, SigningKey{},
-			errors.Errorf("Could not find signing key for request %s", id)
+		return admin, nil
 	}
-	return Admin{}, SigningKey{}, errors.Errorf("Could not find admin for request %s", id)
+	return Admin{}, errors.Errorf("Could not find admin for request %s", id)
 }

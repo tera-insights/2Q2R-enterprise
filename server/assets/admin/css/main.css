@@ -1,0 +1,91 @@
+/* give it a class in an actual project, convenient here */
+md-toolbar {
+  padding: 0 !important;
+}
+
+.toolbar-container {
+  padding: 0;
+}
+
+.toolbar-open {
+  /* offsets width for some reason */
+  width: 384px;
+  color: rgb(255, 255, 255) !important; 
+  /* cyan 700 */
+  background-color: rgb(0, 151, 167) !important;
+}
+
+.toolbar-open svg {
+  fill: white;
+}
+
+.toolbar-actions {
+  color: #757575;
+  background-color: #fff !important;
+}
+
+.toolbar-actions svg {
+  fill: #757575;
+}
+
+md-sidenav {
+  /* optional, if you want to resize
+  position: static; */
+  margin-top: 64px;
+}
+
+md-sidenav md-divider {
+  margin: 8px 0;
+}
+
+/* basically a menu...outside of a menu; perfect for a sidenav */
+/* also uses a button to have the ripple effect */
+.fake-menu {
+}
+
+.fake-menu svg {
+  height: 24px;
+  width: 24px;
+}
+
+/* each will be assigned a color based on nth-child when selected */
+
+/* default */
+.latent {
+  
+}
+
+.menu-active {
+  border-left: 4px solid #FB8C00;
+}
+
+.menu-active > .md-button {
+  padding-left: 12px;
+}
+
+.menu-active svg {
+  fill: #FB8C00;
+}
+
+/* ngMessages stuff */
+
+.message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 17px;
+    max-width: 50rem;
+    margin-bottom: 3rem;
+}
+
+.error-message {
+    color: maroon;
+}
+
+.error {
+    border-color: red;
+}
+
+ng-messages {
+    display: block;
+}

@@ -17,7 +17,7 @@ func TestIFrameAuthentication(t *testing.T) {
 	serverName := "register_e2e_test"
 
 	// Create app server
-	postJSON("/admin/server", NewServerRequest{
+	postJSON("/admin/servers", NewServerRequest{
 		ServerName:  serverName,
 		AppID:       goodAppID,
 		BaseURL:     goodBaseURL,
