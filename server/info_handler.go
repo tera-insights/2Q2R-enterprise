@@ -20,7 +20,7 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 	err := CheckBase64(appID)
 	optionalBadRequestPanic(err, "App ID was not a valid base-64 string")
 
-	query := AppInfo{AppID: appID}
+	query := AppInfo{ID: appID}
 	count := 0
 	err = ih.s.DB.Model(&AppInfo{}).Where(&query).Count(&count).Error
 	optionalInternalPanic(err, "Failed to count apps inside database")
@@ -32,7 +32,7 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 			AppName:   info.AppName,
 			BaseURL:   ih.s.c.getBaseURLWithProtocol(),
 			AppURL:    ih.s.c.getBaseURLWithProtocol(),
-			AppID:     info.AppID,
+			AppID:     info.ID,
 			PublicKey: ih.s.c.Base64EncodedPublicKey,
 			KeyType:   ih.s.c.KeyType,
 		}

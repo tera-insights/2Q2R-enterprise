@@ -65,12 +65,11 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	ltr := LongTermRequest{}
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
-	hashedID := string(h.Sum(nil))
 
 	// We transactionally find the long-term request and then delete it from
 	// the DB.
 	tx := c.db.Begin()
-	query := LongTermRequest{HashedRequestID: hashedID}
+	query := LongTermRequest{ID: string(h.Sum(nil))}
 	if err := tx.First(ltr, query).Error; err != nil {
 		tx.Rollback()
 		return nil, err

@@ -165,8 +165,8 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	storedKey := Key{}
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
-		UserID:    ar.UserID,
-		KeyHandle: ar.KeyHandle,
+		UserID: ar.UserID,
+		ID:     ar.KeyHandle,
 	}).First(&storedKey).Error
 	optionalInternalPanic(err, "Failed to look up stored key")
 
@@ -184,8 +184,8 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// Store updated counter in the database.
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
-		UserID:    ar.UserID,
-		KeyHandle: ar.KeyHandle,
+		UserID: ar.UserID,
+		ID:     ar.KeyHandle,
 	}).Update("counter", newCounter).Error
 	optionalPanic(err, http.StatusInternalServerError, "Failed to update counter")
 
@@ -217,7 +217,7 @@ func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Failed to get authentication request")
 
 	storedKey := Key{}
-	err = ah.s.DB.Model(&Key{}).Where(&Key{KeyHandle: req.KeyHandle}).First(&storedKey).Error
+	err = ah.s.DB.Model(&Key{}).Where(&Key{ID: req.KeyHandle}).First(&storedKey).Error
 	optionalBadRequestPanic(err, "Failed to get stored key")
 
 	writeJSON(w, http.StatusOK, setKeyReply{

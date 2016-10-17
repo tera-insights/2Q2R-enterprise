@@ -25,7 +25,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	userID := mux.Vars(r)["userID"]
 	serverID, _ := getAuthDataFromHeaders(r)
 	serverInfo := AppServerInfo{}
-	err := rh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+	err := rh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
 		First(&serverInfo).Error
 	optionalBadRequestPanic(err, "Could not find app server")
 
@@ -66,7 +66,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	optionalBadRequestPanic(err, "Failed to get registration request")
 
 	var appInfo AppInfo
-	query := AppInfo{AppID: cachedRequest.AppID}
+	query := AppInfo{ID: cachedRequest.AppID}
 	err = rh.s.DB.Model(AppInfo{}).Find(&appInfo, query).Error
 	optionalInternalPanic(err, "Failed to find app information")
 
@@ -165,11 +165,11 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Record valid public key in database
 	marshalledRegistration, err := reg.MarshalBinary()
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
-		KeyHandle: encodeBase64(reg.KeyHandle),
-		Type:      successData.Type,
-		Name:      successData.DeviceName,
-		UserID:    rr.UserID,
-		AppID:     rr.AppID,
+		ID:     encodeBase64(reg.KeyHandle),
+		Type:   successData.Type,
+		Name:   successData.DeviceName,
+		UserID: rr.UserID,
+		AppID:  rr.AppID,
 		MarshalledRegistration: marshalledRegistration,
 		Counter:                0,
 	}).Error

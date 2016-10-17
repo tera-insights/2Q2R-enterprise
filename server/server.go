@@ -272,7 +272,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 
 		// Determine which authentication mechanism to use
 		serverInfo := AppServerInfo{}
-		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
 			First(&serverInfo).Error
 		optionalBadRequestPanic(err, "Could not find app server")
 
