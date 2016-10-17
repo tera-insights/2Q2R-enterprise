@@ -1,14 +1,20 @@
-<md-content class="full-size application" layout="column">
-    <mdt-table virtual-repeat="true" selectable-rows="true" table-card="{title: 'Applications'}">
-        <mdt-header-row>
-            <mdt-column align-rule="left">Name</mdt-column>
-            <mdt-column align-rule="right">App ID</mdt-column>
-        </mdt-header-row>
-        <mdt-row ng-repeat="app in ctrl2.apps">
-            <mdt-cell>{{app.appName}}</mdt-cell>
-            <mdt-cell>{{app.appID}}</mdt-cell>
-        </mdt-row>
-    </mdt-table>
+<md-content class="application">
+    <div class="table-wrapper md-whiteframe-1dp">
+        <mdt-table paginated-rows="{isEnabled: true, rowsPerPageValues: [5,10,20,100]}" selectable-rows="true">
+            <mdt-header-row>
+                <mdt-column align-rule="left">Name</mdt-column>
+                <mdt-column align-rule="left">App ID</mdt-column>
+            </mdt-header-row>
+            <mdt-row ng-repeat="app in ctrl2.apps">
+                <mdt-cell>{{app.appName}}</mdt-cell>
+                <mdt-cell>{{app.appID}}</mdt-cell>
+            </mdt-row>
+        </mdt-table>
+    </div>
+    <div class="application-stats">
+        <div class="md-whiteframe-1dp" layout-padding>asdas</div>
+        <div class="md-whiteframe-1dp" layout-padding>asdasdas</div>
+    </div>
     <md-button class="md-fab md-primary application-fab" ng-click="ctrl2.newApp()">
         <md-icon>add</md-icon>
     </md-button>

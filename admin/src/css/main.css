@@ -1,5 +1,18 @@
+.full-size {
+    width: 100%;
+    height: 100%;
+}
+
+/* spaces out the size of the toolbar */
+.spacer {
+    height: 67px;
+}
+
+/* toolbar styles */
 .toolbar-container {
     padding: 0;
+    position: fixed;
+    width: 100%;
 }
 
 .toolbar-container > md-toolbar {
@@ -27,9 +40,8 @@
     fill: #757575;
 }
 
+/* sidenav styles */
 md-sidenav {
-    /* optional, if you want to resize
-  position: static; */
     margin-top: 64px;
 }
 
@@ -37,12 +49,7 @@ md-sidenav md-divider {
     margin: 8px 0;
 }
 
-
-/* basically a menu...outside of a menu; perfect for a sidenav */
-
-
-/* also uses a button to have the ripple effect */
-
+/* menu items inside of a sidenav for icon positioning; a hack */
 .fake-menu {}
 
 .fake-menu svg {
@@ -50,13 +57,7 @@ md-sidenav md-divider {
     width: 24px;
 }
 
-
-/* each will be assigned a color based on nth-child when selected */
-
-
-/* default */
-
-.latent {}
+/* each menu item will be assigned a color based on nth-child when selected */
 
 .menu-active {
     border-left: 4px solid #FB8C00;
@@ -70,45 +71,40 @@ md-sidenav md-divider {
     fill: #FB8C00;
 }
 
+/* applications tab */
+.application {
+    height: calc(100% - 77px);
+    display: flex;
+    margin: 5px;
+}
 
-/* ngMessages stuff */
-
-.message {
+/* stats next to table */
+.application-stats {
+    width: 30%;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    font-size: 17px;
-    max-width: 50rem;
-    margin-bottom: 3rem;
+    margin: 5px;
 }
 
-.error-message {
-    color: maroon;
+.application-stats > div {
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: 
 }
 
-.error {
-    border-color: red;
-}
-
-ng-messages {
-    display: block;
-}
-
-.full-size {
-    width: 100%;
-    height: 100%;
-}
-
-.application {
-    margin: 8px;
-    height: calc(100% - 80px);
-    width: calc(100% - 16px);
-}
-
+/* floating fab */
 .application-fab {
     position: fixed !important;
     right: 0;
     bottom: 0;
+    margin: 20px !important;
+}
+
+/* table inside of applications */
+.table-wrapper {
+    height: 99%;
+    width: 70%;
+    margin: 3px;
 }
 
 mdt-table {
@@ -119,6 +115,7 @@ mdt-table {
 mdt-table > md-content {
     height: 100%;
     width: 100%;
+    background-color: white;
 }
 
 mdt-table > md-content > ng-include {
