@@ -52,11 +52,11 @@ type Key struct {
 	gorm.Model
 
 	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
-	KeyID  string `gorm:"primary_key" json:"keyID"`
-	Type   string `json:"type"`
-	Name   string `json:"name"`
-	UserID string `json:"userID"`
-	AppID  string `json:"appID"`
+	KeyHandle string `gorm:"unique"`
+	Type      string `json:"type"`
+	Name      string `json:"name"`
+	UserID    string `json:"userID"`
+	AppID     string `json:"appID"`
 
 	// unmarshalled by go-u2f
 	MarshalledRegistration []byte `json:"marshalledRegistration"`

@@ -165,8 +165,8 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	storedKey := Key{}
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
-		UserID: ar.UserID,
-		KeyID:  ar.KeyID,
+		UserID:    ar.UserID,
+		KeyHandle: ar.KeyHandle,
 	}).First(&storedKey).Error
 	optionalInternalPanic(err, "Failed to look up stored key")
 
@@ -175,7 +175,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Failed to unmarshal stored registration data")
 
 	resp := u2f.SignResponse{
-		KeyHandle:     ar.KeyID,
+		KeyHandle:     ar.KeyHandle,
 		SignatureData: successData.SignatureData,
 		ClientData:    successData.ClientData,
 	}
@@ -184,8 +184,8 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// Store updated counter in the database.
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
-		UserID: ar.UserID,
-		KeyID:  ar.KeyID,
+		UserID:    ar.UserID,
+		KeyHandle: ar.KeyHandle,
 	}).Update("counter", newCounter).Error
 	optionalPanic(err, http.StatusInternalServerError, "Failed to update counter")
 
@@ -210,18 +210,18 @@ func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyID)
+	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyHandle)
 	optionalInternalPanic(err, "Failed to set key for authentication request")
 
 	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
 	optionalInternalPanic(err, "Failed to get authentication request")
 
 	storedKey := Key{}
-	err = ah.s.DB.Model(&Key{}).Where(&Key{KeyID: req.KeyID}).First(&storedKey).Error
+	err = ah.s.DB.Model(&Key{}).Where(&Key{KeyHandle: req.KeyHandle}).First(&storedKey).Error
 	optionalBadRequestPanic(err, "Failed to get stored key")
 
 	writeJSON(w, http.StatusOK, setKeyReply{
-		KeyID:     req.KeyID,
+		KeyHandle: req.KeyHandle,
 		Challenge: encodeBase64(ar.Challenge.Challenge),
 		Counter:   storedKey.Counter,
 		AppID:     storedKey.AppID,

@@ -158,12 +158,12 @@ type authenticateRequest struct {
 
 // Request to `POST /v1/auth/{requestID}/challenge`
 type setKeyRequest struct {
-	KeyID string `json:"keyID"`
+	KeyHandle string `json:"keyID"`
 }
 
 // Response to `POST /v1/auth/{requestID}/challenge`
 type setKeyReply struct {
-	KeyID     string `json:"keyID"`
+	KeyHandle string `json:"keyID"`
 	Challenge string `json:"challenge"`
 	Counter   uint32 `json:"counter"`
 	AppID     string `json:"AppID"`
