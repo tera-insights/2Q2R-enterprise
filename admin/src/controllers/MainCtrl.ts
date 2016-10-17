@@ -1,6 +1,7 @@
 /// <reference path="../../typings/index.d.ts" />
 
 import { Auth } from '../services/Auth';
+import { GenerateCtrl } from './modals/GenerateCtrl';
 
 interface IMenuItem {
     state: string; // State corresponding to the menu item
@@ -71,20 +72,38 @@ export class MainCtrl {
     select(route: string, name: string) {
         this.sName = name;
         this.$state.go(route);
+
+        // and toggle the sidenav
+        this.$mdSidenav('left').toggle();
     }
 
     toggleLeft() {
         this.$mdSidenav('left').toggle();
     }
 
+    generate() {
+        this.$mdDialog.show({
+            controller: GenerateCtrl,
+            controllerAs: 'cMod',
+            templateUrl: 'views/modals/Generate.html',
+            clickOutsideToClose: true
+        }).then(() => {
+            // Yey. Generation succesful
+        }, () => {
+            // TODO: Add notifications
+        });
+    }
+
     static $inject = [
         '$mdSidenav',
         '$state',
+        '$mdDialog',
         'Auth'
     ];
     constructor(
         private $mdSidenav: ng.material.ISidenavService,
         private $state: angular.ui.IStateService,
+        private $mdDialog: ng.material.IDialogService,
         private Auth: Auth
     ) {
         this.toggleLeft();

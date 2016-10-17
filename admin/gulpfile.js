@@ -25,11 +25,26 @@ var libJsFiles = [
     'libs/angular-messages/angular-messages.min.js',
     'libs/angular-ui-router/release/angular-ui-router.min.js',
     'libs/ui-router-extras/release/ct-ui-router-extras.min.js',
-    'libs/lodash/dist/lodash.min.js'
+    'libs/lodash/dist/lodash.min.js',
+    'libs/random/lib/random.min.js',
+    'libs/prob.js/dist/prob-min.js',
+    'libs/angular-sanitize/angular-sanitize.min.js',
+    'libs/angular-material-icons/angular-material-icons.min.js',
+    'libs/md-data-table/dist/md-data-table-templates.js',
+    'libs/md-data-table/dist/md-data-table.js'
 ];
 
 var libCssFiles = [
-    'libs/angular-material/angular-material.min.css'
+    'libs/material-design-icons/iconfont/material-icons.css',
+    'libs/angular-material/angular-material.min.css',
+    'libs/angular-material-icons/angular-material-icons.css',
+    'libs/md-data-table/dist/md-data-table-style.css'
+];
+
+var libFontFiles = [
+    'libs/material-design-icons/iconfont/MaterialIcons-Regular.woff2',
+    'libs/material-design-icons/iconfont/MaterialIcons-Regular.woff',
+    'libs/material-design-icons/iconfont/MaterialIcons-Regular.ttf',
 ];
 
 
@@ -67,6 +82,11 @@ gulp.task('libs css', function () {
         .pipe(gulp.dest(path.join(destDir, 'css')));
 });
 
+gulp.task('libs font', function () {
+    return gulp.src(libFontFiles)
+        .pipe(gulp.dest(destDir + '/css'));
+});
+
 gulp.task('copy assets', function () {
     // Also, copy over other assets
     var result = gulp.src([
@@ -87,5 +107,5 @@ gulp.task('watch', function () {
     gulp.watch(['src/**/*.*', '!src/**/*.ts'], ['copy assets']);
 });
 
-gulp.task('build', ['typescript', 'copy assets', 'libs js', 'libs css']);
+gulp.task('build', ['typescript', 'copy assets', 'libs js', 'libs css', 'libs font']);
 gulp.task('default', ['build', 'watch']);
