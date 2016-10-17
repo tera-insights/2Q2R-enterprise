@@ -72,6 +72,9 @@ export class MainCtrl {
     select(route: string, name: string) {
         this.sName = name;
         this.$state.go(route);
+
+        // and toggle the sidenav
+        this.$mdSidenav('left').toggle();
     }
 
     toggleLeft() {

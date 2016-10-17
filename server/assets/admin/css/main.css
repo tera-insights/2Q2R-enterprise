@@ -1,71 +1,75 @@
-/* give it a class in an actual project, convenient here */
-md-toolbar {
-  padding: 0 !important;
+.toolbar-container {
+    padding: 0;
 }
 
-.toolbar-container {
-  padding: 0;
+.toolbar-container > md-toolbar {
+    padding: 0;
 }
 
 .toolbar-open {
-  /* offsets width for some reason */
-  width: 384px;
-  color: rgb(255, 255, 255) !important; 
-  /* cyan 700 */
-  background-color: rgb(0, 151, 167) !important;
+    /* offsets width for some reason */
+    width: 384px;
+    color: rgb(255, 255, 255) !important;
+    /* cyan 700 */
+    background-color: rgb(0, 151, 167) !important;
 }
 
 .toolbar-open svg {
-  fill: white;
+    fill: white;
 }
 
 .toolbar-actions {
-  color: #757575;
-  background-color: #fff !important;
+    color: #757575;
+    background-color: #fff !important;
 }
 
 .toolbar-actions svg {
-  fill: #757575;
+    fill: #757575;
 }
 
 md-sidenav {
-  /* optional, if you want to resize
+    /* optional, if you want to resize
   position: static; */
-  margin-top: 64px;
+    margin-top: 64px;
 }
 
 md-sidenav md-divider {
-  margin: 8px 0;
+    margin: 8px 0;
 }
+
 
 /* basically a menu...outside of a menu; perfect for a sidenav */
+
+
 /* also uses a button to have the ripple effect */
-.fake-menu {
-}
+
+.fake-menu {}
 
 .fake-menu svg {
-  height: 24px;
-  width: 24px;
+    height: 24px;
+    width: 24px;
 }
+
 
 /* each will be assigned a color based on nth-child when selected */
 
+
 /* default */
-.latent {
-  
-}
+
+.latent {}
 
 .menu-active {
-  border-left: 4px solid #FB8C00;
+    border-left: 4px solid #FB8C00;
 }
 
 .menu-active > .md-button {
-  padding-left: 12px;
+    padding-left: 12px;
 }
 
 .menu-active svg {
-  fill: #FB8C00;
+    fill: #FB8C00;
 }
+
 
 /* ngMessages stuff */
 
@@ -88,4 +92,41 @@ md-sidenav md-divider {
 
 ng-messages {
     display: block;
+}
+
+.full-size {
+    width: 100%;
+    height: 100%;
+}
+
+.application {
+    margin: 8px;
+    height: calc(100% - 80px);
+    width: calc(100% - 16px);
+}
+
+.application-fab {
+    position: fixed !important;
+    right: 0;
+    bottom: 0;
+}
+
+mdt-table {
+    height: 100%;
+    width: 100%;
+}
+
+mdt-table > md-content {
+    height: 100%;
+    width: 100%;
+}
+
+mdt-table > md-content > ng-include {
+    height: 100%;
+    width: 100%;
+}
+
+.md-virtual-repeat-container {
+    height: 100%;
+    width: 100%;
 }
