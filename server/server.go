@@ -272,7 +272,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 
 		// Determine which authentication mechanism to use
 		serverInfo := AppServerInfo{}
-		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
 			First(&serverInfo).Error
 		optionalBadRequestPanic(err, "Could not find app server")
 
@@ -348,7 +348,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
 	forMethod(router, "/v1/keys/get", kh.GetKeys, "GET")
 	forMethod(router, "/v1/users/{userID}", kh.DeleteUser, "DELETE")
-	forMethod(router, "/v1/keys/{userID}/{keyID}", kh.DeleteKey, "DELETE")
+	forMethod(router, "/v1/keys/{userID}/{keyHandle}", kh.DeleteKey, "DELETE")
 
 	// Auth routes
 	th := AuthHandler{

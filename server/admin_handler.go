@@ -73,8 +73,8 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		// Asserting that there is a stored long-term request for the code
 		count := 0
 		err = ah.s.DB.Model(&LongTermRequest{}).Where(LongTermRequest{
-			AppID:           "1",
-			HashedRequestID: string(h.Sum(nil)),
+			AppID: "1",
+			ID:    string(h.Sum(nil)),
 		}).Count(&count).Error
 		panicIfFalse(count == 1, http.StatusForbidden,
 			"Did not find exactly one stored request for the passed ID")
@@ -90,17 +90,17 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Could not generate key ID")
 
 	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
-		AdminID:     adminID,
+		ID:          adminID,
 		Name:        req.Name,
 		Email:       req.Email,
 		Role:        role,
 		Status:      status,
 		Permissions: string(encodedPermissions),
 	}, SigningKey{
-		SigningKeyID: keyID,
-		IV:           req.IV,
-		Salt:         req.Salt,
-		PublicKey:    req.PublicKey,
+		ID:        keyID,
+		IV:        req.IV,
+		Salt:      req.Salt,
+		PublicKey: req.PublicKey,
 	})
 
 	base := ah.s.c.getBaseURLWithProtocol() + "/admin/"
@@ -162,7 +162,7 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
 		Challenge:   encodeBase64(request.Challenge),
-		UserID:      admin.AdminID,
+		UserID:      admin.ID,
 		BaseURL:     base,
 		AppURL:      base,
 		RegisterURL: base + "/admin/register",
@@ -241,7 +241,7 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
 
 	err = ah.s.DB.Where(&Admin{
-		AdminID: adminID,
+		ID: adminID,
 	}).Updates(Admin{
 		Name:                req.Name,
 		Email:               req.Email,
@@ -251,7 +251,7 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	var updated Admin
 	err = ah.s.DB.First(&updated, &Admin{
-		AdminID: adminID,
+		ID: adminID,
 	}).Error
 	optionalInternalPanic(err, "Failed to read updated admin")
 
@@ -266,7 +266,7 @@ func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
 
 	query := ah.s.DB.Delete(Admin{}, &Admin{
-		AdminID: adminID,
+		ID: adminID,
 	})
 	optionalInternalPanic(query.Error, "Failed to delete admins")
 
@@ -283,7 +283,7 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
 	err = ah.s.DB.Model(&Admin{}).Where(&Admin{
-		AdminID: req.AdminID,
+		ID: req.AdminID,
 	}).Updates(Admin{
 		Role:        req.Role,
 		Status:      req.Status,
@@ -293,7 +293,7 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 
 	var updated Admin
 	err = ah.s.DB.First(&updated, &Admin{
-		AdminID: req.AdminID,
+		ID: req.AdminID,
 	}).Error
 	optionalInternalPanic(err, "Could not read updated admin")
 
@@ -322,7 +322,7 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Could not generate app ID")
 
 	info := AppInfo{
-		AppID:   appID,
+		ID:      appID,
 		AppName: req.AppName,
 	}
 	err = ah.s.DB.Create(&info).Error
@@ -347,7 +347,7 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 		"Cannot have an empty app name")
 
 	err = ah.s.DB.Model(&AppInfo{}).Where(&AppInfo{
-		AppID: appID,
+		ID: appID,
 	}).Update(map[string]interface{}{
 		gorm.ToDBName("AppName"): req.AppName,
 	}).Error
@@ -355,7 +355,7 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 
 	var updated AppInfo
 	err = ah.s.DB.Where(&updated, &AppInfo{
-		AppID: appID,
+		ID: appID,
 	}).Error
 	optionalInternalPanic(err, "Could not read updated app")
 
@@ -370,7 +370,7 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "App ID was not base-64 encoded")
 
 	query := ah.s.DB.Delete(AppInfo{}, &AppInfo{
-		AppID: appID,
+		ID: appID,
 	})
 	optionalInternalPanic(query.Error, "Could not delete app")
 
@@ -391,7 +391,7 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Could not generate server ID")
 
 	info := AppServerInfo{
-		ServerID:    serverID,
+		ID:          serverID,
 		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
 		AppID:       req.AppID,
@@ -413,7 +413,7 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
 	err = ah.s.DB.Where(AppServerInfo{
-		ServerID: serverID,
+		ID: serverID,
 	}).Delete(AppServerInfo{}).Error
 	optionalInternalPanic(err, "Could not delete app server")
 
@@ -442,7 +442,7 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
 	err = ah.s.DB.Where(&AppServerInfo{
-		ServerID: serverID,
+		ID: serverID,
 	}).Updates(AppServerInfo{
 		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
@@ -455,7 +455,7 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 
 	var updated AppServerInfo
 	err = ah.s.DB.First(&updated, &AppServerInfo{
-		ServerID: serverID,
+		ID: serverID,
 	}).Error
 	optionalInternalPanic(err, "Failed to read updated app server info")
 
@@ -476,8 +476,8 @@ func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	hashedID := string(h.Sum(nil))
 
 	query := ah.s.DB.Create(&LongTermRequest{
-		AppID:           req.AppID,
-		HashedRequestID: hashedID,
+		AppID: req.AppID,
+		ID:    hashedID,
 	})
 	optionalInternalPanic(query.Error,
 		"Could not save long-term request to the database")
@@ -495,8 +495,8 @@ func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
 
 	query := ah.s.DB.Delete(LongTermRequest{}, &LongTermRequest{
-		AppID:           req.AppID,
-		HashedRequestID: req.HashedRequestID,
+		AppID: req.AppID,
+		ID:    req.HashedRequestID,
 	})
 	optionalInternalPanic(query.Error, "Could not delete long-term request")
 

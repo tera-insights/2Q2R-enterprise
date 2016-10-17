@@ -17,7 +17,7 @@ type keyHandler struct {
 func (kh *keyHandler) UserExists(w http.ResponseWriter, r *http.Request) {
 	serverID, _ := getAuthDataFromHeaders(r)
 	var asi AppServerInfo
-	err := kh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ServerID: serverID}).
+	err := kh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
 		First(&asi).Error
 	optionalBadRequestPanic(err, "Could not find server")
 
@@ -56,17 +56,17 @@ func (kh *keyHandler) GetKeys(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteKey deletes a key that matches a particular query.
-// DELETE /v1/keys/{userID}/{keyID}
+// DELETE /v1/keys/{userID}/{keyHandle}
 func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	panicIfFalse(userID != "", http.StatusBadRequest, "User ID cannot be \"\"")
 
-	keyID := mux.Vars(r)["keyID"]
-	panicIfFalse(keyID != "", http.StatusBadRequest, "Key ID cannot be \"\"")
+	keyHandle := mux.Vars(r)["keyHandle"]
+	panicIfFalse(keyHandle != "", http.StatusBadRequest, "Key handle cannot be \"\"")
 
 	query := kh.s.DB.Delete(Key{}, &Key{
 		UserID: userID,
-		KeyID:  keyID,
+		ID:     keyHandle,
 	})
 	optionalInternalPanic(query.Error, "Could not delete key")
 

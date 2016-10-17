@@ -27,7 +27,7 @@ type RegistrationRequest struct {
 type AuthenticationRequest struct {
 	RequestID string
 	Challenge *u2f.Challenge
-	KeyID     string
+	KeyHandle string
 	AppID     string
 	UserID    string
 }
@@ -65,12 +65,11 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	ltr := LongTermRequest{}
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
-	hashedID := string(h.Sum(nil))
 
 	// We transactionally find the long-term request and then delete it from
 	// the DB.
 	tx := c.db.Begin()
-	query := LongTermRequest{HashedRequestID: hashedID}
+	query := LongTermRequest{ID: string(h.Sum(nil))}
 	if err := tx.First(ltr, query).Error; err != nil {
 		tx.Rollback()
 		return nil, err
@@ -122,10 +121,10 @@ func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
-func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyID string) error {
+func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyHandle string) error {
 	if val, found := c.authenticationRequests.Get(requestID); found {
 		ar := val.(AuthenticationRequest)
-		ar.KeyID = keyID
+		ar.KeyHandle = keyHandle
 		c.authenticationRequests.Set(requestID, ar, c.expiration)
 		return nil
 	}
