@@ -7,8 +7,10 @@ import (
 	"time"
 )
 
+// NewAdminRequest the request to add a new admin. It is used both in HTTP
+// requests and in the bootstrap script.
 // REQUEST POST /admin/new/:code
-type newAdminRequest struct {
+type NewAdminRequest struct {
 	Name        string   `json:"name"`
 	Email       string   `json:"email"`
 	Permissions []string `json:"permissions"`

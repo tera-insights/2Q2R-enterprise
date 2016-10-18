@@ -34,7 +34,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	var role string      // either superadmin or admin
 	var status string    // either active or inactive
 
-	req := newAdminRequest{}
+	req := NewAdminRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 

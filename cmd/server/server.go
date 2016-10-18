@@ -22,9 +22,7 @@ func main() {
 	flag.StringVar(&configType, "config-type", "yaml",
 		"Filetype of config file. Case insensitive. Must be either JSON, "+
 			"YAML, HCL, or Java")
-
 	flag.Parse()
-
 	pathSet := false
 	typeSet := false
 	flag.CommandLine.Visit(func(f *flag.Flag) {
@@ -43,7 +41,6 @@ func main() {
 		fmt.Printf("No config type set! Using default type %s\n",
 			flag.Lookup("config-type").DefValue)
 	}
-
 	r, err := os.Open(configPath)
 	if err != nil {
 		s := fmt.Sprintf("Failed to open config file at path %s\n", configPath)
