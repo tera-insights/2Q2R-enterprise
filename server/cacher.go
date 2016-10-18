@@ -191,6 +191,10 @@ func (s stack) push(e *element) {
 // ever reaches the Tera Insights public key (`SigningPublicKey == "1"`), then
 // the signature is verified using `rsa.VerifyPSS`.
 func (c *Cacher) VerifySignature(sig KeySignature) error {
+	if sig.Type != "signing" {
+		return errors.Errorf("Signature had type %s, not \"signing\"", sig.Type)
+	}
+
 	s := stack{
 		top: &element{
 			data: &sig,
@@ -257,6 +261,10 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 				}).Error
 				if err != nil {
 					return err
+				}
+				if fetched.Type != "signing" {
+					return errors.Errorf("Signing key had type %s, not "+
+						"\"signing\"", fetched.Type)
 				}
 				s.push(toVerify)
 				s.push(&element{
