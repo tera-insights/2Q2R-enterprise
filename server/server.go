@@ -218,6 +218,7 @@ func MakeCacher(c *Config) Cacher {
 		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
 		signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
 		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
+		validPublicKeys:        cache.New(cache.NoExpiration, cache.NoExpiration),
 	}
 }
 
