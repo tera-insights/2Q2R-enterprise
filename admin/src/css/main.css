@@ -3,12 +3,22 @@
     height: 100%;
 }
 
+
 /* spaces out the size of the toolbar */
+
 .spacer {
     height: 67px;
 }
 
+/* instead of using md-whiteframe-1dp */
+.base-card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.33);
+    border-radius: 2px;
+}
+
+
 /* toolbar styles */
+
 .toolbar-container {
     padding: 0;
     position: fixed;
@@ -40,7 +50,9 @@
     fill: #757575;
 }
 
+
 /* sidenav styles */
+
 md-sidenav {
     margin-top: 64px;
 }
@@ -49,13 +61,16 @@ md-sidenav md-divider {
     margin: 8px 0;
 }
 
+
 /* menu items inside of a sidenav for icon positioning; a hack */
+
 .fake-menu {}
 
 .fake-menu svg {
     height: 24px;
     width: 24px;
 }
+
 
 /* each menu item will be assigned a color based on nth-child when selected */
 
@@ -71,28 +86,38 @@ md-sidenav md-divider {
     fill: #FB8C00;
 }
 
+
 /* applications tab */
+
 .application {
-    height: calc(100% - 77px);
+    height: calc(100% - 127px);
     display: flex;
-    margin: 5px;
+    flex-direction: column;
+    margin: 22px;
 }
 
 /* stats next to table */
+
 .application-stats {
-    width: 30%;
+    height: 135px;
     display: flex;
-    flex-direction: column;
-    margin: 5px;
+    margin: 3px 3px 22px 3px;
 }
 
-.application-stats > div {
+.stats-card {
     flex-grow: 1;
     flex-shrink: 1;
-    width: 
+    background-color: white;
+    margin-left: 25px;
+}
+
+/* every one but the first has a margin left for spacing */
+.application-stats > div:nth-child(1) {
+    margin-left: 0;
 }
 
 /* floating fab */
+
 .application-fab {
     position: fixed !important;
     right: 0;
@@ -101,9 +126,9 @@ md-sidenav md-divider {
 }
 
 /* table inside of applications */
+
 .table-wrapper {
-    height: 99%;
-    width: 70%;
+    height: auto;
     margin: 3px;
 }
 
@@ -126,4 +151,9 @@ mdt-table > md-content > ng-include {
 .md-virtual-repeat-container {
     height: 100%;
     width: 100%;
+}
+
+/* make it a monospaced font to keep the app id from moving */
+.app-id {
+    font-family: Courier, sans-serif;
 }

@@ -11,8 +11,21 @@ import { AddAppCtrl } from '../controllers/modals/AddAppCtrl';
  */
 export class AppsCtrl {
     private App: IAppResource;
-
     private apps: IAppItem[] = [];
+    private app: IAppItem;
+    // total number of apps
+    private appTotal: number;
+
+    // angular-material-data-table options
+    private options = {
+        multiSelect: true,
+        autoSelect: true
+    }
+
+    private tableQuery = {
+        limit: 12,
+        page: 1
+    }
 
     // Triggered by the FAB
     newApp() {
@@ -59,6 +72,7 @@ export class AppsCtrl {
         this.App = AppsSrvc.resource;
 
         this.apps = this.App.query();
+
     }
 
 }

@@ -1,19 +1,44 @@
 <md-content class="application">
-    <div class="table-wrapper md-whiteframe-1dp">
-        <mdt-table paginated-rows="{isEnabled: true, rowsPerPageValues: [5,10,20,100]}" selectable-rows="true">
-            <mdt-header-row>
-                <mdt-column align-rule="left">Name</mdt-column>
-                <mdt-column align-rule="left">App ID</mdt-column>
-            </mdt-header-row>
-            <mdt-row ng-repeat="app in ctrl2.apps">
-                <mdt-cell>{{app.appName}}</mdt-cell>
-                <mdt-cell>{{app.appID}}</mdt-cell>
-            </mdt-row>
-        </mdt-table>
-    </div>
     <div class="application-stats">
-        <div class="md-whiteframe-1dp" layout-padding>asdas</div>
-        <div class="md-whiteframe-1dp" layout-padding>asdasdas</div>
+        <div class="base-card stats-card" layout-padding>{{ctrl2.appTotal}}</div>
+        <div class="base-card stats-card" layout-padding>asdasdas</div>
+        <div class="base-card stats-card" layout-padding>asdas</div>
+        <div class="base-card stats-card" layout-padding>asdasdas</div>
+        <div class="base-card stats-card" layout-padding>asdas</div>
+        <div class="base-card stats-card" layout-padding>asdasdas</div>
+        <div class="base-card stats-card" layout-padding>asdas</div>
+        <div class="base-card stats-card" layout-padding>asdasdas</div>
+        <div class="base-card stats-card" layout-padding>asdas</div>
+        <div class="base-card stats-card" layout-padding>asdasdas</div>
+        <div class="base-card stats-card" layout-padding>asdasdas</div>
+    </div>
+    <div class="table-wrapper">
+        <md-toolbar class="md-table-toolbar md-default">
+            <div class="md-toolbar-tools">
+                <span>Nutrition</span>
+                <div flex></div>
+                <md-button class="md-icon-button">
+                    <md-icon>refresh</md-icon>
+                </md-button>
+            </div>
+        </md-toolbar>
+        <md-table-container>
+            <table md-table md-row-select="true" multiple="true" ng-model="selected">
+                <thead md-head>
+                    <tr md-row>
+                        <th md-column md-order-by="app.appName"><span>Name</span></th>
+                        <th md-column md-order-by="app.appID"><span>App ID</span></th>
+                    </tr>
+                </thead>
+                <tbody md-body>
+                    <tr md-row ng-repeat="app in ctrl2.apps">
+                        <td md-cell>{{app.appName}}</td>
+                        <td md-cell>{{app.appID}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </md-table-container>
+        <md-table-pagination md-limit="ctrl2.tableQuery.limit" md-page="ctrl2.tableQuery.page" md-total="ctrl2.appTotal" md-boundary-links="options.boundaryLinks" md-on-paginate="logPagination"></md-table-pagination>
     </div>
     <md-button class="md-fab md-primary application-fab" ng-click="ctrl2.newApp()">
         <md-icon>add</md-icon>
