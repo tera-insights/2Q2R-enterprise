@@ -4,11 +4,13 @@ package server
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"io"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/tstranex/u2f"
@@ -41,6 +43,7 @@ type AdminRegistrationRequest struct {
 // Cacher holds various requests. If they are not found, it hits the database.
 type Cacher struct {
 	baseURL                string
+	s                      *Server
 	expiration             time.Duration
 	clean                  time.Duration
 	registrationRequests   *cache.Cache
@@ -49,7 +52,7 @@ type Cacher struct {
 	admins                 *cache.Cache // Request ID to admin to be saved
 	signingKeys            *cache.Cache // Request ID to signing key to be saved
 	adminRegistrations     *cache.Cache // request ID to AdminRegistrationRequest
-	db                     *gorm.DB     // Templated on and holds long-term requests
+	validPublicKeys        *cache.Cache // signed public key to true
 }
 
 // GetRegistrationRequest returns the registration request for a particular
@@ -68,7 +71,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 
 	// We transactionally find the long-term request and then delete it from
 	// the DB.
-	tx := c.db.Begin()
+	tx := c.s.DB.Begin()
 	query := LongTermRequest{ID: string(h.Sum(nil))}
 	if err := tx.First(ltr, query).Error; err != nil {
 		tx.Rollback()
@@ -159,4 +162,110 @@ func (c *Cacher) GetAdmin(id string) (Admin, SigningKey, error) {
 			errors.Errorf("Could not find signing key for request %s", id)
 	}
 	return Admin{}, SigningKey{}, errors.Errorf("Could not find admin for request %s", id)
+}
+
+type stack struct {
+	top *element
+}
+
+type element struct {
+	data *KeySignature
+	next *element
+}
+
+func (s stack) pop() *element {
+	oldTop := s.top
+	if oldTop != nil {
+		s.top = oldTop.next
+	}
+	return oldTop
+}
+
+func (s stack) push(e *element) {
+	e.next = s.top
+	s.top = e
+}
+
+// VerifySignature validates the passed key signature using ECDSA. It uses the
+// cache as much as possible to avoid database accesses. Additionally, if it
+// ever reaches the Tera Insights public key (`SigningPublicKey == "1"`), then
+// the signature is verified using `rsa.VerifyPSS`.
+func (c *Cacher) VerifySignature(sig KeySignature) error {
+	s := stack{
+		top: &element{
+			data: &sig,
+			next: nil,
+		},
+	}
+
+	// Build a stack that holds the signatures to verify.
+	// Add elements to the stack when they are not yet verified.
+	// Stop adding elements to the stack when we reach a key that has been
+	// verified. That is, stop once we hit a key whose ID is in the cache of
+	// verified IDs.
+	for s.top != nil {
+		toVerify := s.pop()
+		if toVerify.data.SigningPublicKey == "1" {
+			// Verify this Tera Insights signature using `rsa.VerifyPSS`.
+			h := crypto.SHA256.New()
+			io.WriteString(h, toVerify.data.SignedPublicKey)
+			io.WriteString(h, toVerify.data.Type)
+			io.WriteString(h, toVerify.data.OwnerID)
+			err := rsa.VerifyPSS(c.s.pub, crypto.SHA256, h.Sum(nil),
+				toVerify.data.Signature, nil)
+			if err != nil {
+				return errors.Wrap(err, "Could not verify Tera Insights signature")
+			}
+			c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true, cache.NoExpiration)
+		} else {
+			_, found := c.validPublicKeys.Get(toVerify.data.SigningPublicKey)
+			if found {
+				// We have verified the key used to sign `toVerify`. Now,
+				// verify this signature using `ecdsa.Verify`.
+				marshalled, err := decodeBase64(toVerify.data.SigningPublicKey)
+				if err != nil {
+					return errors.Wrap(err, "Could not unmarshal signing public key")
+				}
+				x, y := elliptic.Unmarshal(elliptic.P256(), marshalled)
+				if x == nil {
+					return errors.New("Signing public key was not on the elliptic curve")
+				}
+				r, s := elliptic.Unmarshal(elliptic.P256(), toVerify.data.Signature)
+				if r == nil {
+					return errors.New("Signed public key was not on the elliptic curve")
+				}
+				h := crypto.SHA256.New()
+				io.WriteString(h, toVerify.data.SignedPublicKey)
+				io.WriteString(h, toVerify.data.Type)
+				io.WriteString(h, toVerify.data.OwnerID)
+				verified := ecdsa.Verify(&ecdsa.PublicKey{
+					Curve: elliptic.P256(),
+					X:     x,
+					Y:     y,
+				}, h.Sum(nil), r, s)
+				if !verified {
+					return errors.Errorf("Could not verify signature of "+
+						"public key %s", toVerify.data.SigningPublicKey)
+				}
+			} else {
+				// We have not yet verified the key used to sign `toVerify`.
+				// So, we need to verify both `toVerify` and the key used to
+				// sign `toVerify`.
+				var fetched KeySignature
+				err := c.s.DB.Find(&fetched, KeySignature{
+					SignedPublicKey: toVerify.data.SigningPublicKey,
+				}).Error
+				if err != nil {
+					return err
+				}
+				s.push(toVerify)
+				s.push(&element{
+					data: &fetched,
+					next: toVerify,
+				})
+			}
+		}
+	}
+
+	return nil
 }

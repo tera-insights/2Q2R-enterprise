@@ -4,7 +4,9 @@ package server
 
 import (
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"html/template"
@@ -120,6 +122,7 @@ type Server struct {
 	c     *Config
 	DB    *gorm.DB
 	cache Cacher
+	pub   *rsa.PublicKey
 }
 
 // Used in registration and authentication templates
@@ -167,7 +170,16 @@ type authenticateData struct {
 
 // NewServer creates a new 2Q2R server.
 func NewServer(c *Config) Server {
-	var s = Server{c, MakeDB(c), MakeCacher(c)}
+	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/" +
+		"yS3tcLEA/VD+tucTzwzmZxbg5GvLzygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7AnJ" +
+		"kw7HxFv5bJCb3NPzfZJ3uLCKuWlG6lowG9pcoys7fogdJP8yrcQQarTQMDxPucY24HBvnP44mBzN3cBLg7sy6p7ZqBJbggrP6EQ" +
+		"x2uwFyd5pW0INNW7wBx/wf/kEAQJEuBzOKkBQWuR4q7aThFfKNyfklRZ0dgrRQegjMkMy5s9Bwe2cou45VzzA7rSQIDAQAB"
+	block, _ := base64.StdEncoding.DecodeString(pubKey)
+	pub, err := x509.ParsePKIXPublicKey(block)
+	if err != nil {
+		panic(errors.Errorf("Failed to parse server's public key: %+v", err))
+	}
+	var s = Server{c, MakeDB(c), MakeCacher(c), pub.(*rsa.PublicKey)}
 	return s
 }
 
@@ -187,6 +199,7 @@ func MakeDB(c *Config) *gorm.DB {
 	db.AutoMigrate(&Key{})
 	db.AutoMigrate(&Admin{})
 	db.AutoMigrate(&SigningKey{})
+	db.AutoMigrate(&KeySignature{})
 	if err != nil {
 		panic(errors.Errorf("Could not open database: %s", err))
 	}
