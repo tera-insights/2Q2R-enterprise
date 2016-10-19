@@ -33,7 +33,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		[]string{rh.s.c.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Could not generate challenge")
 
-	requestID, err := randString(32)
+	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
 	rr := RegistrationRequest{
@@ -42,7 +42,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		AppID:     serverInfo.AppID,
 		UserID:    userID,
 	}
-	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
+	rh.s.Cache.SetRegistrationRequest(rr.RequestID, rr)
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.RequestID,
 		rh.s.c.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
@@ -62,7 +62,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	t, err := template.New("register").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate registration iFrame")
 
-	cachedRequest, err := rh.s.cache.GetRegistrationRequest(requestID)
+	cachedRequest, err := rh.s.Cache.GetRegistrationRequest(requestID)
 	optionalBadRequestPanic(err, "Failed to get registration request")
 
 	var appInfo AppInfo
@@ -74,7 +74,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
-		Challenge:   encodeBase64(cachedRequest.Challenge.Challenge),
+		Challenge:   EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:      cachedRequest.UserID,
 		AppID:       cachedRequest.AppID,
 		BaseURL:     base,
@@ -145,11 +145,11 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Could not decode client data")
 
 	// Assert that the challenge exists
-	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
+	requestID, found := rh.s.Cache.challengeToRequestID.Get(clientData.Challenge)
 	panicIfFalse(found, http.StatusForbidden, "Challenge does not exist")
 
 	// Get challenge data
-	rr, err := rh.s.cache.GetRegistrationRequest(requestID.(string))
+	rr, err := rh.s.Cache.GetRegistrationRequest(requestID.(string))
 	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	// Verify signature
@@ -165,7 +165,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Record valid public key in database
 	marshalledRegistration, err := reg.MarshalBinary()
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
-		ID:     encodeBase64(reg.KeyHandle),
+		ID:     EncodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
 		Name:   successData.DeviceName,
 		UserID: rr.UserID,

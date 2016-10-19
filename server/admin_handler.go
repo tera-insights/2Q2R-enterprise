@@ -41,7 +41,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	if mux.Vars(r)["code"] == "bootstrap" {
 		role = "superadmin"
 		status = "active"
-		requestID, err = randString(32)
+		requestID, err = RandString(32)
 		optionalInternalPanic(err, "Could not generate request ID")
 
 		// Assert that there are no admins in the database
@@ -83,13 +83,13 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	encodedPermissions, err := json.Marshal(req.Permissions)
 	optionalInternalPanic(err, "Could not encode permissions for storage")
 
-	adminID, err := randString(32)
+	adminID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate admin ID")
 
-	keyID, err := randString(32)
+	keyID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate key ID")
 
-	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
+	ah.s.Cache.NewAdminRegisterRequest(requestID, Admin{
 		ID:          adminID,
 		Name:        req.Name,
 		Email:       req.Email,
@@ -123,7 +123,7 @@ func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	admin, signingKey, err := ah.s.cache.GetAdmin(requestID)
+	admin, signingKey, err := ah.s.Cache.GetAdmin(requestID)
 	optionalInternalPanic(err, "Failed to find admin to save to database")
 
 	err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
@@ -149,11 +149,11 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 	t, err := template.New("register").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate registration iFrame")
 
-	cachedData, found := ah.s.cache.adminRegistrations.Get(requestID)
+	cachedData, found := ah.s.Cache.adminRegistrations.Get(requestID)
 	panicIfFalse(found, http.StatusBadRequest, "Failed to find registration request")
 	request := cachedData.(AdminRegistrationRequest)
 
-	cachedData, found = ah.s.cache.admins.Get(requestID)
+	cachedData, found = ah.s.Cache.admins.Get(requestID)
 	panicIfFalse(found, http.StatusInternalServerError, "Failed to find cached admin")
 	admin := cachedData.(Admin)
 
@@ -161,7 +161,7 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
-		Challenge:   encodeBase64(request.Challenge),
+		Challenge:   EncodeBase64(request.Challenge),
 		UserID:      admin.ID,
 		BaseURL:     base,
 		AppURL:      base,
@@ -184,10 +184,10 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Failed to decode request body")
 
-	_, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
+	_, signingKey, err := ah.s.Cache.GetAdmin(req.RequestID)
 	optionalBadRequestPanic(err, "Failed to find signing key for registration request")
 
-	data, found := ah.s.cache.adminRegistrations.Get(req.RequestID)
+	data, found := ah.s.Cache.adminRegistrations.Get(req.RequestID)
 	panicIfFalse(found, http.StatusBadRequest,
 		"Failed to find stored registration request")
 
@@ -195,7 +195,10 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	panicIfFalse(ok, http.StatusInternalServerError,
 		"Failed to load registration request")
 
-	x, y := elliptic.Unmarshal(elliptic.P256(), signingKey.PublicKey)
+	decoded, err := decodeBase64(signingKey.PublicKey)
+	optionalBadRequestPanic(err, "Could not decode public key")
+
+	x, y := elliptic.Unmarshal(elliptic.P256(), decoded)
 	if x == nil {
 		panic(bubbledError{
 			StatusCode: http.StatusInternalServerError,
@@ -318,7 +321,7 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	appID, err := randString(32)
+	appID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate app ID")
 
 	info := AppInfo{
@@ -387,7 +390,7 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	serverID, err := randString(32)
+	serverID, err := RandString(32)
 	optionalBadRequestPanic(err, "Could not generate server ID")
 
 	info := AppServerInfo{
@@ -469,7 +472,7 @@ func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
 
-	id, err := randString(32)
+	id, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)

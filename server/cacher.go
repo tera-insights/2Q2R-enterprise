@@ -93,7 +93,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 		AppID:     ltr.AppID,
 	}
 	c.registrationRequests.Set(id, r, c.expiration)
-	s := encodeBase64(r.Challenge.Challenge)
+	s := EncodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
 	return &r, nil
 }
@@ -113,14 +113,14 @@ func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, er
 // SetAuthenticationRequest puts an AuthenticationRequest into the cache.
 func (c *Cacher) SetAuthenticationRequest(id string, r AuthenticationRequest) {
 	c.authenticationRequests.Set(id, r, c.expiration)
-	s := encodeBase64(r.Challenge.Challenge)
+	s := EncodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
 // SetRegistrationRequest puts a RegistrationRequest into the cache.
 func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
 	c.registrationRequests.Set(id, r, c.expiration)
-	s := encodeBase64(r.Challenge.Challenge)
+	s := EncodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
@@ -211,12 +211,17 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 		toVerify := s.pop()
 		if toVerify.data.SigningPublicKey == "1" {
 			// Verify this Tera Insights signature using `rsa.VerifyPSS`.
+
+			decoded, err := decodeBase64(toVerify.data.Signature)
+			if err != nil {
+				return errors.Wrap(err, "Could not decode signature as web-encoded"+
+					"base-64 with no padding")
+			}
 			h := crypto.SHA256.New()
 			io.WriteString(h, toVerify.data.SignedPublicKey)
 			io.WriteString(h, toVerify.data.Type)
 			io.WriteString(h, toVerify.data.OwnerID)
-			err := rsa.VerifyPSS(c.s.pub, crypto.SHA256, h.Sum(nil),
-				toVerify.data.Signature, nil)
+			err = rsa.VerifyPSS(c.s.pub, crypto.SHA256, h.Sum(nil), decoded, nil)
 			if err != nil {
 				return errors.Wrap(err, "Could not verify Tera Insights signature")
 			}
@@ -234,7 +239,12 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 				if x == nil {
 					return errors.New("Signing public key was not on the elliptic curve")
 				}
-				r, s := elliptic.Unmarshal(elliptic.P256(), toVerify.data.Signature)
+				decoded, err := decodeBase64(toVerify.data.Signature)
+				if err != nil {
+					return errors.Wrap(err, "Could not decode signature as web-encoded"+
+						"base-64 with no padding")
+				}
+				r, s := elliptic.Unmarshal(elliptic.P256(), decoded)
 				if r == nil {
 					return errors.New("Signed public key was not on the elliptic curve")
 				}
@@ -256,11 +266,15 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 				// So, we need to verify both `toVerify` and the key used to
 				// sign `toVerify`.
 				var fetched KeySignature
-				err := c.s.DB.Find(&fetched, KeySignature{
+				count := 0
+				err := c.s.DB.Where(KeySignature{
 					SignedPublicKey: toVerify.data.SigningPublicKey,
-				}).Error
+				}).Count(&count).First(&fetched).Error
 				if err != nil {
 					return err
+				}
+				if count == 0 {
+					return errors.Errorf("Signing key was not in the database")
 				}
 				if fetched.Type != "signing" {
 					return errors.Errorf("Signing key had type %s, not "+

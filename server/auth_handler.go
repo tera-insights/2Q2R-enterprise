@@ -39,7 +39,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		[]string{ah.s.c.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Failed to generate challenge")
 
-	requestID, err := randString(32)
+	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Failed to generate request ID")
 
 	cachedRequest := AuthenticationRequest{
@@ -48,7 +48,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		AppID:     key.AppID,
 		UserID:    userID,
 	}
-	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
+	ah.s.Cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
 	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
 		cachedRequest.RequestID,
 		ah.s.c.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
@@ -68,7 +68,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	t, err := template.New("auth").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate authentication iFrame")
 
-	cachedRequest, err := ah.s.cache.GetAuthenticationRequest(requestID)
+	cachedRequest, err := ah.s.Cache.GetAuthenticationRequest(requestID)
 	optionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
@@ -95,7 +95,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		RequestID:    requestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    encodeBase64(cachedRequest.Challenge.Challenge),
+		Challenge:    EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
 		BaseURL:      base,
@@ -151,7 +151,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&clientData)
 	optionalBadRequestPanic(err, "Could not decode client data")
 
-	requestID, found := ah.s.cache.challengeToRequestID.Get(clientData.Challenge)
+	requestID, found := ah.s.Cache.challengeToRequestID.Get(clientData.Challenge)
 	if !found {
 		panic(bubbledError{
 			StatusCode: http.StatusForbidden,
@@ -160,7 +160,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get authentication request
-	ar, err := ah.s.cache.GetAuthenticationRequest(requestID.(string))
+	ar, err := ah.s.Cache.GetAuthenticationRequest(requestID.(string))
 	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	storedKey := Key{}
@@ -210,10 +210,10 @@ func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyHandle)
+	err = ah.s.Cache.SetKeyForAuthenticationRequest(requestID, req.KeyHandle)
 	optionalInternalPanic(err, "Failed to set key for authentication request")
 
-	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
+	ar, err := ah.s.Cache.GetAuthenticationRequest(requestID)
 	optionalInternalPanic(err, "Failed to get authentication request")
 
 	storedKey := Key{}
@@ -222,7 +222,7 @@ func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, setKeyReply{
 		KeyHandle: req.KeyHandle,
-		Challenge: encodeBase64(ar.Challenge.Challenge),
+		Challenge: EncodeBase64(ar.Challenge.Challenge),
 		Counter:   storedKey.Counter,
 		AppID:     storedKey.AppID,
 	})

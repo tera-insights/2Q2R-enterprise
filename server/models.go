@@ -67,9 +67,9 @@ type Admin struct {
 // SigningKey is the Gorm model for keys that the admin uses to sign things.
 type SigningKey struct {
 	ID        string `json:"signingKeyID"`
-	IV        string `json:"iv"`   // encoded using encodeBase64
-	Salt      string `json:"salt"` // same encoding
-	PublicKey []byte `json:"publicKey"`
+	IV        string `json:"iv"`        // encoded using encodeBase64
+	Salt      string `json:"salt"`      // same encoding
+	PublicKey string `json:"publicKey"` // same encoding
 }
 
 // KeySignature is the Gorm model for signatures of both signing and
@@ -84,5 +84,5 @@ type KeySignature struct {
 	OwnerID string // the admin's ID for `type == "signing"`, user's ID else
 
 	// signature of the sha-256 of: SignedPublicKey | Type | OwnerID
-	Signature []byte
+	Signature string // same encoding as above
 }

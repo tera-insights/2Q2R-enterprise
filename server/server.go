@@ -121,7 +121,7 @@ func MakeConfig(r io.Reader, ct string) *Config {
 type Server struct {
 	c     *Config
 	DB    *gorm.DB
-	cache Cacher
+	Cache Cacher
 	pub   *rsa.PublicKey
 }
 
