@@ -12,19 +12,20 @@ import { AddAppCtrl } from '../controllers/modals/AddAppCtrl';
 export class AppsCtrl {
     private App: IAppResource;
     private apps: IAppItem[] = [];
-    private app: IAppItem;
-    // total number of apps
-    private appTotal: number;
+
+    // selected items
+    private selected: IAppItem[] = [];
 
     // angular-material-data-table options
     private options = {
-        multiSelect: true,
-        autoSelect: true
-    }
+        rowSelect: true,
+        autoSelect: true,
+        multiSelect: true    }
 
     private tableQuery = {
-        limit: 12,
-        page: 1
+        limit: 11,
+        page: 1,
+        order: "name"
     }
 
     // Triggered by the FAB
