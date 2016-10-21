@@ -23,62 +23,29 @@ type AdminHandler struct {
 	q Queue
 }
 
-// NewAdmin creates a new admin. If code == "bootstrap", attempts to bootstrap
-// the system. Bootstrapping only works if there are no keys and no admins
-// interface in the system.
-// Replies with a request ID that must be used in order to add a second-factor
-// authentication mechanism.
+// NewAdmin creates a new admin, replyinb with a request ID that must be used
+// in order to add a second-factor authentication mechanism.
 // POST /admin/new/{code}
 func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
-	var requestID string // generated if {code} == bootstrap, else set to {code}
-	var role string      // either superadmin or admin
-	var status string    // either active or inactive
-
 	req := NewAdminRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	if mux.Vars(r)["code"] == "bootstrap" {
-		role = "superadmin"
-		status = "active"
-		requestID, err = RandString(32)
-		optionalInternalPanic(err, "Could not generate request ID")
+	role := "admin"
+	status := "inactive"
+	requestID := mux.Vars(r)["code"]
 
-		// Assert that there are no admins in the database
-		count := 0
-		err = ah.s.DB.Model(&Admin{}).Count(&count).Error
-		optionalInternalPanic(err, "Failed to count admins")
-		panicIfFalse(count == 0, http.StatusForbidden,
-			"There are already admins in the database")
+	h := crypto.SHA256.New()
+	io.WriteString(h, requestID)
 
-		// Assert that there are no keys in the database
-		err = ah.s.DB.Model(&Key{}).Count(&count).Error
-		optionalInternalPanic(err, "Failed to count keys")
-		panicIfFalse(count == 0, http.StatusForbidden,
-			"There are already keys in the database")
-
-		// Assert that there are no signing keys in the database
-		err = ah.s.DB.Model(&SigningKey{}).Count(&count).Error
-		optionalInternalPanic(err, "Failed to count signing keys")
-		panicIfFalse(count == 0, http.StatusForbidden,
-			"There are already signing keys in the database")
-	} else {
-		role = "admin"
-		status = "inactive"
-		requestID = mux.Vars(r)["code"]
-
-		h := crypto.SHA256.New()
-		io.WriteString(h, requestID)
-
-		// Asserting that there is a stored long-term request for the code
-		count := 0
-		err = ah.s.DB.Model(&LongTermRequest{}).Where(LongTermRequest{
-			AppID: "1",
-			ID:    string(h.Sum(nil)),
-		}).Count(&count).Error
-		panicIfFalse(count == 1, http.StatusForbidden,
-			"Did not find exactly one stored request for the passed ID")
-	}
+	// Asserting that there is a stored long-term request for the code
+	count := 0
+	err = ah.s.DB.Model(&LongTermRequest{}).Where(LongTermRequest{
+		AppID: "1",
+		ID:    string(h.Sum(nil)),
+	}).Count(&count).Error
+	panicIfFalse(count == 1, http.StatusForbidden,
+		"Did not find exactly one stored request for the passed ID")
 
 	encodedPermissions, err := json.Marshal(req.Permissions)
 	optionalInternalPanic(err, "Could not encode permissions for storage")
@@ -88,6 +55,16 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 
 	keyID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate key ID")
+
+	err = ah.s.Cache.VerifySignature(KeySignature{
+		SigningPublicKey: req.SigningPublicKey,
+		SignedPublicKey:  req.PublicKey,
+		Type:             "signing",
+		OwnerID:          adminID,
+		Signature:        req.Signature,
+	})
+	optionalPanic(err, http.StatusForbidden,
+		"Could not verify public key signature")
 
 	ah.s.Cache.NewAdminRegisterRequest(requestID, Admin{
 		ID:          adminID,
