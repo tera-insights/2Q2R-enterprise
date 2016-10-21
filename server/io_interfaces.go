@@ -80,7 +80,6 @@ type adminRegisterRequest struct {
 
 // NewServerRequest is the request to POST /admin/server
 type NewServerRequest struct {
-	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
@@ -90,7 +89,6 @@ type NewServerRequest struct {
 
 // Request to PUT /admin/server/{serverID}
 type serverUpdateRequest struct {
-	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
 	PublicKey   []byte `json:"publicKey"`

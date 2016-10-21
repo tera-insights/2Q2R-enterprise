@@ -10,8 +10,7 @@ type AppInfo struct {
 
 // AppServerInfo is the Gorm model that holds information about an app server.
 type AppServerInfo struct {
-	ID         string `json:"serverID"`
-	ServerName string `json:"serverName"`
+	ID string `json:"serverID"`
 
 	// Base URL for users to connect to
 	BaseURL string `json:"baseURL"`

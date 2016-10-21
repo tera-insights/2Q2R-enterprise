@@ -392,7 +392,6 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 
 	info := AppServerInfo{
 		ID:          serverID,
-		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
 		AppID:       req.AppID,
 		KeyType:     req.KeyType,
@@ -444,7 +443,6 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	err = ah.s.DB.Where(&AppServerInfo{
 		ID: serverID,
 	}).Updates(AppServerInfo{
-		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
 		KeyType:     req.KeyType,
 		PublicKey:   req.PublicKey,
