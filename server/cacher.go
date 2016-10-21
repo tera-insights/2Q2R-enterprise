@@ -261,6 +261,7 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 					return errors.Errorf("Could not verify signature of "+
 						"public key %s", toVerify.data.SigningPublicKey)
 				}
+				c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true, cache.NoExpiration)
 			} else {
 				// We have not yet verified the key used to sign `toVerify`.
 				// So, we need to verify both `toVerify` and the key used to
