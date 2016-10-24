@@ -49,15 +49,15 @@ func main() {
 		s := fmt.Sprintf("Failed to open config file at path %s\n", configPath)
 		panic(errors.Wrap(err, s))
 	}
-	c := server.MakeConfig(r, configType)
-	s := server.NewServer(c)
+	s := server.NewServer(r, configType)
 	http.Handle("/", s.GetHandler())
-	if c.HTTPS {
-		fmt.Printf("Listening on HTTPS port %s\n", c.Port)
-		log.Fatal(http.ListenAndServeTLS(c.Port, c.CertFile, c.KeyFile, nil))
+	if s.Config.HTTPS {
+		fmt.Printf("Listening on HTTPS port %s\n", s.Config.Port)
+		log.Fatal(http.ListenAndServeTLS(s.Config.Port, s.Config.CertFile,
+			s.Config.KeyFile, nil))
 	} else {
-		fmt.Printf("Listening on HTTP port %s\n", c.Port)
-		log.Fatal(http.ListenAndServe(c.Port, nil))
+		fmt.Printf("Listening on HTTP port %s\n", s.Config.Port)
+		log.Fatal(http.ListenAndServe(s.Config.Port, nil))
 	}
 
 }

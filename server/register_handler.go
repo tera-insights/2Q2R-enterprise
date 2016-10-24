@@ -29,8 +29,8 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		First(&serverInfo).Error
 	optionalBadRequestPanic(err, "Could not find app server")
 
-	challenge, err := u2f.NewChallenge(rh.s.c.getBaseURLWithProtocol(),
-		[]string{rh.s.c.getBaseURLWithProtocol()})
+	challenge, err := u2f.NewChallenge(rh.s.Config.getBaseURLWithProtocol(),
+		[]string{rh.s.Config.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Could not generate challenge")
 
 	requestID, err := randString(32)
@@ -45,7 +45,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
 	writeJSON(w, http.StatusOK, RegistrationSetupReply{
 		rr.RequestID,
-		rh.s.c.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
+		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
 	})
 }
 
@@ -70,7 +70,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	err = rh.s.DB.Model(AppInfo{}).Find(&appInfo, query).Error
 	optionalInternalPanic(err, "Failed to find app information")
 
-	base := rh.s.c.getBaseURLWithProtocol()
+	base := rh.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},

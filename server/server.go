@@ -71,55 +71,12 @@ func (c *Config) getBaseURLWithProtocol() string {
 
 // MakeConfig reads in r as if it were a config file of type ct and returns the
 // resulting config.
-func MakeConfig(r io.Reader, ct string) *Config {
-	viper.SetConfigType(ct)
-
-	viper.SetDefault("Port", ":8080")
-	viper.SetDefault("DatabaseType", "sqlite3")
-	viper.SetDefault("DatabaseName", "2q2r.db")
-	viper.SetDefault("ExpirationTime", 1*time.Minute)
-	viper.SetDefault("CleanTime", 30*time.Second)
-	viper.SetDefault("ListenerExpirationTime", 3*time.Minute)
-	viper.SetDefault("RecentlyCompletedExpirationTime", 5*time.Second)
-	viper.SetDefault("BaseURL", "127.0.0.1")
-	viper.SetDefault("HTTPS", true)
-	viper.SetDefault("LogRequests", false)
-	viper.SetDefault("AuthenticationRequiredRoutes", []string{
-		"/*/register/request/*",
-	})
-	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
-	viper.SetDefault("KeyType", "ECC-P256")
-	viper.SetDefault("Token", "mytoken")
-
-	err := viper.ReadConfig(r)
-	if err != nil {
-		log.Printf("Could not read config file! Using default options\n")
-	}
-	return &Config{
-		Port:                            viper.GetString("Port"),
-		DatabaseType:                    viper.GetString("DatabaseType"),
-		DatabaseName:                    viper.GetString("DatabaseName"),
-		ExpirationTime:                  viper.GetDuration("ExpirationTime"),
-		CleanTime:                       viper.GetDuration("CleanTime"),
-		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
-		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
-		BaseURL:     viper.GetString("BaseURL"),
-		HTTPS:       viper.GetBool("HTTPS"),
-		LogRequests: viper.GetBool("LogRequests"),
-		CertFile:    viper.GetString("CertFile"),
-		KeyFile:     viper.GetString("KeyFile"),
-		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
-		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
-		KeyType:                      viper.GetString("KeyType"),
-		Token:                        viper.GetString("Token"),
-	}
-}
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
-	c     *Config
-	DB    *gorm.DB
-	cache Cacher
+	Config *Config
+	DB     *gorm.DB
+	cache  Cacher
 }
 
 // Used in registration and authentication templates
@@ -166,7 +123,50 @@ type authenticateData struct {
 }
 
 // NewServer creates a new 2Q2R server.
-func NewServer(c *Config) Server {
+func NewServer(r io.Reader, ct string) Server {
+	viper.SetConfigType(ct)
+
+	viper.SetDefault("Port", ":8080")
+	viper.SetDefault("DatabaseType", "sqlite3")
+	viper.SetDefault("DatabaseName", "2q2r.db")
+	viper.SetDefault("ExpirationTime", 1*time.Minute)
+	viper.SetDefault("CleanTime", 30*time.Second)
+	viper.SetDefault("ListenerExpirationTime", 3*time.Minute)
+	viper.SetDefault("RecentlyCompletedExpirationTime", 5*time.Second)
+	viper.SetDefault("BaseURL", "127.0.0.1")
+	viper.SetDefault("HTTPS", true)
+	viper.SetDefault("LogRequests", false)
+	viper.SetDefault("AuthenticationRequiredRoutes", []string{
+		"/*/register/request/*",
+	})
+	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
+	viper.SetDefault("KeyType", "ECC-P256")
+	viper.SetDefault("Token", "mytoken")
+
+	err := viper.ReadConfig(r)
+	if err != nil {
+		log.Printf("Could not read config file! Using default options\n")
+	}
+
+	c := &Config{
+		Port:                            viper.GetString("Port"),
+		DatabaseType:                    viper.GetString("DatabaseType"),
+		DatabaseName:                    viper.GetString("DatabaseName"),
+		ExpirationTime:                  viper.GetDuration("ExpirationTime"),
+		CleanTime:                       viper.GetDuration("CleanTime"),
+		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
+		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
+		BaseURL:     viper.GetString("BaseURL"),
+		HTTPS:       viper.GetBool("HTTPS"),
+		LogRequests: viper.GetBool("LogRequests"),
+		CertFile:    viper.GetString("CertFile"),
+		KeyFile:     viper.GetString("KeyFile"),
+		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
+		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
+		KeyType:                      viper.GetString("KeyType"),
+		Token:                        viper.GetString("Token"),
+	}
+
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not open database"))
@@ -245,7 +245,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
-		for _, regex := range srv.c.AuthenticationRequiredRoutes {
+		for _, regex := range srv.Config.AuthenticationRequiredRoutes {
 			if glob.Glob(regex, r.URL.Path) {
 				needsAuthentication = true
 				break
@@ -281,7 +281,7 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			optionalInternalPanic(err, "Failed to read request body")
 		}
 
-		mac := hmac.New(sha256.New, []byte(srv.c.Token))
+		mac := hmac.New(sha256.New, []byte(srv.Config.Token))
 		mac.Write(route)
 		if len(body) > 0 {
 			mac.Write(body)
@@ -306,8 +306,8 @@ func (srv *Server) GetHandler() http.Handler {
 	// Admin routes
 	ah := AdminHandler{
 		s: srv,
-		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
-			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+		q: NewQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
+			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
 	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
 	forMethod(router, "/admin/register", ah.Register, "POST")
@@ -348,8 +348,8 @@ func (srv *Server) GetHandler() http.Handler {
 	// Auth routes
 	th := AuthHandler{
 		s: srv,
-		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
-			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+		q: NewQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
+			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
@@ -360,8 +360,8 @@ func (srv *Server) GetHandler() http.Handler {
 	// Register routes
 	rh := RegisterHandler{
 		s: srv,
-		q: NewQueue(srv.c.RecentlyCompletedExpirationTime, srv.c.CleanTime,
-			srv.c.ListenerExpirationTime, srv.c.CleanTime),
+		q: NewQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
+			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
@@ -372,7 +372,7 @@ func (srv *Server) GetHandler() http.Handler {
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
 	router.PathPrefix("/").Handler(fileServer)
 	h := recoverWrap(srv.middleware(router))
-	if srv.c.LogRequests {
+	if srv.Config.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, h)
 	}
 	return h

@@ -35,8 +35,8 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	}).Error
 	optionalInternalPanic(err, "Failed to load key")
 
-	challenge, err := u2f.NewChallenge(ah.s.c.getBaseURLWithProtocol(),
-		[]string{ah.s.c.getBaseURLWithProtocol()})
+	challenge, err := u2f.NewChallenge(ah.s.Config.getBaseURLWithProtocol(),
+		[]string{ah.s.Config.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Failed to generate challenge")
 
 	requestID, err := randString(32)
@@ -51,7 +51,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
 	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
 		cachedRequest.RequestID,
-		ah.s.c.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
+		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
 	})
 }
 
@@ -90,7 +90,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 			Name:  name,
 		})
 	}
-	base := ah.s.c.getBaseURLWithProtocol()
+	base := ah.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(authenticateData{
 		RequestID:    requestID,
 		Counter:      1,

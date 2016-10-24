@@ -103,7 +103,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		PublicKey: req.PublicKey,
 	})
 
-	base := ah.s.c.getBaseURLWithProtocol() + "/admin/"
+	base := ah.s.Config.getBaseURLWithProtocol() + "/admin/"
 	writeJSON(w, http.StatusOK, newAdminReply{
 		RequestID:   requestID,
 		IFrameRoute: base + "register/" + requestID,
@@ -157,7 +157,7 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 	panicIfFalse(found, http.StatusInternalServerError, "Failed to find cached admin")
 	admin := cachedData.(Admin)
 
-	base := ah.s.c.getBaseURLWithProtocol()
+	base := ah.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},

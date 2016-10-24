@@ -30,11 +30,11 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 		err = ih.s.DB.Model(&AppInfo{}).Where(&query).First(&info).Error
 		reply := AppIDInfoReply{
 			AppName:   info.AppName,
-			BaseURL:   ih.s.c.getBaseURLWithProtocol(),
-			AppURL:    ih.s.c.getBaseURLWithProtocol(),
+			BaseURL:   ih.s.Config.getBaseURLWithProtocol(),
+			AppURL:    ih.s.Config.getBaseURLWithProtocol(),
 			AppID:     info.ID,
-			PublicKey: ih.s.c.Base64EncodedPublicKey,
-			KeyType:   ih.s.c.KeyType,
+			PublicKey: ih.s.Config.Base64EncodedPublicKey,
+			KeyType:   ih.s.Config.KeyType,
 		}
 		writeJSON(w, http.StatusOK, reply)
 		return
