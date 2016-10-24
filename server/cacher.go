@@ -138,6 +138,8 @@ func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
+// SetKeyForAuthenticationRequest sets the key handle used by an authentication
+// request.
 func (c *Cacher) SetKeyForAuthenticationRequest(requestID,
 	keyHandle string) error {
 	if val, found := c.authenticationRequests.Get(requestID); found {
