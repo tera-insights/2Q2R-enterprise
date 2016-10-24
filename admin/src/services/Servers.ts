@@ -5,6 +5,7 @@
  */
 export interface IServerItem extends ng.resource.IResource<IServerItem> {
     serverName: string; // displayable name
+    serverID: string; // the server's ID on the 2Q2R server
     appID: string; // the appID of the application the server is associated with
     baseURL: string; // the server domain
     keyType: string; // what key type is being used for Diffie-Hellman with the server

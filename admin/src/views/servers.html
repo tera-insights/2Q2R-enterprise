@@ -1,50 +1,58 @@
-<div layout-gt-sm="row" layout="column">
-    <div flex-gt-sm="50" flex>
-        <md-toolbar layout="row" class="md-hue-3">
+<md-content class="application" layout-padding>
+    <div class="table-wrapper basic-card">
+        <md-toolbar class="md-table-toolbar md-default">
             <div class="md-toolbar-tools">
-                <span>Applications</span>
-            </div>
-        </md-toolbar>
-        <md-content>
-            <md-list class="md-dense" flex>
-                <md-list-item class="md-2-line" ng-repeat="app in ctrl2.apps" ng-click="ctrl2.selectApp(app)">
-                    <img md-svg-src="img/icons/missing.svg"/>
-                    <div class="md-list-item-text" layout="column">
-                        <h3>{{ app.appName }}</h3>
-                        <p>{{ app.appID }}</p>
+                <div ng-switch="ctrl2.state">
+                    <div ng-switch-when="searchClosed">
+                        <span>Servers</span>
                     </div>
-                </md-list-item>
-            </md-list>
-        </md-content>
-    </div>
-    <md-divider></md-divider>
-    <div flex-gt-sm="50" flex>
-        <md-toolbar layout="row" class="md-hue-3">
-            <div class="md-toolbar-tools">
-                <span>Servers</span>
+                    <div layout="row" ng-switch-when="searchOpen">
+                        <md-input-container class="md-block" flex-gt-sm>
+                            <label>Search by server name...</label>
+                            <input type="text" ng-model="serverFilter">
+                        </md-input-container>
+                        <md-input-container class="md-block" flex-gt-sm>
+                            <label>Search by application name...</label>
+                            <input type="text" ng-model="appFilter">
+                        </md-input-container>
+                    </div>
+                </div>
                 <span flex></span>
-                <md-button class="md-icon-button" aria-label="Refresh" ng-click="ctrl2.refresh()">
-                            <md-icon md-svg-icon="img/icons/refresh.svg"></md-icon>
-                </md-button>
+                <div ng-switch="ctrl2.state">
+                    <div layout="row" ng-switch-when="searchOpen">
+                        <md-button class="md-icon-button" aria-label="Back" ng-click="ctrl2.state = 'searchClosed'">
+                            <md-icon md-svg-icon="img/icons/close.svg"></md-icon>
+                        </md-button>
+                    </div>
+                    <div layout="row" ng-switch-when="searchClosed">
+                        <md-button class="md-icon-button" aria-label="Search" ng-click="ctrl2.state = 'searchOpen'">
+                            <md-icon md-svg-icon="img/icons/search.svg"></md-icon>
+                        </md-button>
+                    </div>
+                </div>
+                <div layout="row" ng-if="ctrl2.selectedServers.length">
+                    <md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.deleteSelected()">
+                        <md-icon md-svg-icon="img/icons/delete.svg"></md-icon>
+                    </md-button>
+                </div>
             </div>
         </md-toolbar>
-        <md-content>
-            <md-list class="md-dense" flex>
-                <md-list-item class="md-3-line" ng-repeat="server in ctrl2.selectedServers" layout="row">
-                    <div class="md-list-item-text" layout="column">
-                        <h3>{{ server.serverName }}</h3>
-                        <p>{{ server.baseURL }}</p>
-                        <p>{{ server.serverID }}</p>
-                    </div>
-                    <md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.removeServer(server)">
-                            <md-icon md-svg-icon="img/icons/delete.svg"></md-icon>
-                    </md-button>
-                </md-list-item>
-                <md-list-item>
-                    <p ng-if="ctrl2.selectedAppID == null">No Application Selected</p>
-                    <md-button ng-if="ctrl2.selectedAppID != null" class="md-raised md-primary" ng-click="ctrl2.newServer()">New Server</md-button>
-                </md-list-item>
-            </md-list>
-        </md-content>
+        <md-table-container>
+            <table md-table md-row-select multiple ng-model="ctrl2.selectedServers">
+                <thead md-head md-order="ctrl2.orderBy">
+                    <tr md-row>
+                        <th md-column md-order-by="serverName"><span>Name</span></th>
+                        <th md-column md-order-by="serverID"><span>Server ID</span></th>
+                        <th md-column md-order-by="appID"><span>Application ID</span></th>
+                    </tr>
+                </thead>
+                <tbody md-body>
+                    <tr md-row md-select="server" md-auto-select ng-repeat="server in ctrl2.servers | orderBy: ctrl2.orderBy | filter: serverFilter">
+                        <td md-cell>{{ server.serverName }}</td>
+                        <td md-cell>{{ server.serverID }}</td>
+                        <td md-cell>{{ server.appID }}</td>
+                    </tr>
+                </tbody>
+        </md-table-container>
     </div>
-</div>
+</md-content>
