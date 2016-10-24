@@ -183,28 +183,6 @@ func (c *Cacher) GetAdmin(id string) (Admin, SigningKey, error) {
 		"request %s", id)
 }
 
-type stack struct {
-	top *element
-}
-
-type element struct {
-	data *KeySignature
-	next *element
-}
-
-func (s stack) pop() *element {
-	oldTop := s.top
-	if oldTop != nil {
-		s.top = oldTop.next
-	}
-	return oldTop
-}
-
-func (s stack) push(e *element) {
-	e.next = s.top
-	s.top = e
-}
-
 // VerifySignature validates the passed key signature using ECDSA. It uses the
 // cache as much as possible to avoid database accesses. Additionally, if it
 // ever reaches the Tera Insights public key (`SigningPublicKey == "1"`), then
@@ -215,46 +193,43 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 			sig.Type)
 	}
 
-	s := stack{
-		top: &element{
-			data: &sig,
-			next: nil,
-		},
-	}
+	// Represents a stack. New elements are added to the back of the slice.
+	// Elements are also popped from the back of the slice.
+	s := []*KeySignature{&sig}
 
-	// Build a stack that holds the signatures to verify.
-	// Add elements to the stack when they are not yet verified.
+	// Add elements to the slice when they are not yet verified.
 	// Stop adding elements to the stack when we reach a key that has been
 	// verified. That is, stop once we hit a key whose ID is in the cache of
 	// verified IDs.
-	for s.top != nil {
-		toVerify := s.pop()
-		if toVerify.data.SigningPublicKey == "1" {
+	for len(s) != 0 {
+		toVerify := s[len(s)-1]
+		s = s[:len(s)-1]
+		if toVerify.SigningPublicKey == "1" {
 			// Verify this Tera Insights signature using `rsa.VerifyPSS`.
 
-			decoded, err := decodeBase64(toVerify.data.Signature)
+			decoded, err := decodeBase64(toVerify.Signature)
 			if err != nil {
 				return errors.Wrap(err, "Could not decode signature as "+
 					"web-encoded base-64 with no padding")
 			}
 			h := crypto.SHA256.New()
-			io.WriteString(h, toVerify.data.SignedPublicKey)
-			io.WriteString(h, toVerify.data.Type)
-			io.WriteString(h, toVerify.data.OwnerID)
+			io.WriteString(h, toVerify.SignedPublicKey)
+			io.WriteString(h, toVerify.Type)
+			io.WriteString(h, toVerify.OwnerID)
 			err = rsa.VerifyPSS(c.s.pub, crypto.SHA256, h.Sum(nil), decoded,
 				nil)
 			if err != nil {
 				return errors.Wrap(err, "Could not verify Tera Insights "+
 					"signature")
 			}
-			c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true,
+			c.validPublicKeys.Set(toVerify.SignedPublicKey, true,
 				cache.NoExpiration)
 		} else {
-			_, found := c.validPublicKeys.Get(toVerify.data.SigningPublicKey)
+			_, found := c.validPublicKeys.Get(toVerify.SigningPublicKey)
 			if found {
 				// We have verified the key used to sign `toVerify`. Now,
 				// verify this signature using `ecdsa.Verify`.
-				marshalled, err := decodeBase64(toVerify.data.SigningPublicKey)
+				marshalled, err := decodeBase64(toVerify.SigningPublicKey)
 				if err != nil {
 					return errors.Wrap(err, "Could not unmarshal signing "+
 						"public key")
@@ -264,7 +239,7 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 					return errors.New("Signing public key was not on the " +
 						"elliptic curve")
 				}
-				decoded, err := decodeBase64(toVerify.data.Signature)
+				decoded, err := decodeBase64(toVerify.Signature)
 				if err != nil {
 					return errors.Wrap(err, "Could not decode signature as "+
 						"web-encoded base-64 with no padding")
@@ -275,9 +250,9 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 						"elliptic curve")
 				}
 				h := crypto.SHA256.New()
-				io.WriteString(h, toVerify.data.SignedPublicKey)
-				io.WriteString(h, toVerify.data.Type)
-				io.WriteString(h, toVerify.data.OwnerID)
+				io.WriteString(h, toVerify.SignedPublicKey)
+				io.WriteString(h, toVerify.Type)
+				io.WriteString(h, toVerify.OwnerID)
 				verified := ecdsa.Verify(&ecdsa.PublicKey{
 					Curve: elliptic.P256(),
 					X:     x,
@@ -285,9 +260,9 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 				}, h.Sum(nil), r, s)
 				if !verified {
 					return errors.Errorf("Could not verify signature of "+
-						"public key %s", toVerify.data.SigningPublicKey)
+						"public key %s", toVerify.SigningPublicKey)
 				}
-				c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true,
+				c.validPublicKeys.Set(toVerify.SignedPublicKey, true,
 					cache.NoExpiration)
 			} else {
 				// We have not yet verified the key used to sign `toVerify`.
@@ -296,7 +271,7 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 				var fetched KeySignature
 				count := 0
 				err := c.s.DB.Where(KeySignature{
-					SignedPublicKey: toVerify.data.SigningPublicKey,
+					SignedPublicKey: toVerify.SigningPublicKey,
 				}).Count(&count).First(&fetched).Error
 				if err != nil {
 					return err
@@ -308,11 +283,7 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 					return errors.Errorf("Signing key had type %s, not "+
 						"\"signing\"", fetched.Type)
 				}
-				s.push(toVerify)
-				s.push(&element{
-					data: &fetched,
-					next: toVerify,
-				})
+				s = append(s, toVerify, &fetched)
 			}
 		}
 	}
