@@ -212,7 +212,9 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	verified := ecdsa.Verify(&pubKey, hash[:], &req.R, &req.S)
 	panicIfFalse(verified, http.StatusBadRequest, "Failed to verify signature")
 
-	ah.q.MarkCompleted(req.RequestID)
+	err = ah.q.MarkCompleted(req.RequestID)
+	optionalInternalPanic(err, "Could not notify request listeners")
+
 	writeJSON(w, http.StatusOK, RegisterResponse{
 		Successful: true,
 		Message:    "OK",

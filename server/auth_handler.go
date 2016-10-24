@@ -182,14 +182,26 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	newCounter, err := reg.Authenticate(resp, *ar.Challenge, storedKey.Counter)
 	optionalPanic(err, http.StatusBadRequest, "Authentication failed")
 
+	tx := ah.s.DB.Begin()
+
 	// Store updated counter in the database.
-	err = ah.s.DB.Model(&Key{}).Where(&Key{
+	err = tx.Model(&Key{}).Where(&Key{
 		UserID: ar.UserID,
 		ID:     ar.KeyHandle,
 	}).Update("counter", newCounter).Error
-	optionalPanic(err, http.StatusInternalServerError, "Failed to update counter")
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Failed to update counter")
+	}
 
-	ah.q.MarkCompleted(requestID.(string))
+	// Notify request listeners
+	err = ah.q.MarkCompleted(requestID.(string))
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Could not notify request listeners")
+	}
+
+	tx.Commit()
 }
 
 // Wait allows the requester to check the result of the authentication. It

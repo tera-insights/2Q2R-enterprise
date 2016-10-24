@@ -164,6 +164,10 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Record valid public key in database
 	marshalledRegistration, err := reg.MarshalBinary()
+
+	tx := rh.s.DB.Begin()
+
+	// Save key
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
 		ID:     encodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
@@ -173,9 +177,20 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		MarshalledRegistration: marshalledRegistration,
 		Counter:                0,
 	}).Error
-	optionalInternalPanic(err, "Could not save key to database")
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Could not save key to database")
+	}
 
-	rh.q.MarkCompleted(requestID.(string))
+	// Notify request listeners
+	err = rh.q.MarkCompleted(requestID.(string))
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Could not notify request listeners")
+	}
+
+	tx.Commit()
+
 	writeJSON(w, http.StatusOK, RegisterResponse{
 		Successful: true,
 		Message:    "OK",

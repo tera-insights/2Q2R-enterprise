@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 )
 
 // Queue lets clients know when a certain request has been fulfilled.
@@ -96,7 +97,15 @@ func (q Queue) Listen(requestID string) chan int {
 }
 
 // MarkCompleted records that a request was successfully completed.
-func (q Queue) MarkCompleted(requestID string) {
+func (q Queue) MarkCompleted(requestID string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			q.recentlyCompleted.Delete(requestID)
+			err = errors.Errorf("Could not mark request as completed. "+
+				"Panicked with value %s", r)
+		}
+	}()
+
 	q.recentlyCompleted.Set(requestID, http.StatusOK, q.rcTimeout)
 	if cached, found := q.listeners.Get(requestID); found {
 		listeners := cached.([]chan int)
@@ -105,6 +114,7 @@ func (q Queue) MarkCompleted(requestID string) {
 		}
 		q.listeners.Delete(requestID)
 	}
+	return
 }
 
 // MarkRefused records that a request was refused.
