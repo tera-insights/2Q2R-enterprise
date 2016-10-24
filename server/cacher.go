@@ -48,18 +48,30 @@ type Cacher struct {
 	clean                  time.Duration
 	registrationRequests   *cache.Cache
 	authenticationRequests *cache.Cache
-	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
-	admins                 *cache.Cache // Request ID to admin to be saved
-	signingKeys            *cache.Cache // Request ID to signing key to be saved
-	adminRegistrations     *cache.Cache // request ID to AdminRegistrationRequest
-	validPublicKeys        *cache.Cache // signed public key to true
+
+	// Stores a string of the []byte challenge
+	challengeToRequestID *cache.Cache
+
+	// Request ID to admin to be saved
+	admins *cache.Cache
+
+	// Request ID to signing key to be saved
+	signingKeys *cache.Cache
+
+	// request ID to AdminRegistrationRequest
+	adminRegistrations *cache.Cache
+
+	// signed public key to true
+	validPublicKeys *cache.Cache
 }
 
 // GetRegistrationRequest returns the registration request for a particular
 // request ID.
-func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error) {
+func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest,
+	error) {
 	if val, ok := c.registrationRequests.Get(id); ok {
-		rr := val.(RegistrationRequest) // We must convert and then take the address
+		// We must convert and then take the address
+		rr := val.(RegistrationRequest)
 		ptr := &rr
 		return ptr, nil
 	}
@@ -100,14 +112,16 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 
 // GetAuthenticationRequest returns the string(h.Sum(nil))n request for a
 // particular request ID.
-func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, error) {
+func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest,
+	error) {
 	val, ok := c.authenticationRequests.Get(id)
 	if ok {
 		ar := val.(AuthenticationRequest)
 		ptr := &ar
 		return ptr, nil
 	}
-	return nil, errors.Errorf("Could not find authentication request with id %s", id)
+	return nil, errors.Errorf("Could not find authentication request with "+
+		"id %s", id)
 }
 
 // SetAuthenticationRequest puts an AuthenticationRequest into the cache.
@@ -124,14 +138,16 @@ func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
-func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyHandle string) error {
+func (c *Cacher) SetKeyForAuthenticationRequest(requestID,
+	keyHandle string) error {
 	if val, found := c.authenticationRequests.Get(requestID); found {
 		ar := val.(AuthenticationRequest)
 		ar.KeyHandle = keyHandle
 		c.authenticationRequests.Set(requestID, ar, c.expiration)
 		return nil
 	}
-	return errors.Errorf("Could not find authentication request with id %s", requestID)
+	return errors.Errorf("Could not find authentication request with id %s",
+		requestID)
 }
 
 // NewAdminRegisterRequest stores a new admin, signing key, and registration
@@ -161,7 +177,8 @@ func (c *Cacher) GetAdmin(id string) (Admin, SigningKey, error) {
 		return admin, SigningKey{},
 			errors.Errorf("Could not find signing key for request %s", id)
 	}
-	return Admin{}, SigningKey{}, errors.Errorf("Could not find admin for request %s", id)
+	return Admin{}, SigningKey{}, errors.Errorf("Could not find admin for "+
+		"request %s", id)
 }
 
 type stack struct {
@@ -192,7 +209,8 @@ func (s stack) push(e *element) {
 // the signature is verified using `rsa.VerifyPSS`.
 func (c *Cacher) VerifySignature(sig KeySignature) error {
 	if sig.Type != "signing" {
-		return errors.Errorf("Signature had type %s, not \"signing\"", sig.Type)
+		return errors.Errorf("Signature had type %s, not \"signing\"",
+			sig.Type)
 	}
 
 	s := stack{
@@ -214,18 +232,21 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 
 			decoded, err := decodeBase64(toVerify.data.Signature)
 			if err != nil {
-				return errors.Wrap(err, "Could not decode signature as web-encoded"+
-					"base-64 with no padding")
+				return errors.Wrap(err, "Could not decode signature as "+
+					"web-encoded base-64 with no padding")
 			}
 			h := crypto.SHA256.New()
 			io.WriteString(h, toVerify.data.SignedPublicKey)
 			io.WriteString(h, toVerify.data.Type)
 			io.WriteString(h, toVerify.data.OwnerID)
-			err = rsa.VerifyPSS(c.s.pub, crypto.SHA256, h.Sum(nil), decoded, nil)
+			err = rsa.VerifyPSS(c.s.pub, crypto.SHA256, h.Sum(nil), decoded,
+				nil)
 			if err != nil {
-				return errors.Wrap(err, "Could not verify Tera Insights signature")
+				return errors.Wrap(err, "Could not verify Tera Insights "+
+					"signature")
 			}
-			c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true, cache.NoExpiration)
+			c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true,
+				cache.NoExpiration)
 		} else {
 			_, found := c.validPublicKeys.Get(toVerify.data.SigningPublicKey)
 			if found {
@@ -233,20 +254,23 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 				// verify this signature using `ecdsa.Verify`.
 				marshalled, err := decodeBase64(toVerify.data.SigningPublicKey)
 				if err != nil {
-					return errors.Wrap(err, "Could not unmarshal signing public key")
+					return errors.Wrap(err, "Could not unmarshal signing "+
+						"public key")
 				}
 				x, y := elliptic.Unmarshal(elliptic.P256(), marshalled)
 				if x == nil {
-					return errors.New("Signing public key was not on the elliptic curve")
+					return errors.New("Signing public key was not on the " +
+						"elliptic curve")
 				}
 				decoded, err := decodeBase64(toVerify.data.Signature)
 				if err != nil {
-					return errors.Wrap(err, "Could not decode signature as web-encoded"+
-						"base-64 with no padding")
+					return errors.Wrap(err, "Could not decode signature as "+
+						"web-encoded base-64 with no padding")
 				}
 				r, s := elliptic.Unmarshal(elliptic.P256(), decoded)
 				if r == nil {
-					return errors.New("Signed public key was not on the elliptic curve")
+					return errors.New("Signed public key was not on the " +
+						"elliptic curve")
 				}
 				h := crypto.SHA256.New()
 				io.WriteString(h, toVerify.data.SignedPublicKey)
@@ -261,7 +285,8 @@ func (c *Cacher) VerifySignature(sig KeySignature) error {
 					return errors.Errorf("Could not verify signature of "+
 						"public key %s", toVerify.data.SigningPublicKey)
 				}
-				c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true, cache.NoExpiration)
+				c.validPublicKeys.Set(toVerify.data.SignedPublicKey, true,
+					cache.NoExpiration)
 			} else {
 				// We have not yet verified the key used to sign `toVerify`.
 				// So, we need to verify both `toVerify` and the key used to
