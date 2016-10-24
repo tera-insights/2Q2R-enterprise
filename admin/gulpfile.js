@@ -28,23 +28,19 @@ var libJsFiles = [
     'libs/lodash/dist/lodash.min.js',
     'libs/random/lib/random.min.js',
     'libs/prob.js/dist/prob-min.js',
-    'libs/angular-sanitize/angular-sanitize.min.js',
-    'libs/angular-material-icons/angular-material-icons.min.js',
-    'libs/md-data-table/dist/md-data-table-templates.js',
-    'libs/md-data-table/dist/md-data-table.js'
+    'libs/angular-material-data-table/dist/md-data-table.min.js'
 ];
 
 var libCssFiles = [
     'libs/material-design-icons/iconfont/material-icons.css',
     'libs/angular-material/angular-material.min.css',
-    'libs/angular-material-icons/angular-material-icons.css',
-    'libs/md-data-table/dist/md-data-table-style.css'
+    'libs/angular-material-data-table/dist/md-data-table.min.css'
 ];
 
 var libFontFiles = [
     'libs/material-design-icons/iconfont/MaterialIcons-Regular.woff2',
     'libs/material-design-icons/iconfont/MaterialIcons-Regular.woff',
-    'libs/material-design-icons/iconfont/MaterialIcons-Regular.ttf',
+    'libs/material-design-icons/iconfont/MaterialIcons-Regular.ttf'
 ];
 
 

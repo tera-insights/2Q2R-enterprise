@@ -1,15 +1,39 @@
-<md-content class="full-size application" layout="column">
-    <mdt-table virtual-repeat="true" selectable-rows="true" table-card="{title: 'Applications'}">
-        <mdt-header-row>
-            <mdt-column align-rule="left">Name</mdt-column>
-            <mdt-column align-rule="right">App ID</mdt-column>
-        </mdt-header-row>
-        <mdt-row ng-repeat="app in ctrl2.apps">
-            <mdt-cell>{{app.appName}}</mdt-cell>
-            <mdt-cell>{{app.appID}}</mdt-cell>
-        </mdt-row>
-    </mdt-table>
-    <md-button class="md-fab md-primary application-fab" ng-click="ctrl2.newApp()">
-        <md-icon>add</md-icon>
-    </md-button>
+<md-content class="application">
+    <div class="application-stats">
+        <div class="basic-card stats-card" layout-padding>{{ctrl2.apps.length}} apps</div>
+        <div class="basic-card stats-card" layout-padding>testerino</div>
+        <div class="basic-card stats-card" layout-padding>migrate to dashboard probably</div>
+        <div class="basic-card stats-card" layout-padding>asdasdas</div>
+    </div>
+    <div class="table-wrapper basic-card">
+        <md-toolbar class="md-table-toolbar md-default">
+            <div class="md-toolbar-tools">
+                <span>Applications</span>
+                <div flex></div>
+                <md-button class="md-icon-button" ng-click="ctrl2.newApp()">
+                    <md-tooltip md-direction="top">
+                        Add
+                    </md-tooltip>
+                    <md-icon>add</md-icon>
+                </md-button>
+            </div>
+        </md-toolbar>
+        <md-table-container>
+            <table md-table md-row-select="ctrl2.options.rowSelect" multiple="{{ctrl2.options.multiSelect}}" ng-model="ctrl2.selected">
+                <thead md-head md-order="ctrl2.tableQuery.order">
+                    <tr md-row>
+                        <th md-column md-order-by="appName"><span>Name</span></th>
+                        <th md-column md-order-by="appID"><span>App ID</span></th>
+                    </tr>
+                </thead>
+                <tbody md-body>
+                    <tr md-row md-select="app" md-auto-select="ctrl2.options.autoSelect" ng-repeat="app in ctrl2.apps | orderBy: ctrl2.tableQuery.order | limitTo: ctrl2.tableQuery.limit : (ctrl2.tableQuery.page -1) * ctrl2.tableQuery.limit">
+                        <td md-cell>{{app.appName}}</td>
+                        <td class="app-id" md-cell>{{app.appID}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </md-table-container>
+        <md-table-pagination md-limit="ctrl2.tableQuery.limit" md-page="ctrl2.tableQuery.page" md-total="{{ctrl2.apps.length}}"></md-table-pagination>
+    </div>
 </md-content>

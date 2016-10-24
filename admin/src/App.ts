@@ -14,7 +14,7 @@ import { AddServerCtrl } from './controllers/modals/AddServerCtrl';
 
 angular.module('2Q2R', [
     'ngAria', 'ngMaterial', 'ngResource', 'ngMessages',
-    'ui.router', 'ngAnimate','ct.ui.router.extras', 'ngSanitize', 'mdDataTable'
+    'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table'
 ])
     .service('Auth', Auth)
     .service('Apps', Apps)

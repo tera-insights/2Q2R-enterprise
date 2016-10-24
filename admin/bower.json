@@ -25,7 +25,8 @@
     "material-design-icons": "^3.0.1",
     "angular-material-icons": "^0.7.1",
     "angular-sanitize": "^1.5.8",
-    "md-data-table": "^1.8.5"
+    "md-data-table": "^1.8.5",
+    "angular-material-data-table": "^0.10.9"
   },
   "dependencies": {
     "lodash": "^4.16.4"
