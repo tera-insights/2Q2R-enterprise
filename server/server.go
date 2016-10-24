@@ -167,35 +167,21 @@ type authenticateData struct {
 
 // NewServer creates a new 2Q2R server.
 func NewServer(c *Config) Server {
-	var s = Server{c, MakeDB(c), MakeCacher(c)}
-	return s
-}
-
-// Taken from https://git.io/v6xHB.
-func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
-	w.Header().Add("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	encoder := json.NewEncoder(w)
-	return encoder.Encode(data)
-}
-
-// MakeDB returns the database specified by the configuration.
-func MakeDB(c *Config) *gorm.DB {
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
-	db.AutoMigrate(&AppInfo{})
-	db.AutoMigrate(&AppServerInfo{})
-	db.AutoMigrate(&Key{})
-	db.AutoMigrate(&Admin{})
-	db.AutoMigrate(&SigningKey{})
 	if err != nil {
-		panic(errors.Errorf("Could not open database: %s", err))
+		panic(errors.Wrap(err, "Could not open database"))
 	}
-	return db
-}
 
-// MakeCacher returns the cacher specified by the configuration.
-func MakeCacher(c *Config) Cacher {
-	return Cacher{
+	err = db.AutoMigrate(&AppInfo{}).
+		AutoMigrate(&AppServerInfo{}).
+		AutoMigrate(&Key{}).
+		AutoMigrate(&Admin{}).
+		AutoMigrate(&SigningKey{}).Error
+	if err != nil {
+		panic(errors.Wrap(err, "Could not migrate schemas"))
+	}
+
+	var s = Server{c, db, Cacher{
 		baseURL:                c.getBaseURLWithProtocol(),
 		expiration:             c.ExpirationTime,
 		clean:                  c.CleanTime,
@@ -205,7 +191,16 @@ func MakeCacher(c *Config) Cacher {
 		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
 		signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
 		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
-	}
+	}}
+	return s
+}
+
+// Taken from https://git.io/v6xHB.
+func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	encoder := json.NewEncoder(w)
+	return encoder.Encode(data)
 }
 
 func forMethod(r *mux.Router, s string, h http.HandlerFunc, m string) {
