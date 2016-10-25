@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"html/template"
 	"io"
 	"log"
@@ -66,6 +67,10 @@ type Config struct {
 	// Path to the private ECDSA key that verifies server-to-server
 	// authentication
 	PrivateKeyFile string
+
+	// Whether or nor the private ECDSA key file is encrypted
+	PrivateKeyEncrypted bool
+	PrivateKeyPassword  string
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -74,9 +79,6 @@ func (c *Config) getBaseURLWithProtocol() string {
 	}
 	return "http://" + c.BaseURL + c.Port
 }
-
-// MakeConfig reads in r as if it were a config file of type ct and returns the
-// resulting config.
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
@@ -149,6 +151,7 @@ func NewServer(r io.Reader, ct string) Server {
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
+	viper.SetDefault("PrivateKeyEncrypted", false)
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -171,8 +174,12 @@ func NewServer(r io.Reader, ct string) Server {
 		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
+		PrivateKeyFile:               viper.GetString("PrivateKeyFile"),
+		PrivateKeyEncrypted:          viper.GetBool("PrivateKeyEncrypted"),
+		PrivateKeyPassword:           viper.GetString("PrivateKeyPassword"),
 	}
 
+	// Load the Tera Insights RSA public key
 	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/" +
 		"yS3tcLEA/VD+tucTzwzmZxbg5GvLzygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7AnJ" +
 		"kw7HxFv5bJCb3NPzfZJ3uLCKuWlG6lowG9pcoys7fogdJP8yrcQQarTQMDxPucY24HBvnP44mBzN3cBLg7sy6p7ZqBJbggrP6EQ" +
@@ -183,6 +190,7 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Failed to parse server's public key"))
 	}
 
+	// Read the elliptic private key
 	file, err := os.Open(c.PrivateKeyFile)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't open private key file"))
@@ -194,7 +202,22 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Couldn't read private key file"))
 	}
 
-	priv, err := x509.ParseECPrivateKey(der)
+	p, _ := pem.Decode(der)
+	if p == nil {
+		panic(errors.Wrap(err, "File was not PEM-formatted"))
+	}
+
+	var key []byte
+	if c.PrivateKeyEncrypted {
+		key, err = x509.DecryptPEMBlock(p, []byte(c.PrivateKeyPassword))
+		if err != nil {
+			panic(errors.Wrap(err, "Couldn't decrypt private key"))
+		}
+	} else {
+		key = p.Bytes
+	}
+
+	priv, err := x509.ParseECPrivateKey(key)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't parse file as DER-encoded ECDSA "+
 			"private key"))
