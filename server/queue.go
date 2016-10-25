@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 )
 
 // Queue lets clients know when a certain request has been fulfilled.
@@ -28,7 +29,7 @@ import (
 // Cleans out the both the recently completed list and waiting lists
 // at fixed time intervals. Note that this means that some requests will wait
 // for the full (e.g.) 3 minutes, and others will wait for less.
-type Queue struct {
+type queue struct {
 	recentlyCompleted *cache.Cache // Maps request ID to status code
 	rcTimeout         time.Duration
 	rcInterval        time.Duration
@@ -47,10 +48,10 @@ func signal(c chan int, code int) {
 	}
 }
 
-// NewQueue initializes a new queue.
-func NewQueue(rcTimeout time.Duration, rcInterval time.Duration,
-	lTimeout time.Duration, lInterval time.Duration) Queue {
-	q := Queue{
+// Initializes a new queue.
+func newQueue(rcTimeout time.Duration, rcInterval time.Duration,
+	lTimeout time.Duration, lInterval time.Duration) queue {
+	q := queue{
 		cache.New(rcTimeout, rcInterval),
 		rcTimeout,
 		rcInterval,
@@ -73,7 +74,7 @@ func NewQueue(rcTimeout time.Duration, rcInterval time.Duration,
 // 200, for success
 // 401, for requests canceled by the user
 // 408, for requests that timed out
-func (q Queue) Listen(requestID string) chan int {
+func (q queue) Listen(requestID string) chan int {
 	c := make(chan int, 1)
 	if status, found := q.recentlyCompleted.Get(requestID); found {
 		signal(c, status.(int))
@@ -96,7 +97,15 @@ func (q Queue) Listen(requestID string) chan int {
 }
 
 // MarkCompleted records that a request was successfully completed.
-func (q Queue) MarkCompleted(requestID string) {
+func (q queue) MarkCompleted(requestID string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			q.recentlyCompleted.Delete(requestID)
+			err = errors.Errorf("Could not mark request as completed. "+
+				"Panicked with value %s", r)
+		}
+	}()
+
 	q.recentlyCompleted.Set(requestID, http.StatusOK, q.rcTimeout)
 	if cached, found := q.listeners.Get(requestID); found {
 		listeners := cached.([]chan int)
@@ -105,10 +114,11 @@ func (q Queue) MarkCompleted(requestID string) {
 		}
 		q.listeners.Delete(requestID)
 	}
+	return
 }
 
 // MarkRefused records that a request was refused.
-func (q Queue) MarkRefused(requestID string) {
+func (q queue) MarkRefused(requestID string) {
 	q.recentlyCompleted.Set(requestID, http.StatusUnauthorized, q.rcTimeout)
 	if cached, found := q.listeners.Get(requestID); found {
 		listeners := cached.([]chan int)

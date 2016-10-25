@@ -1,0 +1,24 @@
+package: 2q2r
+import:
+- package: github.com/GeertJohan/go.rice
+- package: github.com/gorilla/handlers
+  version: ~1.1.0
+- package: github.com/gorilla/mux
+  version: ~1.1.0
+- package: github.com/jinzhu/gorm
+  version: ~1.0.0
+  subpackages:
+  - dialects/sqlite
+- package: github.com/patrickmn/go-cache
+  version: ~2.0.0
+- package: github.com/pkg/errors
+  version: ~0.8.0
+- package: github.com/ryanuber/go-glob
+  version: ~0.1.0
+- package: github.com/spf13/viper
+- package: github.com/tstranex/u2f
+testImport:
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - require

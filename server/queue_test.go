@@ -13,7 +13,7 @@ import (
 var lTimeout = 3 * time.Second
 var rcTimeout = 3 * time.Second
 var interval = 10 * time.Second
-var q = NewQueue(rcTimeout, interval, lTimeout, interval)
+var q = newQueue(rcTimeout, interval, lTimeout, interval)
 var listenerError = "Did not receive proper status listener channel"
 
 func TestListenOnCompleted(t *testing.T) {

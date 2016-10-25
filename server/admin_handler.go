@@ -17,38 +17,25 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// AdminHandler is the handler for all registration requests.
-type AdminHandler struct {
+type adminHandler struct {
 	s *Server
-	q Queue
+	q queue
 }
 
-// NewAdmin creates a new admin, replyinb with a request ID that must be used
-// in order to add a second-factor authentication mechanism.
-// POST /admin/new/{code}
-func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
-	req := NewAdminRequest{}
+// NewAdmin challenges the incoming admin, replying with a request ID that must
+// be used in order to add a second-factor authentication mechanism. If the
+// challenge signature is valid, then we store the admin.
+// POST /admin/new
+func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
+	req := newAdminRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
-	role := "admin"
-	status := "inactive"
-	requestID := mux.Vars(r)["code"]
-
-	h := crypto.SHA256.New()
-	io.WriteString(h, requestID)
-
-	// Asserting that there is a stored long-term request for the code
-	count := 0
-	err = ah.s.DB.Model(&LongTermRequest{}).Where(LongTermRequest{
-		AppID: "1",
-		ID:    string(h.Sum(nil)),
-	}).Count(&count).Error
-	panicIfFalse(count == 1, http.StatusForbidden,
-		"Did not find exactly one stored request for the passed ID")
-
 	encodedPermissions, err := json.Marshal(req.Permissions)
 	optionalInternalPanic(err, "Could not encode permissions for storage")
+
+	requestID, err := RandString(32)
+	optionalInternalPanic(err, "Could not generate request ID")
 
 	adminID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate admin ID")
@@ -56,7 +43,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	keyID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate key ID")
 
-	err = ah.s.Cache.VerifySignature(KeySignature{
+	err = ah.s.cache.VerifySignature(KeySignature{
 		SigningPublicKey: req.SigningPublicKey,
 		SignedPublicKey:  req.PublicKey,
 		Type:             "signing",
@@ -66,12 +53,12 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	optionalPanic(err, http.StatusForbidden,
 		"Could not verify public key signature")
 
-	ah.s.Cache.NewAdminRegisterRequest(requestID, Admin{
+	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
 		ID:          adminID,
 		Name:        req.Name,
 		Email:       req.Email,
-		Role:        role,
-		Status:      status,
+		Role:        "admin",
+		Status:      "inactive",
 		Permissions: string(encodedPermissions),
 	}, SigningKey{
 		ID:        keyID,
@@ -80,7 +67,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		PublicKey: req.PublicKey,
 	})
 
-	base := ah.s.c.getBaseURLWithProtocol() + "/admin/"
+	base := ah.s.Config.getBaseURLWithProtocol() + "/admin/"
 	writeJSON(w, http.StatusOK, newAdminReply{
 		RequestID:   requestID,
 		IFrameRoute: base + "register/" + requestID,
@@ -91,7 +78,7 @@ func (ah *AdminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 // Wait waits for the admin to authenticate a particular request. If the
 // authentication is successful, writes the admin and key to the database.
 // GET /admin/{requestID}/wait
-func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	c := ah.q.Listen(requestID)
 	response := <-c
@@ -100,7 +87,7 @@ func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	admin, signingKey, err := ah.s.Cache.GetAdmin(requestID)
+	admin, signingKey, err := ah.s.cache.GetAdmin(requestID)
 	optionalInternalPanic(err, "Failed to find admin to save to database")
 
 	err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
@@ -115,7 +102,7 @@ func (ah *AdminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 
 // RegisterIFrameHandler returns the iFrame used for the admin to register.
 // GET /admin/register/{requestID}
-func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
 	optionalInternalPanic(err, "Failed to load assets")
@@ -126,15 +113,15 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 	t, err := template.New("register").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate registration iFrame")
 
-	cachedData, found := ah.s.Cache.adminRegistrations.Get(requestID)
+	cachedData, found := ah.s.cache.adminRegistrations.Get(requestID)
 	panicIfFalse(found, http.StatusBadRequest, "Failed to find registration request")
-	request := cachedData.(AdminRegistrationRequest)
+	request := cachedData.(adminRegistrationRequest)
 
-	cachedData, found = ah.s.Cache.admins.Get(requestID)
+	cachedData, found = ah.s.cache.admins.Get(requestID)
 	panicIfFalse(found, http.StatusInternalServerError, "Failed to find cached admin")
 	admin := cachedData.(Admin)
 
-	base := ah.s.c.getBaseURLWithProtocol()
+	base := ah.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
@@ -156,19 +143,19 @@ func (ah *AdminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 
 // Register registers a new second-factor for an admin.
 // POST /admin/register
-func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := adminRegisterRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Failed to decode request body")
 
-	_, signingKey, err := ah.s.Cache.GetAdmin(req.RequestID)
+	_, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
 	optionalBadRequestPanic(err, "Failed to find signing key for registration request")
 
-	data, found := ah.s.Cache.adminRegistrations.Get(req.RequestID)
+	data, found := ah.s.cache.adminRegistrations.Get(req.RequestID)
 	panicIfFalse(found, http.StatusBadRequest,
 		"Failed to find stored registration request")
 
-	registerRequest, ok := data.(AdminRegistrationRequest)
+	registerRequest, ok := data.(adminRegistrationRequest)
 	panicIfFalse(ok, http.StatusInternalServerError,
 		"Failed to load registration request")
 
@@ -192,8 +179,10 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	verified := ecdsa.Verify(&pubKey, hash[:], &req.R, &req.S)
 	panicIfFalse(verified, http.StatusBadRequest, "Failed to verify signature")
 
-	ah.q.MarkCompleted(req.RequestID)
-	writeJSON(w, http.StatusOK, RegisterResponse{
+	err = ah.q.MarkCompleted(req.RequestID)
+	optionalInternalPanic(err, "Could not notify request listeners")
+
+	writeJSON(w, http.StatusOK, registerResponse{
 		Successful: true,
 		Message:    "OK",
 	})
@@ -201,7 +190,7 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 // GetAdmins lists all the admins.
 // GET /admin/admin
-func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
 	var result []Admin
 	err := ah.s.DB.Model(&Admin{}).Find(&result).Error
 	optionalBadRequestPanic(err, "Failed to read admins")
@@ -211,7 +200,7 @@ func (ah *AdminHandler) GetAdmins(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAdmin updates an admin with a specific ID.
 // PUT /admin/admin/{adminID}
-func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	req := adminUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -240,7 +229,7 @@ func (ah *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 
 // DeleteAdmin deletes an admin that matches a query.
 // DELETE /admin/admin/{adminID}
-func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 	adminID := mux.Vars(r)["adminID"]
 	err := CheckBase64(adminID)
 	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
@@ -257,7 +246,7 @@ func (ah *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
 
 // ChangeAdminRoles can (de-)activate an admin or make the admin a super.
 // POST /admin/admin/roles
-func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request) {
 	req := adminRoleChangeRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -282,7 +271,7 @@ func (ah *AdminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 
 // GetApps gets all AppInfos.
 // GET /admin/app
-func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 	var found []AppInfo
 	err := ah.s.DB.Model(&AppInfo{}).Find(&found).Error
 	optionalInternalPanic(err, "Could not read app infos")
@@ -292,8 +281,8 @@ func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 
 // NewApp creates a new app.
 // POST /admin/app
-func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
-	req := NewAppRequest{}
+func (ah *adminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
+	req := newAppRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -313,7 +302,7 @@ func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
 
 // UpdateApp updates an app with a particular app ID.
 // PUT /admin/app/{appID}
-func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	req := appUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
@@ -344,7 +333,7 @@ func (ah *AdminHandler) UpdateApp(w http.ResponseWriter, r *http.Request) {
 
 // DeleteApp deletes an app with a particular app ID.
 // DELETE /admin/app/{appID}
-func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 	appID := mux.Vars(r)["appID"]
 	err := CheckBase64(appID)
 	optionalBadRequestPanic(err, "App ID was not base-64 encoded")
@@ -361,8 +350,8 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 
 // NewServer creates a new server for an admin with valid credentials.
 // POST /admin/server
-func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
-	req := NewServerRequest{}
+func (ah *adminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
+	req := newServerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -372,7 +361,6 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 
 	info := AppServerInfo{
 		ID:          serverID,
-		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
 		AppID:       req.AppID,
 		KeyType:     req.KeyType,
@@ -387,7 +375,7 @@ func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
 
 // DeleteServer deletes a server on behalf of a valid admin.
 // DELETE /admin/server/{serverID}
-func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 	serverID := mux.Vars(r)["serverID"]
 	err := CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
@@ -402,7 +390,7 @@ func (ah *AdminHandler) DeleteServer(w http.ResponseWriter, r *http.Request) {
 
 // GetServers gets information about app servers.
 // GET /admin/server
-func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	var info []AppServerInfo
 	err := ah.s.DB.Model(&AppServerInfo{}).Find(&info).Error
 	optionalBadRequestPanic(err, "Failed to find servers")
@@ -412,7 +400,7 @@ func (ah *AdminHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 
 // UpdateServer updates an app server with `ServerID == req.ServerID`.
 // PUT /admin/server/{serverID}
-func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	req := serverUpdateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
@@ -424,7 +412,6 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	err = ah.s.DB.Where(&AppServerInfo{
 		ID: serverID,
 	}).Updates(AppServerInfo{
-		ServerName:  req.ServerName,
 		BaseURL:     req.BaseURL,
 		KeyType:     req.KeyType,
 		PublicKey:   req.PublicKey,
@@ -444,7 +431,7 @@ func (ah *AdminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 
 // NewLongTerm stores a long-term request in the database.
 // POST /admin/ltr
-func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	req := newLTRRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
@@ -469,7 +456,7 @@ func (ah *AdminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 
 // DeleteLongTerm deletes a long-term request from the database.
 // DELETE /admin/ltr
-func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 	req := deleteLTRRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body as JSON")
@@ -487,7 +474,7 @@ func (ah *AdminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 
 // GetSigningKeys returns all signing keys in the database.
 // GET /admin/signing-key
-func (ah *AdminHandler) GetSigningKeys(w http.ResponseWriter, r *http.Request) {
+func (ah *adminHandler) GetSigningKeys(w http.ResponseWriter, r *http.Request) {
 	var result []SigningKey
 	err := ah.s.DB.Model(&SigningKey{}).Find(&result).Error
 	optionalInternalPanic(err, "Could not read signing keys")

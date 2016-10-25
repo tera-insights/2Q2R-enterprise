@@ -13,21 +13,20 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// AuthenticationData represents auth data.
-type AuthenticationData struct {
+// authenticationData represents auth data.
+type authenticationData struct {
 	Counter  int
 	ServerID string
 }
 
-// AuthHandler is the handler for all `/auth/` requests.
-type AuthHandler struct {
+type authHandler struct {
 	s *Server
-	q Queue
+	q queue
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
 // GET /v1/auth/request/{userID}
-func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	key := Key{}
 	err := ah.s.DB.Model(&key).First(&key, &Key{
@@ -35,29 +34,29 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	}).Error
 	optionalInternalPanic(err, "Failed to load key")
 
-	challenge, err := u2f.NewChallenge(ah.s.c.getBaseURLWithProtocol(),
-		[]string{ah.s.c.getBaseURLWithProtocol()})
+	challenge, err := u2f.NewChallenge(ah.s.Config.getBaseURLWithProtocol(),
+		[]string{ah.s.Config.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Failed to generate challenge")
 
 	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Failed to generate request ID")
 
-	cachedRequest := AuthenticationRequest{
+	cachedRequest := authenticationRequest{
 		RequestID: requestID,
 		Challenge: challenge,
 		AppID:     key.AppID,
 		UserID:    userID,
 	}
-	ah.s.Cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
-	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
+	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
+	writeJSON(w, http.StatusOK, authenticationSetupReply{
 		cachedRequest.RequestID,
-		ah.s.c.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
+		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
 	})
 }
 
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
 // GET /v1/auth/:id
-func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
 	optionalInternalPanic(err, "Failed to load assets")
@@ -68,7 +67,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	t, err := template.New("auth").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate authentication iFrame")
 
-	cachedRequest, err := ah.s.Cache.GetAuthenticationRequest(requestID)
+	cachedRequest, err := ah.s.cache.GetAuthenticationRequest(requestID)
 	optionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
 	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
@@ -90,7 +89,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 			Name:  name,
 		})
 	}
-	base := ah.s.c.getBaseURLWithProtocol()
+	base := ah.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(authenticateData{
 		RequestID:    requestID,
 		Counter:      1,
@@ -116,7 +115,7 @@ func (ah *AuthHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 
 // Authenticate performs authentication for a U2F device.
 // POST /v1/auth
-func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	req := authenticateRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
@@ -124,7 +123,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// Assert that the authentication presented to us was successful
 	if !req.Successful {
-		failedData := req.Data.(failedAuthenticationData)
+		failedData := req.Data.(failedauthenticationData)
 		panic(bubbledError{
 			StatusCode: failedData.ErrorStatus,
 			Message:    failedData.ErrorMessage,
@@ -132,7 +131,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mappedValues := req.Data.(map[string]interface{})
-	var successData successfulAuthenticationData
+	var successData successfulauthenticationData
 
 	// There were problems with deserialization. This is gross. Will fix later.
 	if value, ok := mappedValues["clientData"]; ok {
@@ -151,7 +150,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&clientData)
 	optionalBadRequestPanic(err, "Could not decode client data")
 
-	requestID, found := ah.s.Cache.challengeToRequestID.Get(clientData.Challenge)
+	requestID, found := ah.s.cache.challengeToRequestID.Get(clientData.Challenge)
 	if !found {
 		panic(bubbledError{
 			StatusCode: http.StatusForbidden,
@@ -160,7 +159,7 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get authentication request
-	ar, err := ah.s.Cache.GetAuthenticationRequest(requestID.(string))
+	ar, err := ah.s.cache.GetAuthenticationRequest(requestID.(string))
 	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	storedKey := Key{}
@@ -182,20 +181,32 @@ func (ah *AuthHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	newCounter, err := reg.Authenticate(resp, *ar.Challenge, storedKey.Counter)
 	optionalPanic(err, http.StatusBadRequest, "Authentication failed")
 
+	tx := ah.s.DB.Begin()
+
 	// Store updated counter in the database.
-	err = ah.s.DB.Model(&Key{}).Where(&Key{
+	err = tx.Model(&Key{}).Where(&Key{
 		UserID: ar.UserID,
 		ID:     ar.KeyHandle,
 	}).Update("counter", newCounter).Error
-	optionalPanic(err, http.StatusInternalServerError, "Failed to update counter")
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Failed to update counter")
+	}
 
-	ah.q.MarkCompleted(requestID.(string))
+	// Notify request listeners
+	err = ah.q.MarkCompleted(requestID.(string))
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Could not notify request listeners")
+	}
+
+	tx.Commit()
 }
 
 // Wait allows the requester to check the result of the authentication. It
 // blocks until the authentication is complete.
 // GET /v1/auth/{requestID}/wait
-func (ah *AuthHandler) Wait(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	c := ah.q.Listen(requestID)
 	w.WriteHeader(<-c)
@@ -203,17 +214,17 @@ func (ah *AuthHandler) Wait(w http.ResponseWriter, r *http.Request) {
 
 // SetKey sets the key for a given authentication request.
 // POST /v1/auth/{requestID}/challenge
-func (ah *AuthHandler) SetKey(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	req := setKeyRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	err = ah.s.Cache.SetKeyForAuthenticationRequest(requestID, req.KeyHandle)
+	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyHandle)
 	optionalInternalPanic(err, "Failed to set key for authentication request")
 
-	ar, err := ah.s.Cache.GetAuthenticationRequest(requestID)
+	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
 	optionalInternalPanic(err, "Failed to get authentication request")
 
 	storedKey := Key{}

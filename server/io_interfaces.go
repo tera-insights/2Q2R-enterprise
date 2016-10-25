@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-// NewAdminRequest the request to add a new admin. It is used both in HTTP
+// newAdminRequest the request to add a new admin. It is used both in HTTP
 // requests and in the bootstrap script.
 // REQUEST POST /admin/new/:code
-type NewAdminRequest struct {
+type newAdminRequest struct {
 	Name             string   `json:"name"`
 	Email            string   `json:"email"`
 	Permissions      []string `json:"permissions"`
@@ -43,8 +43,8 @@ type adminRoleChangeRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// NewAppRequest is the request to POST /admin/app
-type NewAppRequest struct {
+// newAppRequest is the request to POST /admin/app
+type newAppRequest struct {
 	AppName string `json:"appName"`
 }
 
@@ -58,7 +58,7 @@ type modificationReply struct {
 }
 
 // AppIDInfoReply is the reply to `GET /v1/info/:appID`.
-type AppIDInfoReply struct {
+type appIDInfoReply struct {
 	// string specifying displayable app name
 	AppName string `json:"appName"`
 
@@ -83,8 +83,7 @@ type adminRegisterRequest struct {
 }
 
 // NewServerRequest is the request to POST /admin/server
-type NewServerRequest struct {
-	ServerName  string `json:"serverName"`
+type newServerRequest struct {
 	AppID       string `json:"appID"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
@@ -94,7 +93,6 @@ type NewServerRequest struct {
 
 // Request to PUT /admin/server/{serverID}
 type serverUpdateRequest struct {
-	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
 	PublicKey   []byte `json:"publicKey"`
@@ -103,7 +101,7 @@ type serverUpdateRequest struct {
 }
 
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
-type RegistrationSetupReply struct {
+type registrationSetupReply struct {
 	// base64Web encoded random reply id
 	RequestID string `json:"id"`
 
@@ -112,14 +110,14 @@ type RegistrationSetupReply struct {
 }
 
 // RegisterRequest is the request to `POST /v1/register`.
-type RegisterRequest struct {
+type registerRequest struct {
 	Successful bool `json:"successful"`
 	// Either a successfulRegistrationData or a failedRegistrationData
 	Data interface{} `json:"data"`
 }
 
 // RegisterResponse is the response to `POST /v1/register`.
-type RegisterResponse struct {
+type registerResponse struct {
 	Successful bool   `json:"successful"`
 	Message    string `json:"message"`
 }
@@ -138,16 +136,16 @@ type failedRegistrationData struct {
 }
 
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
-type AuthenticationSetupRequest struct {
+type authenticationSetupRequest struct {
 	AppID              string             `json:"appID"`
 	Timestamp          time.Time          `json:"timestamp"`
 	UserID             string             `json:"userID"`
 	KeyID              string             `json:"keyID"`
-	AuthenticationData AuthenticationData `json:"authentication"`
+	authenticationData authenticationData `json:"authentication"`
 }
 
 // AuthenticationSetupReply is the response to `POST /v1/auth/request`.
-type AuthenticationSetupReply struct {
+type authenticationSetupReply struct {
 	// base64Web encoded random reply id
 	RequestID string `json:"id"`
 
@@ -178,12 +176,12 @@ type userExistsReply struct {
 	Exists bool `json:"exists"`
 }
 
-type successfulAuthenticationData struct {
+type successfulauthenticationData struct {
 	ClientData    string `json:"clientData"`
 	SignatureData string `json:"signatureData"`
 }
 
-type failedAuthenticationData struct {
+type failedauthenticationData struct {
 	Challenge    string `json:"challenge"`
 	ErrorMessage string `json:"errorMessage"`
 	ErrorStatus  int    `json:"errorStatus"`

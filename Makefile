@@ -1,7 +1,7 @@
 # Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
 install_dependencies:
-	go get 2q2r/server
+	glide install
 
 test: test_server
 

@@ -1,6 +1,12 @@
 # 2Q2R-enterprise
 Enterprise of the 2Q2R server
 
+## Setup
+
+1. Install [Glide](https://github.com/Masterminds/glide#install). Make sure
+you've either set your `$GOBIN` or your `$PATH` includes `$GOPATH/bin`.
+2. `make install_dependencies`
+
 ## Running
 
 1. If not already done, bootstrap the database with `go run

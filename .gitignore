@@ -34,3 +34,6 @@ server/assets/lib
 server/assets/css
 server/assets/js
 server/assets/img
+
+# Dependencies
+vendor/

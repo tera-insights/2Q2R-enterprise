@@ -13,15 +13,14 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// RegisterHandler is the handler for all registration requests.
-type RegisterHandler struct {
+type registerHandler struct {
 	s *Server
-	q Queue
+	q queue
 }
 
 // RegisterSetupHandler sets up the registration of a new two-factor device.
 // GET /v1/register/request/:userID
-func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	serverID, _ := getAuthDataFromHeaders(r)
 	serverInfo := AppServerInfo{}
@@ -29,29 +28,29 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		First(&serverInfo).Error
 	optionalBadRequestPanic(err, "Could not find app server")
 
-	challenge, err := u2f.NewChallenge(rh.s.c.getBaseURLWithProtocol(),
-		[]string{rh.s.c.getBaseURLWithProtocol()})
+	challenge, err := u2f.NewChallenge(rh.s.Config.getBaseURLWithProtocol(),
+		[]string{rh.s.Config.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Could not generate challenge")
 
 	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
-	rr := RegistrationRequest{
+	rr := registrationRequest{
 		RequestID: requestID,
 		Challenge: challenge,
 		AppID:     serverInfo.AppID,
 		UserID:    userID,
 	}
-	rh.s.Cache.SetRegistrationRequest(rr.RequestID, rr)
-	writeJSON(w, http.StatusOK, RegistrationSetupReply{
+	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
+	writeJSON(w, http.StatusOK, registrationSetupReply{
 		rr.RequestID,
-		rh.s.c.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
+		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
 	})
 }
 
 // RegisterIFrameHandler returns the iFrame that is used to perform registration.
 // GET /v1/register/:id
-func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
 	optionalInternalPanic(err, "Failed to load assets")
@@ -62,7 +61,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	t, err := template.New("register").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate registration iFrame")
 
-	cachedRequest, err := rh.s.Cache.GetRegistrationRequest(requestID)
+	cachedRequest, err := rh.s.cache.GetRegistrationRequest(requestID)
 	optionalBadRequestPanic(err, "Failed to get registration request")
 
 	var appInfo AppInfo
@@ -70,7 +69,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	err = rh.s.DB.Model(AppInfo{}).Find(&appInfo, query).Error
 	optionalInternalPanic(err, "Failed to find app information")
 
-	base := rh.s.c.getBaseURLWithProtocol()
+	base := rh.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
@@ -99,8 +98,8 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 // 3. Verify the signature in the request
 // 4. Record the valid public key in the database
 // POST /v1/register
-func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
-	req := RegisterRequest{}
+func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
+	req := registerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -145,11 +144,11 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Could not decode client data")
 
 	// Assert that the challenge exists
-	requestID, found := rh.s.Cache.challengeToRequestID.Get(clientData.Challenge)
+	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
 	panicIfFalse(found, http.StatusForbidden, "Challenge does not exist")
 
 	// Get challenge data
-	rr, err := rh.s.Cache.GetRegistrationRequest(requestID.(string))
+	rr, err := rh.s.cache.GetRegistrationRequest(requestID.(string))
 	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	// Verify signature
@@ -164,6 +163,10 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Record valid public key in database
 	marshalledRegistration, err := reg.MarshalBinary()
+
+	tx := rh.s.DB.Begin()
+
+	// Save key
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
 		ID:     EncodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
@@ -173,10 +176,21 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 		MarshalledRegistration: marshalledRegistration,
 		Counter:                0,
 	}).Error
-	optionalInternalPanic(err, "Could not save key to database")
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Could not save key to database")
+	}
 
-	rh.q.MarkCompleted(requestID.(string))
-	writeJSON(w, http.StatusOK, RegisterResponse{
+	// Notify request listeners
+	err = rh.q.MarkCompleted(requestID.(string))
+	if err != nil {
+		tx.Rollback()
+		optionalInternalPanic(err, "Could not notify request listeners")
+	}
+
+	tx.Commit()
+
+	writeJSON(w, http.StatusOK, registerResponse{
 		Successful: true,
 		Message:    "OK",
 	})
@@ -185,7 +199,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Wait allows the requester to check the result of the registration. It blocks
 // until the registration is complete.
 // GET /v1/register/{requestID}/wait
-func (rh RegisterHandler) Wait(w http.ResponseWriter, r *http.Request) {
+func (rh registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	c := rh.q.Listen(requestID)
 	w.WriteHeader(<-c)
