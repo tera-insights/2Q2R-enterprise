@@ -267,7 +267,6 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		for _, regex := range srv.Config.AuthenticationRequiredRoutes {
 			if glob.Glob(regex, r.URL.Path) {
 				needsAuthentication = true
-				break
 			}
 		}
 
@@ -293,21 +292,22 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		panicIfFalse(serverInfo.AuthType == "token", http.StatusBadRequest,
 			"Stored authentication method not supported")
 
+		// Hash the path and, if apprpriate, the request body
 		route := []byte(r.URL.Path)
 		var body []byte
 		if r.ContentLength > 0 {
 			_, err = r.Body.Read(body)
 			optionalInternalPanic(err, "Failed to read request body")
 		}
-
 		mac := hmac.New(sha256.New, []byte(srv.Config.Token))
 		mac.Write(route)
 		if len(body) > 0 {
 			mac.Write(body)
 		}
 		expectedMAC := mac.Sum(nil)
-		bytesOfMessageMAC, err := base64.StdEncoding.DecodeString(messageMAC)
-		optionalInternalPanic(err, "Failed to validate headers")
+		bytesOfMessageMAC, err := decodeBase64(messageMAC)
+		optionalInternalPanic(err, "Failed to decode MAC as web-encoded "+
+			"base-64 without padding")
 
 		if !hmac.Equal(bytesOfMessageMAC, expectedMAC) {
 			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
