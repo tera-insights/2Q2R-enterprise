@@ -215,7 +215,7 @@ func (ah *AdminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	err = ah.q.MarkCompleted(req.RequestID)
 	optionalInternalPanic(err, "Could not notify request listeners")
 
-	writeJSON(w, http.StatusOK, RegisterResponse{
+	writeJSON(w, http.StatusOK, registerResponse{
 		Successful: true,
 		Message:    "OK",
 	})
@@ -315,7 +315,7 @@ func (ah *AdminHandler) GetApps(w http.ResponseWriter, r *http.Request) {
 // NewApp creates a new app.
 // POST /admin/app
 func (ah *AdminHandler) NewApp(w http.ResponseWriter, r *http.Request) {
-	req := NewAppRequest{}
+	req := newAppRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -384,7 +384,7 @@ func (ah *AdminHandler) DeleteApp(w http.ResponseWriter, r *http.Request) {
 // NewServer creates a new server for an admin with valid credentials.
 // POST /admin/server
 func (ah *AdminHandler) NewServer(w http.ResponseWriter, r *http.Request) {
-	req := NewServerRequest{}
+	req := newServerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")

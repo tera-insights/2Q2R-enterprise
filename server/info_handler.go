@@ -28,7 +28,7 @@ func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
 	if count > 0 {
 		var info AppInfo
 		err = ih.s.DB.Model(&AppInfo{}).Where(&query).First(&info).Error
-		reply := AppIDInfoReply{
+		reply := appIDInfoReply{
 			AppName:   info.AppName,
 			BaseURL:   ih.s.Config.getBaseURLWithProtocol(),
 			AppURL:    ih.s.Config.getBaseURLWithProtocol(),

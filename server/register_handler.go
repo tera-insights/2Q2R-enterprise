@@ -43,7 +43,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		UserID:    userID,
 	}
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
-	writeJSON(w, http.StatusOK, RegistrationSetupReply{
+	writeJSON(w, http.StatusOK, registrationSetupReply{
 		rr.RequestID,
 		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
 	})
@@ -100,7 +100,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 // 4. Record the valid public key in the database
 // POST /v1/register
 func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
-	req := RegisterRequest{}
+	req := registerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
@@ -191,7 +191,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	tx.Commit()
 
-	writeJSON(w, http.StatusOK, RegisterResponse{
+	writeJSON(w, http.StatusOK, registerResponse{
 		Successful: true,
 		Message:    "OK",
 	})

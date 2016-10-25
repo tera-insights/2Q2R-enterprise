@@ -49,7 +49,7 @@ func (ah *AuthHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		UserID:    userID,
 	}
 	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
-	writeJSON(w, http.StatusOK, AuthenticationSetupReply{
+	writeJSON(w, http.StatusOK, authenticationSetupReply{
 		cachedRequest.RequestID,
 		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
 	})
