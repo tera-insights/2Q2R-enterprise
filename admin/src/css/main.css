@@ -8,6 +8,23 @@ html {
     height: 100%;
 }
 
+.full-width {
+    width: 100%;
+}
+
+.full-height {
+    height: 100%;
+}
+
+h2 {
+    font-size: 24px;
+    font-weight: 400;
+}
+
+md-dialog {
+    /* for actions to fit within material spec */
+    padding-bottom: 0;
+}
 
 /* spaces out the size of the toolbar */
 
@@ -16,10 +33,10 @@ html {
 }
 
 
-/* instead of using md-whiteframe-1dp */
+/* instead of using md-whiteframe-2dp */
 
 .basic-card {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.33);
+    box-shadow: 0 1px 5px 0 rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .12);
     border-radius: 2px;
 }
 
@@ -172,4 +189,32 @@ mdt-table > md-content > ng-include {
 
 .app-id {
     font-family: Courier, sans-serif;
+}
+
+
+/* generate dialog */
+
+.generate {
+    width: 450px;
+}
+
+.generate-app {
+    display: flex;
+}
+
+.generate-app > md-input-container {
+    width: 50%;
+}
+
+.generate-server {
+    display: flex;
+}
+
+.generate-server > md-input-container {
+    width: 47.5%;
+    margin-bottom: 0;
+}
+
+.generate-server > md-input-container:nth-child(3) {
+    width: 20%;
 }

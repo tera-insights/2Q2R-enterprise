@@ -1,43 +1,36 @@
-<md-dialog class="semester-create-modal" aria-label="About" ng-cloak>
-    <md-toolbar>
-        <div class="md-toolbar-tools">
-            <h2>Generate Fake Data</h2>
-            <span flex></span>
-            <md-button class="md-icon-button" ng-click="cMod.cancel()">
-                <md-icon aria-label="Close dialog">
-                    <i class="fa fa-times fa-2x"></i>
-                </md-icon>
-            </md-button>
+<div class="md-dialog-container">
+    <md-dialog layout-padding="">
+        <h2>Generate Fake Data</h2>
+        <div class="generate">
+            <div class="generate-app full-width">
+                <md-input-container>
+                    <label>App prefix</label>
+                    <input type="text" placeholder="App name prefix" ng-model="cMod.appPrefix">
+                </md-input-container>
+                <md-input-container>
+                    <label>Number of apps</label>
+                    <input type="number" ng-model="cMod.numApps">
+                </md-input-container>
+            </div>
+            <div class="generate-server full-width">
+                <md-input-container>
+                    <label>Server prefix</label>
+                    <input type="text" placeholder="Server name prefix" ng-model="cMod.serverPrefix">
+                </md-input-container>
+                <md-input-container>
+                    <label>Number of servers</label>
+                    <input type="number" ng-model="cMod.numServers">
+                </md-input-container>
+                <md-input-container>
+                    <label>Zipf Coef</label>
+                    <input type="number" ng-model="cMod.zipf">
+                </md-input-container>
+            </div>
         </div>
-    </md-toolbar>
-
-    <md-dialog-content layout-padding>
-        <md-input-container>
-            <label>App prefix</label>
-            <input type="text" placeholder="App name prefix" ng-model="cMod.appPrefix">
-        </md-input-container>
-        <md-input-container>
-            <label>Number of apps</label>
-            <input type="number" ng-model="cMod.numApps">
-        </md-input-container>
-
-        <md-input-container>
-            <label>Server prefix</label>
-            <input type="text" placeholder="Server name prefix" ng-model="cMod.serverPrefix">
-        </md-input-container>
-        <md-input-container>
-            <label>Number of servers</label>
-            <input type="number" ng-model="cMod.numServers">
-        </md-input-container>
-        <md-input-container>
-            <label>Zipf Coef</label>
-            <input type="number" ng-model="cMod.zipf">
-        </md-input-container>
-        
-    </md-dialog-content>
-    <md-dialog-actions class="order-fix" layout="row">
-        <span flex></span>
-        <md-button md-autofocus ng-click="cMod.accept()">Accept</md-button>
-        <md-button ng-click="cMod.cancel()">Cancel</md-button>
-    </md-dialog-actions>
-</md-dialog>
+        <md-dialog-actions class="order-fix" layout="row">
+            <span flex></span>
+            <md-button ng-click="cMod.cancel()">Cancel</md-button>
+            <md-button md-autofocus ng-click="cMod.accept()">Accept</md-button>
+        </md-dialog-actions>
+    </md-dialog>
+</div>
