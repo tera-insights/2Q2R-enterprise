@@ -7,26 +7,16 @@ import { DeleteServersCtrl } from './modals/DeleteServersCtrl';
 
 export class ServersCtrl {
     private Server: IServerResource;
-    private servers: any[] = [{
-        serverName: 'Fake Server #1',
-        serverID: 'iuef398vn893n8nf',
-        appID: 'owiefwinfewufnwf8Ha'
-    }, {
-        serverName: 'Fake Server #2',
-        serverID: '2oifn2oifon2f2==',
-        appID: 'DHWjwndjwndwjn5='
-    }, {
-        serverName: 'Fake Server #3',
-        serverID: '29f8j2Hu2822if3j2=',
-        appID: 'ofwenufiwuUN28822'
-    }, {
-        serverName: 'Fake Server #4',
-        serverID: '28dj2d82duewndweu',
-        appID: 'eoifnefn828D9ejjk=='
-    }];
+    private servers: IServerItem[];
     private selectedServers: IServerItem[] = [];
     private orderBy: string;
     private state: 'searchClosed' | 'searchOpen' = 'searchClosed';
+    private serverFilter: string;
+    private appFilter: string;
+    private pagination = {
+        pageLimit: 11,
+        page: 1
+    }
 
     // Aux datascructures to organize Apps and Servers
     private serversByAppID: { [appID: string] : IServerItem[] } = {};
@@ -52,7 +42,7 @@ export class ServersCtrl {
     // Get all the info from backend again
     refresh() {
         console.log("Refreshed servers!");
-
+        this.servers = this.Server.query();
         // this.servers = this.Server.query( () => {
         //     this.serversByAppID = _.groupBy(this.servers, 'appID');
         // });
