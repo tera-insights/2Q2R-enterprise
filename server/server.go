@@ -347,8 +347,7 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 			optionalBadRequestPanic(err, "Could not find app server")
 
 			x, y := elliptic.Unmarshal(elliptic.P256(), serverInfo.PublicKey)
-			key = ecdh.ComputeShared(elliptic.P256(), x, y,
-				elliptic.Marshal(elliptic.P256(), s.priv.X, s.priv.Y))
+			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
 			s.cache.sharedKeys.Set(serverID, key, cache.NoExpiration)
 		}
 
