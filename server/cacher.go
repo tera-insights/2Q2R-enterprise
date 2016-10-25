@@ -14,17 +14,17 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// RegistrationRequest stores data used during the registration of a new
+// registrationRequest stores data used during the registration of a new
 // device, etc.
-type RegistrationRequest struct {
+type registrationRequest struct {
 	RequestID string
 	Challenge *u2f.Challenge
 	AppID     string
 	UserID    string
 }
 
-// AuthenticationRequest stores data used during authentication.
-type AuthenticationRequest struct {
+// authenticationRequest stores data used during authentication.
+type authenticationRequest struct {
 	RequestID string
 	Challenge *u2f.Challenge
 	KeyHandle string
@@ -32,14 +32,14 @@ type AuthenticationRequest struct {
 	UserID    string
 }
 
-// AdminRegistrationRequest is the what admins use to add their initial second
+// adminRegistrationRequest is the what admins use to add their initial second
 // factor.
-type AdminRegistrationRequest struct {
+type adminRegistrationRequest struct {
 	Challenge []byte
 }
 
-// Cacher holds various requests. If they are not found, it hits the database.
-type Cacher struct {
+// Holds various requests. If they are not found, it hits the database.
+type cacher struct {
 	baseURL                string
 	expiration             time.Duration
 	clean                  time.Duration
@@ -48,15 +48,15 @@ type Cacher struct {
 	challengeToRequestID   *cache.Cache // Stores a string of the []byte challenge
 	admins                 *cache.Cache // Request ID to admin to be saved
 	signingKeys            *cache.Cache // Request ID to signing key to be saved
-	adminRegistrations     *cache.Cache // request ID to AdminRegistrationRequest
+	adminRegistrations     *cache.Cache // request ID to adminRegistrationRequest
 	db                     *gorm.DB     // Templated on and holds long-term requests
 }
 
 // GetRegistrationRequest returns the registration request for a particular
 // request ID.
-func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error) {
+func (c *cacher) GetRegistrationRequest(id string) (*registrationRequest, error) {
 	if val, ok := c.registrationRequests.Get(id); ok {
-		rr := val.(RegistrationRequest) // We must convert and then take the address
+		rr := val.(registrationRequest) // We must convert and then take the address
 		ptr := &rr
 		return ptr, nil
 	}
@@ -84,7 +84,7 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 	if err != nil {
 		return nil, err
 	}
-	r := RegistrationRequest{
+	r := registrationRequest{
 		RequestID: id,
 		Challenge: challenge,
 		AppID:     ltr.AppID,
@@ -97,33 +97,33 @@ func (c *Cacher) GetRegistrationRequest(id string) (*RegistrationRequest, error)
 
 // GetAuthenticationRequest returns the string(h.Sum(nil))n request for a
 // particular request ID.
-func (c *Cacher) GetAuthenticationRequest(id string) (*AuthenticationRequest, error) {
+func (c *cacher) GetAuthenticationRequest(id string) (*authenticationRequest, error) {
 	val, ok := c.authenticationRequests.Get(id)
 	if ok {
-		ar := val.(AuthenticationRequest)
+		ar := val.(authenticationRequest)
 		ptr := &ar
 		return ptr, nil
 	}
 	return nil, errors.Errorf("Could not find authentication request with id %s", id)
 }
 
-// SetAuthenticationRequest puts an AuthenticationRequest into the cache.
-func (c *Cacher) SetAuthenticationRequest(id string, r AuthenticationRequest) {
+// SetAuthenticationRequest puts an authenticationRequest into the cache.
+func (c *cacher) SetAuthenticationRequest(id string, r authenticationRequest) {
 	c.authenticationRequests.Set(id, r, c.expiration)
 	s := encodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
 // SetRegistrationRequest puts a RegistrationRequest into the cache.
-func (c *Cacher) SetRegistrationRequest(id string, r RegistrationRequest) {
+func (c *cacher) SetRegistrationRequest(id string, r registrationRequest) {
 	c.registrationRequests.Set(id, r, c.expiration)
 	s := encodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
 }
 
-func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyHandle string) error {
+func (c *cacher) SetKeyForAuthenticationRequest(requestID, keyHandle string) error {
 	if val, found := c.authenticationRequests.Get(requestID); found {
-		ar := val.(AuthenticationRequest)
+		ar := val.(authenticationRequest)
 		ar.KeyHandle = keyHandle
 		c.authenticationRequests.Set(requestID, ar, c.expiration)
 		return nil
@@ -134,7 +134,7 @@ func (c *Cacher) SetKeyForAuthenticationRequest(requestID, keyHandle string) err
 // NewAdminRegisterRequest stores a new admin, signing key, and registration
 // request for a particular request ID. If the request is successful, the admin
 // is saved to the DB.
-func (c *Cacher) NewAdminRegisterRequest(id string, a Admin, sk SigningKey) {
+func (c *cacher) NewAdminRegisterRequest(id string, a Admin, sk SigningKey) {
 	c.admins.Set(id, a, c.expiration)
 	c.signingKeys.Set(id, a, c.expiration)
 
@@ -146,13 +146,13 @@ func (c *Cacher) NewAdminRegisterRequest(id string, a Admin, sk SigningKey) {
 		optionalInternalPanic(err, "Failed to generate echallenge for admin")
 	}
 
-	c.adminRegistrations.Set(id, AdminRegistrationRequest{
+	c.adminRegistrations.Set(id, adminRegistrationRequest{
 		Challenge: bytes,
 	}, c.expiration)
 }
 
 // GetAdmin returns the admin for a particular request ID.
-func (c *Cacher) GetAdmin(id string) (Admin, SigningKey, error) {
+func (c *cacher) GetAdmin(id string) (Admin, SigningKey, error) {
 	if val, found := c.admins.Get(id); found {
 		admin := val.(Admin)
 		if val, found = c.signingKeys.Get(id); found {

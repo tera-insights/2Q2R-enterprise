@@ -76,7 +76,7 @@ func (c *Config) getBaseURLWithProtocol() string {
 type Server struct {
 	Config *Config
 	DB     *gorm.DB
-	cache  Cacher
+	cache  cacher
 }
 
 // Used in registration and authentication templates
@@ -181,7 +181,7 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
-	var s = Server{c, db, Cacher{
+	var s = Server{c, db, cacher{
 		baseURL:                c.getBaseURLWithProtocol(),
 		expiration:             c.ExpirationTime,
 		clean:                  c.CleanTime,
@@ -304,9 +304,9 @@ func (srv *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
 	// Admin routes
-	ah := AdminHandler{
+	ah := adminHandler{
 		s: srv,
-		q: NewQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
+		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
 			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
 	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
@@ -335,8 +335,8 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
 
 	// Info routes
-	ih := InfoHandler{srv}
-	forMethod(router, "/v1/info/{appID}", ih.AppInfoHandler, "GET")
+	ih := infoHandler{srv}
+	forMethod(router, "/v1/info/{appID}", ih.AppinfoHandler, "GET")
 
 	// Key routes
 	kh := keyHandler{srv}
@@ -346,9 +346,9 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/keys/{userID}/{keyHandle}", kh.DeleteKey, "DELETE")
 
 	// Auth routes
-	th := AuthHandler{
+	th := authHandler{
 		s: srv,
-		q: NewQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
+		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
 			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
@@ -358,9 +358,9 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
-	rh := RegisterHandler{
+	rh := registerHandler{
 		s: srv,
-		q: NewQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
+		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
 			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")

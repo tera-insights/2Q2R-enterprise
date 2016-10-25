@@ -8,14 +8,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// InfoHandler is the handler for all `/*/info/*` requests.
-type InfoHandler struct {
+type infoHandler struct {
 	s *Server
 }
 
-// AppInfoHandler returns information about the app specified by `appID`.
+// AppinfoHandler returns information about the app specified by `appID`.
 // GET /v1/info/:appID
-func (ih *InfoHandler) AppInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (ih *infoHandler) AppinfoHandler(w http.ResponseWriter, r *http.Request) {
 	appID := mux.Vars(r)["appID"]
 	err := CheckBase64(appID)
 	optionalBadRequestPanic(err, "App ID was not a valid base-64 string")

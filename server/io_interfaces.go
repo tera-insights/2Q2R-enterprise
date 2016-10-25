@@ -137,7 +137,7 @@ type authenticationSetupRequest struct {
 	Timestamp          time.Time          `json:"timestamp"`
 	UserID             string             `json:"userID"`
 	KeyID              string             `json:"keyID"`
-	AuthenticationData AuthenticationData `json:"authentication"`
+	authenticationData authenticationData `json:"authentication"`
 }
 
 // AuthenticationSetupReply is the response to `POST /v1/auth/request`.
@@ -172,12 +172,12 @@ type userExistsReply struct {
 	Exists bool `json:"exists"`
 }
 
-type successfulAuthenticationData struct {
+type successfulauthenticationData struct {
 	ClientData    string `json:"clientData"`
 	SignatureData string `json:"signatureData"`
 }
 
-type failedAuthenticationData struct {
+type failedauthenticationData struct {
 	Challenge    string `json:"challenge"`
 	ErrorMessage string `json:"errorMessage"`
 	ErrorStatus  int    `json:"errorStatus"`

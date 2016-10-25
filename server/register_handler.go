@@ -13,15 +13,14 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// RegisterHandler is the handler for all registration requests.
-type RegisterHandler struct {
+type registerHandler struct {
 	s *Server
-	q Queue
+	q queue
 }
 
 // RegisterSetupHandler sets up the registration of a new two-factor device.
 // GET /v1/register/request/:userID
-func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	serverID, _ := getAuthDataFromHeaders(r)
 	serverInfo := AppServerInfo{}
@@ -36,7 +35,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	requestID, err := randString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
-	rr := RegistrationRequest{
+	rr := registrationRequest{
 		RequestID: requestID,
 		Challenge: challenge,
 		AppID:     serverInfo.AppID,
@@ -51,7 +50,7 @@ func (rh *RegisterHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 
 // RegisterIFrameHandler returns the iFrame that is used to perform registration.
 // GET /v1/register/:id
-func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
 	optionalInternalPanic(err, "Failed to load assets")
@@ -99,7 +98,7 @@ func (rh *RegisterHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 // 3. Verify the signature in the request
 // 4. Record the valid public key in the database
 // POST /v1/register
-func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := registerRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
@@ -200,7 +199,7 @@ func (rh *RegisterHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Wait allows the requester to check the result of the registration. It blocks
 // until the registration is complete.
 // GET /v1/register/{requestID}/wait
-func (rh RegisterHandler) Wait(w http.ResponseWriter, r *http.Request) {
+func (rh registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	c := rh.q.Listen(requestID)
 	w.WriteHeader(<-c)
