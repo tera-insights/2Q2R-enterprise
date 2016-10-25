@@ -1,4 +1,4 @@
-<div class="full-size" layout="column" ng-cloak class="sidenavdemoCustomSidenav">
+<div class="full-size" layout="column" ng-cloak>
     <!-- sidenav for state selection -->
     <md-sidenav class="md-sidenav-left" md-component-id="left" md-disable-backdrop md-whiteframe="4">
         <md-content class="fake-menu">
@@ -14,7 +14,7 @@
         </md-content>
     </md-sidenav>
     <!-- where everything else exists -->
-    <div class="full-size">
+    <div class="full-size main">
         <div class="toolbar-container md-whiteframe-2dp" layout="row">
             <!-- two toolbars for seperate coloration with minimal effort -->
             <md-toolbar class="toolbar-open">
@@ -35,11 +35,17 @@
                     <md-button class="md-icon-button" ng-click="ctrl.generate()" aria-label="Messages">
                         <md-icon md-svg-icon="img/icons/message.svg"></md-icon>
                     </md-button>
-                    <h2 style="color:black"><span>{{ctrl.Auth.userid}}</span></h2>
+                    <a class="avatar noselect" md-ink-ripple="#0c0c0c">
+                        <img src="img/placeholder/placeman.jpg">
+                        <div class="avatar-text">
+                            <div class="name">{{ctrl.Auth.userid}}</div>
+                            <div class="title">Rampaging Demon Clown</div>
+                        </div>
+                        <i class="material-icons icon-black">keyboard_arrow_down</i>
+                    </a>
                 </div>
             </md-toolbar>
         </div>
-        <div class="spacer"></div>
-        <ui-view class="full-size" />
+        <ui-view class="full-size fill-rest spacer" />
     </div>
 </div>

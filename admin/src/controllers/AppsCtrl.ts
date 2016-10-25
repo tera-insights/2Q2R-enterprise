@@ -23,7 +23,7 @@ export class AppsCtrl {
         multiSelect: true    }
 
     private tableQuery = {
-        limit: 11,
+        limit: 14,
         page: 1,
         order: "name"
     }

@@ -3,6 +3,17 @@ html {
     background-color: #E5E6E6;
 }
 
+
+/* the container surrounding pretty much anything revelant */
+
+.main {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* size classes */
+
 .full-size {
     width: 100%;
     height: 100%;
@@ -16,6 +27,26 @@ html {
     height: 100%;
 }
 
+.fill-rest {
+    flex: 1 1 auto;
+}
+
+
+/* no highlighting */
+
+.noselect {
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
+/* for dialogs and just in general */
+
 h2 {
     font-size: 24px;
     font-weight: 400;
@@ -26,10 +57,11 @@ md-dialog {
     padding-bottom: 0;
 }
 
+
 /* spaces out the size of the toolbar */
 
 .spacer {
-    height: 67px;
+    margin-top: 64px;
 }
 
 
@@ -41,12 +73,21 @@ md-dialog {
 }
 
 
+/* now get us a noice icon color selector */
+
+.icon-black {
+    color: rgba(0, 0, 0, 0.54);
+}
+
+
 /* toolbar styles */
 
 .toolbar-container {
-    padding: 0;
-    position: fixed;
     width: 100%;
+    position: fixed;
+    padding: 0;
+    /* place it above everything else */
+    z-index: 1;
 }
 
 .toolbar-container > md-toolbar {
@@ -114,7 +155,6 @@ md-sidenav md-divider {
 /* applications tab */
 
 .application {
-    height: calc(100% - 127px);
     display: flex;
     flex-direction: column;
     background-color: #E5E6E6;
@@ -159,8 +199,8 @@ md-sidenav md-divider {
 
 .table-wrapper {
     height: auto;
-    margin: 3px;
     background-color: white;
+    margin: 25px;
 }
 
 mdt-table {
@@ -217,4 +257,52 @@ mdt-table > md-content > ng-include {
 
 .generate-server > md-input-container:nth-child(3) {
     width: 20%;
+}
+
+
+/* avatar styles */
+
+.avatar {
+    /* alright balance between height/width here, no problem with changing it */
+    width: 250px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 40px;
+    margin: 0 15px 0 5px;
+}
+
+
+/* wraps the avatar name and title */
+
+.avatar-text {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Roboto', sans-serif;
+    margin-right: 10px;
+}
+
+.name {
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 14px;
+    text-overflow: ellipsis;
+}
+
+.title {
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 13px;
+    text-overflow: ellipsis;
+}
+
+
+/* a little bit of special effects */
+
+.avatar:hover {
+    cursor: pointer;
+    background-color: rgba(12, 12, 12, 0.07);
 }
