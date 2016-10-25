@@ -416,7 +416,6 @@ func (ah *adminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 		KeyType:     req.KeyType,
 		PublicKey:   req.PublicKey,
 		Permissions: req.Permissions,
-		AuthType:    req.AuthType,
 	}).Error
 	optionalInternalPanic(err, "Failed to update app server info")
 

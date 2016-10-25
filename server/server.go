@@ -3,6 +3,7 @@
 package server
 
 import (
+	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -12,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -26,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
+	"github.com/telehash/gogotelehash/e3x/cipherset/cs1a/ecdh"
 )
 
 // Config is the configuration for the server.
@@ -60,8 +63,9 @@ type Config struct {
 	Base64EncodedPublicKey string
 	KeyType                string
 
-	// For HMAC-based authentication
-	Token string
+	// Path to the private ECDSA key that verifies server-to-server
+	// authentication
+	PrivateKeyFile string
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -80,6 +84,10 @@ type Server struct {
 	DB     *gorm.DB
 	cache  cacher
 	pub    *rsa.PublicKey
+
+	// for the server's private elliptic key
+	x *big.Int
+	y *big.Int
 }
 
 // Used in registration and authentication templates
@@ -144,7 +152,6 @@ func NewServer(r io.Reader, ct string) Server {
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
-	viper.SetDefault("Token", "mytoken")
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -167,7 +174,6 @@ func NewServer(r io.Reader, ct string) Server {
 		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
-		Token:                        viper.GetString("Token"),
 	}
 
 	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/" +
@@ -177,8 +183,21 @@ func NewServer(r io.Reader, ct string) Server {
 	block, _ := base64.StdEncoding.DecodeString(pubKey)
 	pub, err := x509.ParsePKIXPublicKey(block)
 	if err != nil {
-		panic(errors.Errorf("Failed to parse server's public key: %+v", err))
+		panic(errors.Wrap(err, "Failed to parse server's public key"))
 	}
+
+	file, err := os.Open(c.PrivateKeyFile)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't open private key file"))
+	}
+
+	privKey := []byte{}
+	_, err = file.Read(privKey)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't read private key file"))
+	}
+
+	x, y := elliptic.Unmarshal(elliptic.P256(), privKey)
 
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	if err != nil {
@@ -209,8 +228,11 @@ func NewServer(r io.Reader, ct string) Server {
 			signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
 			adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
 			validPublicKeys:        cache.New(cache.NoExpiration, cache.NoExpiration),
+			sharedKeys:             cache.New(cache.NoExpiration, cache.NoExpiration),
 		},
 		pub.(*rsa.PublicKey),
+		x,
+		y,
 	}
 }
 
@@ -260,12 +282,17 @@ func recoverWrap(h http.Handler) http.Handler {
 	})
 }
 
-func (srv *Server) middleware(handle http.Handler) http.Handler {
+// 1. If we don't need to authenticate the route, do nothing
+// 2. Else, generate the ECDH key using our private key and the server's public
+// key. If we can't find the server, return this is a bad request
+// 3. Use the shared key to check the SHA-256 HMAC of the message. If it's OK,
+// pass the request along. Else, refuse and log this unauthorized request.
+func (s *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
-		for _, regex := range srv.Config.AuthenticationRequiredRoutes {
-			if glob.Glob(regex, r.URL.Path) {
+		for _, pattern := range s.Config.AuthenticationRequiredRoutes {
+			if glob.Glob(pattern, r.URL.Path) {
 				needsAuthentication = true
 			}
 		}
@@ -283,23 +310,33 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			return
 		}
 
-		// Determine which authentication mechanism to use
-		serverInfo := AppServerInfo{}
-		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
-			First(&serverInfo).Error
-		optionalBadRequestPanic(err, "Could not find app server")
+		// If possible, get the shared key from the cache
+		fetched, found := s.cache.sharedKeys.Get(serverID)
+		var key []byte
+		if found {
+			key = fetched.([]byte)
+		} else {
+			// Use ECDH to generate the shared key
+			serverInfo := AppServerInfo{}
+			err := s.DB.Model(AppServerInfo{}).Where(AppServerInfo{
+				ID: serverID,
+			}).First(&serverInfo).Error
+			optionalBadRequestPanic(err, "Could not find app server")
 
-		panicIfFalse(serverInfo.AuthType == "token", http.StatusBadRequest,
-			"Stored authentication method not supported")
+			x, y := elliptic.Unmarshal(elliptic.P256(), serverInfo.PublicKey)
+			key = ecdh.ComputeShared(elliptic.P256(), x, y,
+				elliptic.Marshal(elliptic.P256(), s.x, s.y))
+			s.cache.sharedKeys.Set(serverID, key, cache.NoExpiration)
+		}
 
 		// Hash the path and, if apprpriate, the request body
 		route := []byte(r.URL.Path)
 		var body []byte
 		if r.ContentLength > 0 {
-			_, err = r.Body.Read(body)
+			_, err := r.Body.Read(body)
 			optionalInternalPanic(err, "Failed to read request body")
 		}
-		mac := hmac.New(sha256.New, []byte(srv.Config.Token))
+		mac := hmac.New(sha256.New, key)
 		mac.Write(route)
 		if len(body) > 0 {
 			mac.Write(body)
@@ -319,14 +356,14 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 }
 
 // GetHandler returns the routes used by the 2Q2R server.
-func (srv *Server) GetHandler() http.Handler {
+func (s *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
 
 	// Admin routes
 	ah := adminHandler{
-		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
-			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
+		s: s,
+		q: newQueue(s.Config.RecentlyCompletedExpirationTime, s.Config.CleanTime,
+			s.Config.ListenerExpirationTime, s.Config.CleanTime),
 	}
 	forMethod(router, "/admin/new", ah.NewAdmin, "POST")
 	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
@@ -354,11 +391,11 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
 
 	// Info routes
-	ih := infoHandler{srv}
+	ih := infoHandler{s}
 	forMethod(router, "/v1/info/{appID}", ih.AppinfoHandler, "GET")
 
 	// Key routes
-	kh := keyHandler{srv}
+	kh := keyHandler{s}
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
 	forMethod(router, "/v1/keys/get", kh.GetKeys, "GET")
 	forMethod(router, "/v1/users/{userID}", kh.DeleteUser, "DELETE")
@@ -366,9 +403,9 @@ func (srv *Server) GetHandler() http.Handler {
 
 	// Auth routes
 	th := authHandler{
-		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
-			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
+		s: s,
+		q: newQueue(s.Config.RecentlyCompletedExpirationTime, s.Config.CleanTime,
+			s.Config.ListenerExpirationTime, s.Config.CleanTime),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
@@ -378,9 +415,9 @@ func (srv *Server) GetHandler() http.Handler {
 
 	// Register routes
 	rh := registerHandler{
-		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
-			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
+		s: s,
+		q: newQueue(s.Config.RecentlyCompletedExpirationTime, s.Config.CleanTime,
+			s.Config.ListenerExpirationTime, s.Config.CleanTime),
 	}
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
@@ -390,8 +427,8 @@ func (srv *Server) GetHandler() http.Handler {
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
 	router.PathPrefix("/").Handler(fileServer)
-	h := recoverWrap(srv.middleware(router))
-	if srv.Config.LogRequests {
+	h := recoverWrap(s.middleware(router))
+	if s.Config.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, h)
 	}
 	return h

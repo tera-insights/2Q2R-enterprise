@@ -32,9 +32,6 @@ type AppServerInfo struct {
 
 	// JSON array containing a subset of ["Register", "Delete", "Login"]
 	Permissions string `json:"permissions"`
-
-	// Either token or DSA
-	AuthType string `json:"authType"`
 }
 
 // LongTermRequest is the Gorm model for a long-term registration request set

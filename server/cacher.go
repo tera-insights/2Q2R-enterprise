@@ -63,6 +63,9 @@ type cacher struct {
 
 	// signed public key to true
 	validPublicKeys *cache.Cache
+
+	// ServerID to server shared keys
+	sharedKeys *cache.Cache
 }
 
 // GetRegistrationRequest returns the registration request for a particular

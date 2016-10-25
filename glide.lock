@@ -1,5 +1,5 @@
-hash: 5e92e4ff99b6b654d1eb43f563abc355e5a4e65853ae0012e05c40b84c46e525
-updated: 2016-10-24T13:36:27.85694162-04:00
+hash: f4e725a1ca816fa97f8d6662cb05a79eb194e63ff81f53861a1dcf2dd8095296
+updated: 2016-10-25T14:31:29.424035092-04:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -67,14 +67,22 @@ imports:
   version: 5ccb023bc27df288a957c5e994cd44fd19619465
 - name: github.com/spf13/viper
   version: 285f1510193473600929e1183915f6220fabab94
+- name: github.com/telehash/gogotelehash
+  version: c0ffc74a9407e26c512dfd10b84c460346fea37b
+  subpackages:
+  - e3x/cipherset/cs1a/ecdh
 - name: github.com/tstranex/u2f
   version: eb799ce68da4150b16ff5d0c89a24e2a2ad993d8
 - name: golang.org/x/crypto
-  version: 3c0d69f1777220f1a1d2ec373cb94a282f03eb42
+  version: ca7e7f10cb9fd9c1a6ff7f60436c086d73714180
   subpackages:
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
+  - nacl/box
+  - nacl/secretbox
+  - poly1305
+  - salsa20
   - ssh
 - name: golang.org/x/sys
   version: c200b10b5d5e122be351b67af224adc6128af5bf

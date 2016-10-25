@@ -97,7 +97,6 @@ type serverUpdateRequest struct {
 	KeyType     string `json:"keyType"`
 	PublicKey   []byte `json:"publicKey"`
 	Permissions string `json:"permissions"`
-	AuthType    string `json:"authType"`
 }
 
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
