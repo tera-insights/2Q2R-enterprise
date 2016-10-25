@@ -41,11 +41,11 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	appInfo := new(AppIDInfoReply)
 	unmarshalJSONBody(res, appInfo)
 
-	cachedRequest, _ := s.cache.GetRegistrationRequest(setupInfo.RequestID)
+	cachedRequest, _ := s.Cache.GetRegistrationRequest(setupInfo.RequestID)
 	correctData := registerData{
 		RequestID: setupInfo.RequestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: encodeBase64(cachedRequest.Challenge.Challenge),
+		Challenge: EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:    "bar",
 		AppID:     goodAppID,
 		InfoURL:   appInfo.BaseURL + "/v1/info/" + goodAppID,
@@ -105,7 +105,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 	appInfo := new(AppIDInfoReply)
 	unmarshalJSONBody(res, appInfo)
 
-	authenticationRequest, _ := s.cache.GetAuthenticationRequest(setupInfo.RequestID)
+	authenticationRequest, _ := s.Cache.GetAuthenticationRequest(setupInfo.RequestID)
 
 	query := Key{AppID: asr.AppID, UserID: asr.UserID}
 	rows, err := s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
@@ -129,7 +129,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		RequestID:    setupInfo.RequestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    encodeBase64(authenticationRequest.Challenge.Challenge),
+		Challenge:    EncodeBase64(authenticationRequest.Challenge.Challenge),
 		UserID:       asr.UserID,
 		AppID:        asr.AppID,
 		InfoURL:      appInfo.BaseURL + "/v1/info/" + asr.AppID,

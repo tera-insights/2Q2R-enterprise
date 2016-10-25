@@ -32,7 +32,7 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 		[]string{rh.s.Config.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Could not generate challenge")
 
-	requestID, err := randString(32)
+	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
 	rr := registrationRequest{
@@ -73,7 +73,7 @@ func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	data, err := json.Marshal(registerData{
 		RequestID:   requestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
-		Challenge:   encodeBase64(cachedRequest.Challenge.Challenge),
+		Challenge:   EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:      cachedRequest.UserID,
 		AppID:       cachedRequest.AppID,
 		BaseURL:     base,
@@ -168,7 +168,7 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Save key
 	err = rh.s.DB.Model(&Key{}).Create(&Key{
-		ID:     encodeBase64(reg.KeyHandle),
+		ID:     EncodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
 		Name:   successData.DeviceName,
 		UserID: rr.UserID,

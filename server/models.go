@@ -116,7 +116,22 @@ func (a *Admin) BeforeUpdate() error {
 // SigningKey is the Gorm model for keys that the admin uses to sign things.
 type SigningKey struct {
 	ID        string `json:"signingKeyID"`
-	IV        string `json:"iv"`   // encoded using encodeBase64
-	Salt      string `json:"salt"` // same encoding
-	PublicKey []byte `json:"publicKey"`
+	IV        string `json:"iv"`        // encoded using encodeBase64
+	Salt      string `json:"salt"`      // same encoding
+	PublicKey string `json:"publicKey"` // same encoding
+}
+
+// KeySignature is the Gorm model for signatures of both signing and
+// second-factor keys.
+type KeySignature struct {
+	// base-64 web encoded
+	// "1" if the signing public key is the TI public key
+	SigningPublicKey string `gorm:"primary_key"`
+	SignedPublicKey  string `gorm:"primary_key"`
+
+	Type    string // either "signing" or "second-factor"
+	OwnerID string // the admin's ID for `type == "signing"`, user's ID else
+
+	// signature of the sha-256 of: SignedPublicKey | Type | OwnerID
+	Signature string // same encoding as above
 }

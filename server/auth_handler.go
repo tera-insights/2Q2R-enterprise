@@ -38,7 +38,7 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 		[]string{ah.s.Config.getBaseURLWithProtocol()})
 	optionalInternalPanic(err, "Failed to generate challenge")
 
-	requestID, err := randString(32)
+	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Failed to generate request ID")
 
 	cachedRequest := authenticationRequest{
@@ -94,7 +94,7 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		RequestID:    requestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    encodeBase64(cachedRequest.Challenge.Challenge),
+		Challenge:    EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:       cachedRequest.UserID,
 		AppID:        cachedRequest.AppID,
 		BaseURL:      base,
@@ -233,7 +233,7 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, setKeyReply{
 		KeyHandle: req.KeyHandle,
-		Challenge: encodeBase64(ar.Challenge.Challenge),
+		Challenge: EncodeBase64(ar.Challenge.Challenge),
 		Counter:   storedKey.Counter,
 		AppID:     storedKey.AppID,
 	})

@@ -4,7 +4,9 @@ package server
 
 import (
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"html/template"
@@ -77,6 +79,7 @@ type Server struct {
 	Config *Config
 	DB     *gorm.DB
 	cache  cacher
+	pub    *rsa.PublicKey
 }
 
 // Used in registration and authentication templates
@@ -167,6 +170,16 @@ func NewServer(r io.Reader, ct string) Server {
 		Token:                        viper.GetString("Token"),
 	}
 
+	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/" +
+		"yS3tcLEA/VD+tucTzwzmZxbg5GvLzygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7AnJ" +
+		"kw7HxFv5bJCb3NPzfZJ3uLCKuWlG6lowG9pcoys7fogdJP8yrcQQarTQMDxPucY24HBvnP44mBzN3cBLg7sy6p7ZqBJbggrP6EQ" +
+		"x2uwFyd5pW0INNW7wBx/wf/kEAQJEuBzOKkBQWuR4q7aThFfKNyfklRZ0dgrRQegjMkMy5s9Bwe2cou45VzzA7rSQIDAQAB"
+	block, _ := base64.StdEncoding.DecodeString(pubKey)
+	pub, err := x509.ParsePKIXPublicKey(block)
+	if err != nil {
+		panic(errors.Errorf("Failed to parse server's public key: %+v", err))
+	}
+
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not open database"))
@@ -176,23 +189,29 @@ func NewServer(r io.Reader, ct string) Server {
 		AutoMigrate(&AppServerInfo{}).
 		AutoMigrate(&Key{}).
 		AutoMigrate(&Admin{}).
+		AutoMigrate(&KeySignature{}).
 		AutoMigrate(&SigningKey{}).Error
 	if err != nil {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
-	var s = Server{c, db, cacher{
-		baseURL:                c.getBaseURLWithProtocol(),
-		expiration:             c.ExpirationTime,
-		clean:                  c.CleanTime,
-		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
-		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
-		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
-		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
-		signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
-		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
-	}}
-	return s
+	return Server{
+		c,
+		db,
+		cacher{
+			baseURL:                c.getBaseURLWithProtocol(),
+			expiration:             c.ExpirationTime,
+			clean:                  c.CleanTime,
+			registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
+			authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
+			challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
+			admins:                 cache.New(c.ExpirationTime, c.CleanTime),
+			signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
+			adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
+			validPublicKeys:        cache.New(cache.NoExpiration, cache.NoExpiration),
+		},
+		pub.(*rsa.PublicKey),
+	}
 }
 
 // Taken from https://git.io/v6xHB.
@@ -309,9 +328,9 @@ func (srv *Server) GetHandler() http.Handler {
 		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
 			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
 	}
+	forMethod(router, "/admin/new", ah.NewAdmin, "POST")
 	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
 	forMethod(router, "/admin/register", ah.Register, "POST")
-	forMethod(router, "/admin/new/{code}", ah.NewAdmin, "POST")
 	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 
 	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")

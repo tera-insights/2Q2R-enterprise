@@ -17,7 +17,7 @@ var q = newQueue(rcTimeout, interval, lTimeout, interval)
 var listenerError = "Did not receive proper status listener channel"
 
 func TestListenOnCompleted(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	q.MarkCompleted(id)
 	c := q.Listen(id)
@@ -27,7 +27,7 @@ func TestListenOnCompleted(t *testing.T) {
 }
 
 func TestListenOnLaterCompleted(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	c := q.Listen(id)
 	q.MarkCompleted(id)
@@ -37,7 +37,7 @@ func TestListenOnLaterCompleted(t *testing.T) {
 }
 
 func TestMultipleListeners(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	cA := q.Listen(id)
 	cB := q.Listen(id)
@@ -48,7 +48,7 @@ func TestMultipleListeners(t *testing.T) {
 }
 
 func TestListenMarkListen(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	cA := q.Listen(id)
 	q.MarkCompleted(id)
@@ -59,7 +59,7 @@ func TestListenMarkListen(t *testing.T) {
 }
 
 func TestListenAndRefuse(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	c := q.Listen(id)
 	q.MarkRefused(id)
@@ -69,7 +69,7 @@ func TestListenAndRefuse(t *testing.T) {
 }
 
 func TestListenAndTimeout(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	c := q.Listen(id)
 	if http.StatusRequestTimeout != <-c {
@@ -80,7 +80,7 @@ func TestListenAndTimeout(t *testing.T) {
 // Need to require that an error is not thrown if the client isn't listening
 // when a request times out.
 func TestListenAndDropListener(t *testing.T) {
-	id, err := randString(32)
+	id, err := RandString(32)
 	require.Nil(t, err)
 	q.Listen(id)
 	time.Sleep(lTimeout + 1*time.Second)

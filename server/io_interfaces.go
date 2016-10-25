@@ -7,14 +7,18 @@ import (
 	"time"
 )
 
+// newAdminRequest the request to add a new admin. It is used both in HTTP
+// requests and in the bootstrap script.
 // REQUEST POST /admin/new/:code
 type newAdminRequest struct {
-	Name        string   `json:"name"`
-	Email       string   `json:"email"`
-	Permissions []string `json:"permissions"`
-	IV          string   `json:"iv"`   // encoded with web encoding, no padding
-	Salt        string   `json:"salt"` // same encoding
-	PublicKey   []byte   `json:"publicKey"`
+	Name             string   `json:"name"`
+	Email            string   `json:"email"`
+	Permissions      []string `json:"permissions"`
+	IV               string   `json:"iv"`               // encoded with web encoding, no padding
+	Salt             string   `json:"salt"`             // same encoding
+	PublicKey        string   `json:"publicKey"`        // same encoding
+	SigningPublicKey string   `json:"signingPublicKey"` // same encoding
+	Signature        string   `json:"signature"`        // same encoding
 }
 
 // REPLY POST /admin/new/:code

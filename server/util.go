@@ -16,8 +16,9 @@ func CheckBase64(s string) error {
 	return err
 }
 
-// Copied from go-u2f
-func encodeBase64(b []byte) string {
+// EncodeBase64 encodes bytes in base-64 using web encoding with no padding.
+// Its implementation is from go-u2f.
+func EncodeBase64(b []byte) string {
 	s := base64.URLEncoding.EncodeToString(b)
 	return strings.TrimRight(s, "=")
 }
@@ -30,13 +31,15 @@ func decodeBase64(s string) ([]byte, error) {
 	return base64.URLEncoding.DecodeString(s)
 }
 
-func randString(n int) (string, error) {
+// RandString generates `n` random bytes and returns them in a base-64 string
+// that has been web-encoded with no padding.
+func RandString(n int) (string, error) {
 	bytes := make([]byte, n)
 	_, err := rand.Read(bytes)
 	if err != nil {
 		return "", err
 	}
-	return encodeBase64(bytes), nil
+	return EncodeBase64(bytes), nil
 }
 
 // Returns serverID, messageMAC
