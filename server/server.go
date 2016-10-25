@@ -3,6 +3,7 @@
 package server
 
 import (
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rsa"
@@ -13,7 +14,6 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -84,10 +84,7 @@ type Server struct {
 	DB     *gorm.DB
 	cache  cacher
 	pub    *rsa.PublicKey
-
-	// for the server's private elliptic key
-	x *big.Int
-	y *big.Int
+	priv   *ecdsa.PrivateKey
 }
 
 // Used in registration and authentication templates
@@ -191,13 +188,17 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Couldn't open private key file"))
 	}
 
-	privKey := []byte{}
-	_, err = file.Read(privKey)
+	der := []byte{}
+	_, err = file.Read(der)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't read private key file"))
 	}
 
-	x, y := elliptic.Unmarshal(elliptic.P256(), privKey)
+	priv, err := x509.ParseECPrivateKey(der)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't parse file as DER-encoded ECDSA "+
+			"private key"))
+	}
 
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
 	if err != nil {
@@ -231,8 +232,7 @@ func NewServer(r io.Reader, ct string) Server {
 			sharedKeys:             cache.New(cache.NoExpiration, cache.NoExpiration),
 		},
 		pub.(*rsa.PublicKey),
-		x,
-		y,
+		priv,
 	}
 }
 
@@ -325,7 +325,7 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 
 			x, y := elliptic.Unmarshal(elliptic.P256(), serverInfo.PublicKey)
 			key = ecdh.ComputeShared(elliptic.P256(), x, y,
-				elliptic.Marshal(elliptic.P256(), s.x, s.y))
+				elliptic.Marshal(elliptic.P256(), s.priv.X, s.priv.Y))
 			s.cache.sharedKeys.Set(serverID, key, cache.NoExpiration)
 		}
 
@@ -358,6 +358,11 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 // GetHandler returns the routes used by the 2Q2R server.
 func (s *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
+
+	// Get the server's public key
+	forMethod(router, "/v1/public", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, s.priv.PublicKey)
+	}, "GET")
 
 	// Admin routes
 	ah := adminHandler{
