@@ -57,8 +57,7 @@ type Config struct {
 	CertFile string
 	KeyFile  string
 
-	// A list of regular expressions mapping to routes that require auth
-	// headers
+	// A list of glob patterns mapping to routes that require auth headers
 	AuthenticationRequiredRoutes []string
 
 	Base64EncodedPublicKey string
