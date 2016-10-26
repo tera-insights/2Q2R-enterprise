@@ -170,10 +170,12 @@ func NewServer(r io.Reader, ct string) Server {
 		Token:                        viper.GetString("Token"),
 	}
 
-	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/" +
-		"yS3tcLEA/VD+tucTzwzmZxbg5GvLzygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7AnJ" +
-		"kw7HxFv5bJCb3NPzfZJ3uLCKuWlG6lowG9pcoys7fogdJP8yrcQQarTQMDxPucY24HBvnP44mBzN3cBLg7sy6p7ZqBJbggrP6EQ" +
-		"x2uwFyd5pW0INNW7wBx/wf/kEAQJEuBzOKkBQWuR4q7aThFfKNyfklRZ0dgrRQegjMkMy5s9Bwe2cou45VzzA7rSQIDAQAB"
+	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8" +
+		"wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/yS3tcLEA/VD+tucTzwzmZxbg5GvLz" +
+		"ygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7" +
+		"AnJkw7HxFv5bJCb3NPzfZJ3uLCKuWlG6lowG9pcoys7fogdJP8yrcQQarTQMDxPucY2" +
+		"4HBvnP44mBzN3cBLg7sy6p7ZqBJbggrP6EQx2uwFyd5pW0INNW7wBx/wf/kEAQJEuBz" +
+		"OKkBQWuR4q7aThFfKNyfklRZ0dgrRQegjMkMy5s9Bwe2cou45VzzA7rSQIDAQAB"
 	block, _ := base64.StdEncoding.DecodeString(pubKey)
 	pub, err := x509.ParsePKIXPublicKey(block)
 	if err != nil {
@@ -209,7 +211,8 @@ func NewServer(r io.Reader, ct string) Server {
 			admins:                 cache.New(c.ExpirationTime, c.CleanTime),
 			signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
 			adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
-			validPublicKeys:        cache.New(cache.NoExpiration, cache.NoExpiration),
+			validPublicKeys: cache.New(cache.NoExpiration,
+				cache.NoExpiration),
 		},
 		pub.(*rsa.PublicKey),
 	}
@@ -252,8 +255,8 @@ func recoverWrap(h http.Handler) http.Handler {
 				}
 				writingErr := writeJSON(w, statusCode, response)
 				if writingErr != nil {
-					log.Printf("Failed to encode error as JSON.\nEncoding error: "+
-						"%v\nOriginal error:%v\n", writingErr, err)
+					log.Printf("Failed to encode error as JSON.\nEncoding "+
+						"error: %v\nOriginal error:%v\n", writingErr, err)
 				}
 			}
 		}()
@@ -281,14 +284,16 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 		serverID, messageMAC := getAuthDataFromHeaders(r)
 		authParts := strings.Split(r.Header.Get("authentication"), ":")
 		if len(authParts) != 2 {
-			writeJSON(w, http.StatusBadRequest, "Authentication header invalid")
+			writeJSON(w, http.StatusBadRequest,
+				"Authentication header invalid")
 			return
 		}
 
 		// Determine which authentication mechanism to use
 		serverInfo := AppServerInfo{}
-		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
-			First(&serverInfo).Error
+		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{
+			ID: serverID,
+		}).First(&serverInfo).Error
 		optionalBadRequestPanic(err, "Could not find app server")
 
 		panicIfFalse(serverInfo.AuthType == "token", http.StatusBadRequest,
@@ -326,18 +331,22 @@ func (srv *Server) GetHandler() http.Handler {
 	// Admin routes
 	ah := adminHandler{
 		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
-			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
+		q: newQueue(srv.Config.RecentlyCompletedExpirationTime,
+			srv.Config.CleanTime, srv.Config.ListenerExpirationTime,
+			srv.Config.CleanTime),
 	}
 	forMethod(router, "/admin/new", ah.NewAdmin, "POST")
-	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler, "GET")
+	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler,
+		"GET")
 	forMethod(router, "/admin/register", ah.Register, "POST")
 	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 
 	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")
-	forMethod(router, "/admin/admin/roles", ah.ChangeAdminRoles, "POST") // super-admins only
+	// super-admins only
+	forMethod(router, "/admin/admin/roles", ah.ChangeAdminRoles, "POST")
 	forMethod(router, "/admin/admin/{adminID}", ah.UpdateAdmin, "PUT")
-	forMethod(router, "/admin/admin/{adminID}", ah.DeleteAdmin, "DELETE") // super-admins only
+	// super-admins only
+	forMethod(router, "/admin/admin/{adminID}", ah.DeleteAdmin, "DELETE")
 
 	forMethod(router, "/admin/app", ah.GetApps, "GET")
 	forMethod(router, "/admin/app", ah.NewApp, "POST")
@@ -354,6 +363,7 @@ func (srv *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/ltr", ah.NewLongTerm, "POST")
 	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
 
+	// Super-admins only
 	forMethod(router, "/admin/permission", ah.GetPermissions, "GET")
 	forMethod(router, "/admin/permission", ah.NewPermissions, "POST")
 	forMethod(router, "/admin/permission/{appID}/{adminID}/{permission}",
@@ -373,10 +383,12 @@ func (srv *Server) GetHandler() http.Handler {
 	// Auth routes
 	th := authHandler{
 		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
-			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
+		q: newQueue(srv.Config.RecentlyCompletedExpirationTime,
+			srv.Config.CleanTime, srv.Config.ListenerExpirationTime,
+			srv.Config.CleanTime),
 	}
-	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler, "GET")
+	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
+		"GET")
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
 	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
 	forMethod(router, "/v1/auth", th.Authenticate, "POST")
@@ -385,13 +397,16 @@ func (srv *Server) GetHandler() http.Handler {
 	// Register routes
 	rh := registerHandler{
 		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime, srv.Config.CleanTime,
-			srv.Config.ListenerExpirationTime, srv.Config.CleanTime),
+		q: newQueue(srv.Config.RecentlyCompletedExpirationTime,
+			srv.Config.CleanTime, srv.Config.ListenerExpirationTime,
+			srv.Config.CleanTime),
 	}
-	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler, "GET")
+	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler,
+		"GET")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
 	forMethod(router, "/v1/register", rh.Register, "POST")
-	forMethod(router, "/v1/register/{requestID}", rh.RegisterIFrameHandler, "GET")
+	forMethod(router, "/v1/register/{requestID}", rh.RegisterIFrameHandler,
+		"GET")
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
