@@ -202,3 +202,8 @@ type deleteLTRRequest struct {
 	AppID           string `json:"appID"`
 	HashedRequestID string `json:"hashedRequestID"`
 }
+
+// Request to POST /admin/permission
+type newPermissionsRequest struct {
+	Permissions []Permission `json:"permissions"`
+}

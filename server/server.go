@@ -190,7 +190,8 @@ func NewServer(r io.Reader, ct string) Server {
 		AutoMigrate(&Key{}).
 		AutoMigrate(&Admin{}).
 		AutoMigrate(&KeySignature{}).
-		AutoMigrate(&SigningKey{}).Error
+		AutoMigrate(&SigningKey{}).
+		AutoMigrate(&Permission{}).Error
 	if err != nil {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
@@ -352,6 +353,11 @@ func (srv *Server) GetHandler() http.Handler {
 
 	forMethod(router, "/admin/ltr", ah.NewLongTerm, "POST")
 	forMethod(router, "/admin/ltr", ah.DeleteLongTerm, "DELETE")
+
+	forMethod(router, "/admin/permission", ah.GetPermissions, "GET")
+	forMethod(router, "/admin/permission", ah.NewPermissions, "POST")
+	forMethod(router, "/admin/permission/{appID}/{adminID}/{permission}",
+		ah.DeletePermission, "DELETE")
 
 	// Info routes
 	ih := infoHandler{srv}
