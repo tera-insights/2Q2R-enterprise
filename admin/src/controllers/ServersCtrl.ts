@@ -9,7 +9,7 @@ interface IServerExtendedItem extends IServerItem {
     appName: string;
 }
 
-type filterAttType = 'serverName' | 'appName' | 'userCnt';
+type filterAttrType = 'serverName' | 'appName' | 'userCnt';
 
 
 export class ServersCtrl {
@@ -23,7 +23,7 @@ export class ServersCtrl {
     private selectedServers: IServerExtendedItem[] = [];
     private filteredServers: IServerExtendedItem[] = [];
 
-    private filterAtt: filterAttType;
+    private filterType: filterAttrType;
     private filters: { [att: string]: any } = {
         "serverName": {
             type: "string",
@@ -73,17 +73,17 @@ export class ServersCtrl {
 
     applyFilters() {
         var filterFct: (IServerExtendedItem) => boolean;
-        var filterObj = this.filters[this.filterAtt];
+        var filterObj = this.filters[this.filterAttr];
         if (filterObj) {
             switch (filterObj.type) {
                 case "string":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        return server[this.filterAtt].includes(this.filterString);
+                        return server[this.filterAttr].includes(this.filterString);
                     };
                     break;
                 case "number":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        let val = server[this.filterAtt];
+                        let val = server[this.filterAttr];
                         return (val >= this.filterRange.min) &&
                             (val <= this.filterRange.max);
                     };
