@@ -9,24 +9,24 @@
                     <div layout="row" ng-switch-when="searchOpen">
                         <md-input-container class="md-block" flex-gt-sm>
                             <label>Filter Type</label>
-                            <md-select ng-model="ctrl2.filterType">
-                                <md-option ng-repeat="filter in ctrl2.filters" ng-value="filter.type">{{ filter.name }}</md-option>
+                            <md-select ng-model="ctrl2.filterProperty">
+                                <md-option ng-repeat="(key, filter) in ctrl2.filters" ng-value="key">{{ filter.name }}</md-option>
                             </md-select>
                         </md-input-container>
-                        <div ng-switch="ctrl2.filterType">
+                        <div ng-switch="ctrl2.filters[ctrl2.filterProperty].type">
                             <md-input-container ng-switch-when="string">
                                 <label>Value</label>
-                                <input type="text" ng-model="ctrl2.filterString">
+                                <input type="text" ng-model="ctrl2.filterString" ng-change="ctrl2.applyFilters()">
                             </md-input-container>
-                            <div layout="column" ng-switch-when="number">
-                                <md-slider-container>
-                                    <span>Min</span>
-                                    <md-slider></md-slider>
-                                </md-slider-container>
-                                <md-slider-container>
-                                    <span>Max</span>
-                                    <md-slider></md-slider>
-                                </md-slider-container>
+                            <div layout="row" ng-switch-when="number">
+                                <md-input-container>
+                                    <label>Min</label>
+                                    <input type="number" step="1" min="0" max="{{ ctrl2.maxUsers }}" ng-model="ctrl2.filterRange.min" ng-change="ctrl2.applyFilters()">
+                                </md-input-container>
+                                <md-input-container>
+                                    <label>Max</label>
+                                    <input type="number" step="1" min="{{ ctrl2.filterRange.min }}" max="{{ ctrl2.maxUsers }}" ng-model="ctrl2.filterRange.max" ng-change="ctrl2.applyFilters()">
+                                </md-input-container>
                             </div>
                         </div>
                     </div>
@@ -61,10 +61,10 @@
                     </tr>
                 </thead>
                 <tbody md-body>
-                    <tr md-row md-select="server" md-auto-select ng-repeat="server in ctrl2.servers | orderBy: ctrl2.orderBy | filter: {serverName: ctrl2.serverFilter, appName: ctrl2.appFilter} | limitTo: ctrl2.pagination.pageLimit : (ctrl2.pagination.page - 1) * ctrl2.pagination.pageLimit">
+                    <tr md-row md-select="server" md-auto-select ng-repeat="server in ctrl2.filteredServers | orderBy: ctrl2.orderBy | limitTo: ctrl2.pagination.pageLimit : (ctrl2.pagination.page - 1) * ctrl2.pagination.pageLimit">
                         <td md-cell>{{ server.serverName }}</td>
                         <td md-cell>{{ server.appName }}</td>
-                        <td md-cell>{{ server.users }}</td>
+                        <td md-cell>{{ server.userCount }}</td>
                     </tr>
                 </tbody>
         </md-table-container>

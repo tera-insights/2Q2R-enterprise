@@ -9,37 +9,28 @@ export class GenerateCtrl {
     private App: IAppResource;
     private Server: IServerResource;
 
-    private appPrefix: string = "App";
-    private serverPrefix: string = "Server";
+    private appPrefix: string;
+    private serverPrefix: string;
     private numApps = 100;
     private numServers = 1000;
-    private zipf = 1;
 
     /**
      * Accept function. Closes modal
      */
     accept() {
-        var dist = Prob.zipf(this.zipf, this.numServers);
-        var sNum = 0; // server counter
-
-        for (var i=0; i<this.numApps; i++){
-            // create the App first
-            var app = new this.App({
-                appName: this.appPrefix+"_"+i
+        let apps: IAppItem[] = this.App.query();
+        
+        for (var i = 0; i < this.numServers; i++) {
+            let app = apps[Math.floor(Math.random() * apps.length)];
+            var server = new this.Server({
+                serverName: this.serverPrefix + " #" + (i + 1),
+                appID: app.appID,
+                baseURL: "",
+                keyType: "",
+                publicKey: "",
+                permissions: ""
             });
-            app.$save().then((newApp: IAppItem) => {
-                var appID = newApp.appID;
-                // Crate the Servers
-                var numS: number = dist();
-                for (var j=0; j<numS; j++){
-                    var server = new this.Server({
-                        appID: appID,
-                        serverName: this.serverPrefix+" "+this.appPrefix+" "+sNum
-                    });
-                    server.$save();
-                    sNum++; // increment the server number
-                }
-            });
+            server.$save();
         }
 
         this.$mdDialog.hide();

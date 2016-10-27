@@ -6,11 +6,9 @@ import { Apps, IAppItem, IAppResource } from '../services/Apps';
 import { DeleteServersCtrl } from './modals/DeleteServersCtrl';
 
 interface IServerExtendedItem extends IServerItem {
-    appName: string;
+    appName?: string;
+    userCount?: number;
 }
-
-type filterAttrType = 'serverName' | 'appName' | 'userCnt';
-
 
 export class ServersCtrl {
     private Server: IServerResource;
@@ -19,11 +17,11 @@ export class ServersCtrl {
     private apps: IAppItem[];
 
     private appsByID: { [appID: string]: IAppItem } = {};
-
     private selectedServers: IServerExtendedItem[] = [];
     private filteredServers: IServerExtendedItem[] = [];
 
-    private filterType: filterAttrType;
+    // These correspond to the different filter types indicated by the drop-down.
+    private filterProperty: 'serverName' | 'appName' | 'userCount';
     private filters: { [att: string]: any } = {
         "serverName": {
             type: "string",
@@ -33,13 +31,16 @@ export class ServersCtrl {
             type: "string",
             name: "Application Name"
         },
-        "userCnt": {
+        "userCount": {
             type: "number",
             name: "User Count"
         }
     }
+
+    // These correspond to the actual filter values the user inputs.
     private filterString: string = "";
-    private filterRange: { min: number, max: number };
+    private filterRange: { min: number, max: number } = { min: undefined, max: undefined };
+    private maxUsers: number = 10;
 
     private orderBy: string;
     private state: 'searchClosed' | 'searchOpen' = 'searchClosed';
@@ -72,18 +73,19 @@ export class ServersCtrl {
     }
 
     applyFilters() {
+        console.log(this.filterProperty)
         var filterFct: (IServerExtendedItem) => boolean;
-        var filterObj = this.filters[this.filterAttr];
+        var filterObj = this.filters[this.filterProperty];
         if (filterObj) {
             switch (filterObj.type) {
                 case "string":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        return server[this.filterAttr].includes(this.filterString);
+                        return server[this.filterProperty].includes(this.filterString);
                     };
                     break;
                 case "number":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        let val = server[this.filterAttr];
+                        let val = server[this.filterString];
                         return (val >= this.filterRange.min) &&
                             (val <= this.filterRange.max);
                     };
@@ -112,6 +114,9 @@ export class ServersCtrl {
         ]).then(() => {
             this.appsByID = _.keyBy(this.apps, 'appID');
             this.servers.forEach((server: IServerExtendedItem) => {
+                if (server.userCount && server.userCount > this.maxUsers)
+                    this.maxUsers = server.userCount;
+
                 var app = this.appsByID[server.appID];
                 if (app) {
                     server.appName = app.appName;

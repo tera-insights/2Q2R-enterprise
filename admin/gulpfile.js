@@ -25,7 +25,7 @@ var libJsFiles = [
     'libs/angular-messages/angular-messages.min.js',
     'libs/angular-ui-router/release/angular-ui-router.min.js',
     'libs/ui-router-extras/release/ct-ui-router-extras.min.js',
-    'libs/lodash/dist/lodash.min.js',
+    //npm: 'libs/lodash/dist/lodash.min.js',
     'libs/random/lib/random.min.js',
     'libs/prob.js/dist/prob-min.js',
     'libs/angular-material-data-table/dist/md-data-table.min.js'
