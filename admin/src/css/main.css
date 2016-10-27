@@ -154,13 +154,13 @@ md-sidenav md-divider {
 
 /* applications tab */
 
-.application {
+.table-content {
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     background-color: #E5E6E6;
     padding: 22px;
 }
-
 
 /* stats next to table */
 

@@ -3,6 +3,7 @@
 import { Auth } from './services/Auth';
 import { Apps } from './services/Apps';
 import { Servers } from './services/Servers';
+import { Admins } from './services/Admins';
 import { MainCtrl } from './controllers/MainCtrl';
 import { AdminsCtrl } from './controllers/AdminsCtrl';
 import { LoginCtrl } from './controllers/LoginCtrl';
@@ -19,6 +20,7 @@ angular.module('2Q2R', [
     .service('Auth', Auth)
     .service('Apps', Apps)
     .service('Servers', Servers)
+    .service('Admins', Admins)
     .controller('MainCtrl', MainCtrl)
     .controller('AdminsCtrl', AdminsCtrl)
     .controller('LoginCtrl', LoginCtrl)

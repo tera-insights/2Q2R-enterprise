@@ -12,8 +12,8 @@ interface IServerExtendedItem extends IServerItem {
 
 export class ServersCtrl {
     private Server: IServerResource;
-    private App: IAppResource;
     private servers: IServerExtendedItem[];
+    private App: IAppResource;
     private apps: IAppItem[];
 
     private appsByID: { [appID: string]: IAppItem } = {};
@@ -38,9 +38,10 @@ export class ServersCtrl {
     }
 
     // These correspond to the actual filter values the user inputs.
+    private maxUsers: number = 0;
     private filterString: string = "";
-    private filterRange: { min: number, max: number } = { min: undefined, max: undefined };
-    private maxUsers: number = 10;
+    private caseSensitive: boolean = false;
+    private filterRange: { min: number, max: number } = { min: 0, max: 0 };
 
     private orderBy: string;
     private state: 'searchClosed' | 'searchOpen' = 'searchClosed';
@@ -80,12 +81,14 @@ export class ServersCtrl {
             switch (filterObj.type) {
                 case "string":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        return server[this.filterProperty].includes(this.filterString);
+                        var serverProperty = server[this.filterProperty];
+                        serverProperty = serverProperty ? serverProperty : ""; // TODO: every server should have every required property
+                        return (this.caseSensitive ? serverProperty : serverProperty.toLowerCase()).includes(this.caseSensitive ? this.filterString : this.filterString.toLowerCase());
                     };
                     break;
                 case "number":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        let val = server[this.filterString];
+                        var val = server[this.filterString];
                         return (val >= this.filterRange.min) &&
                             (val <= this.filterRange.max);
                     };
@@ -114,13 +117,16 @@ export class ServersCtrl {
         ]).then(() => {
             this.appsByID = _.keyBy(this.apps, 'appID');
             this.servers.forEach((server: IServerExtendedItem) => {
-                if (server.userCount && server.userCount > this.maxUsers)
+                if (server.userCount && server.userCount > this.maxUsers) {
                     this.maxUsers = server.userCount;
+                    this.filterRange.max = this.maxUsers;
+                }
 
                 var app = this.appsByID[server.appID];
                 if (app) {
                     server.appName = app.appName;
                 }
+                server.userCount = 0; // TODO: remove, we need to actually query user count for each server correctly
             });
             this.applyFilters();
         })
@@ -133,15 +139,16 @@ export class ServersCtrl {
         'Apps',
         'Servers'
     ];
+    
     constructor(
         private $q: ng.IQService,
         private $mdDialog: ng.material.IDialogService,
         private $mdToast: ng.material.IToastService,
-        AppsSrvc: Apps,
-        ServersSrvc: Servers
+        private Apps: Apps,
+        private Servers: Servers
     ) {
-        this.App = AppsSrvc.resource;
-        this.Server = ServersSrvc.resource;
+        this.App = Apps.resource;
+        this.Server = Servers.resource;
         this.refresh();
     }
 

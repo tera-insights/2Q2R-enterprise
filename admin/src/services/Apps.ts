@@ -20,6 +20,7 @@ export interface IAppResource extends ng.resource.IResourceClass<IAppItem> {
  * @class Apps
  */
 export class Apps {
+
     public resource: IAppResource; // the resource to access backend
 
     static Resource($resource: ng.resource.IResourceService): IAppResource {
@@ -31,9 +32,11 @@ export class Apps {
 
     static $inject = ['$resource', '$q', '$http'];
 
-    constructor($resource: ng.resource.IResourceService,
+    constructor(
+        private $resource: ng.resource.IResourceService,
         private $q: angular.IQService,
-        private $http: angular.IHttpService) {
+        private $http: angular.IHttpService
+    ) {
         this.resource = Apps.Resource($resource);
     }
 
