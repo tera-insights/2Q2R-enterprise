@@ -483,3 +483,67 @@ func (ah *adminHandler) GetSigningKeys(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, result)
 }
+
+// GetPermissions returns all permission in the DB.
+// GET /admin/permission
+func (ah *adminHandler) GetPermissions(w http.ResponseWriter, r *http.Request) {
+	var result []Permission
+	err := ah.s.DB.Model(&Permission{}).Find(&result).Error
+	optionalInternalPanic(err, "Could not read permissions")
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// NewPermissions creates a list of new permissions.
+// POST /admin/permission
+func (ah *adminHandler) NewPermissions(w http.ResponseWriter,
+	r *http.Request) {
+	req := newPermissionsRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	optionalBadRequestPanic(err, "Could not decode request body")
+
+	tx := ah.s.DB.Begin()
+	for _, p := range req.Permissions {
+		err = ah.s.DB.Create(&p).Error
+		if err != nil {
+			tx.Rollback()
+			optionalInternalPanic(err, "Could not save permission")
+		}
+	}
+
+	err = tx.Commit().Error
+	optionalInternalPanic(err, "Could not commit transaction to database")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: int64(len(req.Permissions)),
+	})
+}
+
+// DeletePermission deletes a specified admin permission.
+// DELETE /admin/permission/{appID}/{adminID}/{permission}
+func (ah *adminHandler) DeletePermission(w http.ResponseWriter,
+	r *http.Request) {
+	appID := mux.Vars(r)["appID"]
+	adminID := mux.Vars(r)["adminID"]
+	permission := mux.Vars(r)["permission"]
+
+	err := CheckBase64(appID)
+	optionalBadRequestPanic(err, "App ID was not base-64 encoded")
+
+	err = CheckBase64(adminID)
+	optionalBadRequestPanic(err, "Admin ID was not base-64 encoded")
+
+	err = CheckBase64(permission)
+	optionalBadRequestPanic(err, "Permission was not base-64 encoded")
+
+	query := ah.s.DB.Delete(Permission{}, &Permission{
+		AppID:      appID,
+		AdminID:    adminID,
+		Permission: permission,
+	})
+	optionalInternalPanic(query.Error, "Could not delete permission")
+
+	writeJSON(w, http.StatusOK, modificationReply{
+		NumAffected: query.RowsAffected,
+	})
+}

@@ -2,12 +2,6 @@
 
 package server
 
-import (
-	"encoding/json"
-
-	"github.com/pkg/errors"
-)
-
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
 	ID      string `json:"appID"`
@@ -66,48 +60,15 @@ type Admin struct {
 	PrimarySigningKeyID string `json:"primarySigningKeyID"` // FK into the SigningKey relation
 }
 
-// BeforeCreate asserts that the create admin has valid permissions.
-func (a *Admin) BeforeCreate() error {
-	parsed := make([]interface{}, 0)
-	err := json.Unmarshal([]byte(a.Permissions), &parsed)
-	if err != nil {
-		return err
-	}
-	validPermissions := []string{}
-	for _, element := range parsed {
-		found := false
-		for _, valid := range validPermissions {
-			if valid == element.(string) {
-				found = true
-			}
-		}
-		if !found {
-			return errors.Errorf("Permission %s is invalid", element.(string))
-		}
-	}
-	return nil
-}
+// Permission is the schema for an admin's permissions.
+type Permission struct {
+	AdminID string `gorm:"primary_key" json:"adminID"`
 
-// BeforeUpdate asserts that the updated admin has valid permissions.
-func (a *Admin) BeforeUpdate() error {
-	parsed := make([]interface{}, 0)
-	err := json.Unmarshal([]byte(a.Permissions), &parsed)
-	if err != nil {
-		return err
-	}
-	validPermissions := []string{}
-	for _, element := range parsed {
-		found := false
-		for _, valid := range validPermissions {
-			if valid == element.(string) {
-				found = true
-			}
-		}
-		if !found {
-			return errors.Errorf("Permission %s is invalid", element.(string))
-		}
-	}
-	return nil
+	// If `AppID == 1`, then this is a global permission
+	AppID string `gorm:"primary_key" json:"appID"`
+
+	// Must be inside the valid list of permissions
+	Permission string `gorm:"primary_key" json:"permission"`
 }
 
 // SigningKey is the Gorm model for keys that the admin uses to sign things.
