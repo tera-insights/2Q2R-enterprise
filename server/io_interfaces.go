@@ -95,9 +95,8 @@ type newServerRequest struct {
 type serverUpdateRequest struct {
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
-	PublicKey   []byte `json:"publicKey"`
+	PublicKey   string `json:"publicKey"` // base-64 encoded byte array
 	Permissions string `json:"permissions"`
-	AuthType    string `json:"authType"`
 }
 
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.

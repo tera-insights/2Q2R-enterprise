@@ -409,14 +409,16 @@ func (ah *adminHandler) UpdateServer(w http.ResponseWriter, r *http.Request) {
 	err = CheckBase64(serverID)
 	optionalBadRequestPanic(err, "Server ID was not base-64 encoded")
 
+	pub, err := decodeBase64(req.PublicKey)
+	optionalBadRequestPanic(err, "Public key was not properly encoded")
+
 	err = ah.s.DB.Where(&AppServerInfo{
 		ID: serverID,
 	}).Updates(AppServerInfo{
 		BaseURL:     req.BaseURL,
 		KeyType:     req.KeyType,
-		PublicKey:   req.PublicKey,
+		PublicKey:   pub,
 		Permissions: req.Permissions,
-		AuthType:    req.AuthType,
 	}).Error
 	optionalInternalPanic(err, "Failed to update app server info")
 

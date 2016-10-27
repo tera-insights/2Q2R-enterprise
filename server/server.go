@@ -3,12 +3,15 @@
 package server
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"html/template"
 	"io"
 	"log"
@@ -26,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
+	"github.com/telehash/gogotelehash/e3x/cipherset/cs1a/ecdh"
 )
 
 // Config is the configuration for the server.
@@ -53,15 +57,19 @@ type Config struct {
 	CertFile string
 	KeyFile  string
 
-	// A list of regular expressions mapping to routes that require auth
-	// headers
+	// A list of glob patterns mapping to routes that require auth headers
 	AuthenticationRequiredRoutes []string
 
 	Base64EncodedPublicKey string
 	KeyType                string
 
-	// For HMAC-based authentication
-	Token string
+	// Path to the private ECDSA key that verifies server-to-server
+	// authentication
+	PrivateKeyFile string
+
+	// Whether or nor the private ECDSA key file is encrypted
+	PrivateKeyEncrypted bool
+	PrivateKeyPassword  string
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -71,15 +79,13 @@ func (c *Config) getBaseURLWithProtocol() string {
 	return "http://" + c.BaseURL + c.Port
 }
 
-// MakeConfig reads in r as if it were a config file of type ct and returns the
-// resulting config.
-
 // Server is the type that represents the 2Q2R server.
 type Server struct {
 	Config *Config
 	DB     *gorm.DB
 	cache  cacher
 	pub    *rsa.PublicKey
+	priv   *ecdsa.PrivateKey
 }
 
 // Used in registration and authentication templates
@@ -144,7 +150,7 @@ func NewServer(r io.Reader, ct string) Server {
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
-	viper.SetDefault("Token", "mytoken")
+	viper.SetDefault("PrivateKeyEncrypted", false)
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -167,9 +173,12 @@ func NewServer(r io.Reader, ct string) Server {
 		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
 		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
 		KeyType:                      viper.GetString("KeyType"),
-		Token:                        viper.GetString("Token"),
+		PrivateKeyFile:               viper.GetString("PrivateKeyFile"),
+		PrivateKeyEncrypted:          viper.GetBool("PrivateKeyEncrypted"),
+		PrivateKeyPassword:           viper.GetString("PrivateKeyPassword"),
 	}
 
+	// Load the Tera Insights RSA public key
 	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8" +
 		"wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/yS3tcLEA/VD+tucTzwzmZxbg5GvLz" +
 		"ygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7" +
@@ -179,7 +188,40 @@ func NewServer(r io.Reader, ct string) Server {
 	block, _ := base64.StdEncoding.DecodeString(pubKey)
 	pub, err := x509.ParsePKIXPublicKey(block)
 	if err != nil {
-		panic(errors.Errorf("Failed to parse server's public key: %+v", err))
+		panic(errors.Wrap(err, "Failed to parse server's public key"))
+	}
+
+	// Read the elliptic private key
+	file, err := os.Open(c.PrivateKeyFile)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't open private key file"))
+	}
+
+	der := []byte{}
+	_, err = file.Read(der)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't read private key file"))
+	}
+
+	p, _ := pem.Decode(der)
+	if p == nil {
+		panic(errors.Wrap(err, "File was not PEM-formatted"))
+	}
+
+	var key []byte
+	if c.PrivateKeyEncrypted {
+		key, err = x509.DecryptPEMBlock(p, []byte(c.PrivateKeyPassword))
+		if err != nil {
+			panic(errors.Wrap(err, "Couldn't decrypt private key"))
+		}
+	} else {
+		key = p.Bytes
+	}
+
+	priv, err := x509.ParseECPrivateKey(key)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't parse file as DER-encoded ECDSA "+
+			"private key"))
 	}
 
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
@@ -215,6 +257,7 @@ func NewServer(r io.Reader, ct string) Server {
 				cache.NoExpiration),
 		},
 		pub.(*rsa.PublicKey),
+		priv,
 	}
 }
 
@@ -264,14 +307,18 @@ func recoverWrap(h http.Handler) http.Handler {
 	})
 }
 
-func (srv *Server) middleware(handle http.Handler) http.Handler {
+// 1. If we don't need to authenticate the route, do nothing
+// 2. Else, generate the ECDH key using our private key and the server's public
+// key. If we can't find the server, return this is a bad request
+// 3. Use the shared key to check the SHA-256 HMAC of the message. If it's OK,
+// pass the request along. Else, refuse and log this unauthorized request.
+func (s *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
-		for _, regex := range srv.Config.AuthenticationRequiredRoutes {
-			if glob.Glob(regex, r.URL.Path) {
+		for _, pattern := range s.Config.AuthenticationRequiredRoutes {
+			if glob.Glob(pattern, r.URL.Path) {
 				needsAuthentication = true
-				break
 			}
 		}
 
@@ -289,31 +336,40 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 			return
 		}
 
-		// Determine which authentication mechanism to use
-		serverInfo := AppServerInfo{}
-		err := srv.DB.Model(AppServerInfo{}).Where(AppServerInfo{
-			ID: serverID,
-		}).First(&serverInfo).Error
-		optionalBadRequestPanic(err, "Could not find app server")
+		// If possible, get the shared key from the cache
+		fetched, found := s.cache.sharedKeys.Get(serverID)
+		var key []byte
+		if found {
+			key = fetched.([]byte)
+		} else {
+			// Use ECDH to generate the shared key
+			serverInfo := AppServerInfo{}
+			err := s.DB.Model(AppServerInfo{}).Where(AppServerInfo{
+				ID: serverID,
+			}).First(&serverInfo).Error
+			optionalBadRequestPanic(err, "Could not find app server")
 
-		panicIfFalse(serverInfo.AuthType == "token", http.StatusBadRequest,
-			"Stored authentication method not supported")
+			x, y := elliptic.Unmarshal(elliptic.P256(), serverInfo.PublicKey)
+			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
+			s.cache.sharedKeys.Set(serverID, key, cache.NoExpiration)
+		}
 
+		// Hash the path and, if apprpriate, the request body
 		route := []byte(r.URL.Path)
 		var body []byte
 		if r.ContentLength > 0 {
-			_, err = r.Body.Read(body)
+			_, err := r.Body.Read(body)
 			optionalInternalPanic(err, "Failed to read request body")
 		}
-
-		mac := hmac.New(sha256.New, []byte(srv.Config.Token))
+		mac := hmac.New(sha256.New, key)
 		mac.Write(route)
 		if len(body) > 0 {
 			mac.Write(body)
 		}
 		expectedMAC := mac.Sum(nil)
-		bytesOfMessageMAC, err := base64.StdEncoding.DecodeString(messageMAC)
-		optionalInternalPanic(err, "Failed to validate headers")
+		bytesOfMessageMAC, err := decodeBase64(messageMAC)
+		optionalInternalPanic(err, "Failed to decode MAC as web-encoded "+
+			"base-64 without padding")
 
 		if !hmac.Equal(bytesOfMessageMAC, expectedMAC) {
 			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
@@ -325,15 +381,20 @@ func (srv *Server) middleware(handle http.Handler) http.Handler {
 }
 
 // GetHandler returns the routes used by the 2Q2R server.
-func (srv *Server) GetHandler() http.Handler {
+func (s *Server) GetHandler() http.Handler {
 	router := mux.NewRouter()
+
+	// Get the server's public key
+	forMethod(router, "/v1/public", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, s.priv.PublicKey)
+	}, "GET")
 
 	// Admin routes
 	ah := adminHandler{
-		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime,
-			srv.Config.CleanTime, srv.Config.ListenerExpirationTime,
-			srv.Config.CleanTime),
+		s: s,
+		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
+			s.Config.CleanTime, s.Config.ListenerExpirationTime,
+			s.Config.CleanTime),
 	}
 	forMethod(router, "/admin/new", ah.NewAdmin, "POST")
 	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler,
@@ -370,11 +431,11 @@ func (srv *Server) GetHandler() http.Handler {
 		ah.DeletePermission, "DELETE")
 
 	// Info routes
-	ih := infoHandler{srv}
+	ih := infoHandler{s}
 	forMethod(router, "/v1/info/{appID}", ih.AppinfoHandler, "GET")
 
 	// Key routes
-	kh := keyHandler{srv}
+	kh := keyHandler{s}
 	forMethod(router, "/v1/users/{userID}", kh.UserExists, "GET")
 	forMethod(router, "/v1/keys/get", kh.GetKeys, "GET")
 	forMethod(router, "/v1/users/{userID}", kh.DeleteUser, "DELETE")
@@ -382,10 +443,10 @@ func (srv *Server) GetHandler() http.Handler {
 
 	// Auth routes
 	th := authHandler{
-		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime,
-			srv.Config.CleanTime, srv.Config.ListenerExpirationTime,
-			srv.Config.CleanTime),
+		s: s,
+		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
+			s.Config.CleanTime, s.Config.ListenerExpirationTime,
+			s.Config.CleanTime),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
 		"GET")
@@ -396,10 +457,10 @@ func (srv *Server) GetHandler() http.Handler {
 
 	// Register routes
 	rh := registerHandler{
-		s: srv,
-		q: newQueue(srv.Config.RecentlyCompletedExpirationTime,
-			srv.Config.CleanTime, srv.Config.ListenerExpirationTime,
-			srv.Config.CleanTime),
+		s: s,
+		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
+			s.Config.CleanTime, s.Config.ListenerExpirationTime,
+			s.Config.CleanTime),
 	}
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler,
 		"GET")
@@ -411,8 +472,8 @@ func (srv *Server) GetHandler() http.Handler {
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
 	router.PathPrefix("/").Handler(fileServer)
-	h := recoverWrap(srv.middleware(router))
-	if srv.Config.LogRequests {
+	h := recoverWrap(s.middleware(router))
+	if s.Config.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, h)
 	}
 	return h
