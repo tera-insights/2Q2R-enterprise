@@ -307,6 +307,11 @@ mdt-table > md-content > ng-include {
     background-color: rgba(12, 12, 12, 0.07);
 }
 
+/* for some reason leaflet maps, like table toolbars, have bad z-indexes and overlap the main toolbar */
+.leaflet-map {
+    z-index: 0;
+}
+
 /* leaflet maps must have a size specified in the css */
 #map {
     width: 80%;

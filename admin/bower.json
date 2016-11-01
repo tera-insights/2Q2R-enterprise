@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "lodash": "^4.16.4",
-    "leaflet": "^1.0.1"
+    "leaflet": "^1.0.1",
+    "chart.js": "^2.3.0"
   }
 }

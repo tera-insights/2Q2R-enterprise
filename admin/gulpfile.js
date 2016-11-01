@@ -29,7 +29,8 @@ var libJsFiles = [
     'libs/random/lib/random.min.js',
     'libs/prob.js/dist/prob-min.js',
     'libs/angular-material-data-table/dist/md-data-table.min.js',
-    'libs/leaflet/dist/leaflet.js'
+    'libs/leaflet/dist/leaflet.js',
+    'libs/chart.js/dist/Chart.bundle.min.js'
 ];
 
 var libCssFiles = [

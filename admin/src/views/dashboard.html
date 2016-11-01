@@ -1,9 +1,5 @@
 <md-content layout="column" layout-align="start center" layout-padding>
-	<div class="application-stats" layout="row" flex>
-		<div class="basic-card stats-card" layout-padding>102 apps</div>
-		<div class="basic-card stats-card" layout-padding>testerino</div>
-		<div class="basic-card stats-card" layout-padding>migrate to dashboard probably</div>
-		<div class="basic-card stats-card" layout-padding>asdasdas</div>
-	</div>
-	<div id="map" md-whiteframe="4" />
+		<p><b>{{ ctrl2.appCount }} applications</b> across <b>{{ ctrl2.serverCount }} servers</b> with <b>{{ ctrl2.adminCount }} administrators</b> and <b>{{ ctrl2.userCountInThousands + 'K' }} users</b>.</p>
+	<div id="map" class="leaflet-map" md-whiteframe="4" />
+	<canvas id="chart" style="width: 80%; height: 480px;"></canvas>
 </md-content>
