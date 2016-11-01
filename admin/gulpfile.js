@@ -28,13 +28,15 @@ var libJsFiles = [
     //npm: 'libs/lodash/dist/lodash.min.js',
     'libs/random/lib/random.min.js',
     'libs/prob.js/dist/prob-min.js',
-    'libs/angular-material-data-table/dist/md-data-table.min.js'
+    'libs/angular-material-data-table/dist/md-data-table.min.js',
+    'libs/leaflet/dist/leaflet.js'
 ];
 
 var libCssFiles = [
     'libs/material-design-icons/iconfont/material-icons.css',
     'libs/angular-material/angular-material.min.css',
-    'libs/angular-material-data-table/dist/md-data-table.min.css'
+    'libs/angular-material-data-table/dist/md-data-table.min.css',
+    'libs/leaflet/dist/leaflet.css'
 ];
 
 var libFontFiles = [

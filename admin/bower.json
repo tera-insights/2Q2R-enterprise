@@ -29,6 +29,7 @@
     "angular-material-data-table": "^0.10.9"
   },
   "dependencies": {
-    "lodash": "^4.16.4"
+    "lodash": "^4.16.4",
+    "leaflet": "^1.0.1"
   }
 }

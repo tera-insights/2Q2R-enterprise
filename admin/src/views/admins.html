@@ -7,20 +7,22 @@
 					<md-select ng-model="ctrl2.selectedFilter" placeholder="Filter">
 						<md-option ng-repeat="filter in ctrl2.filters" ng-value="filter">{{ filter.charAt(0).toUpperCase() + filter.slice(1) }}</md-option>
 					</md-select>
-					<md-icon md-svg-icon="img/icons/chevron-right.svg" ng-if="ctrl2.selectedFilter"/>
-					<md-input-container md-no-float ng-if="ctrl2.selectedFilter">
+					<md-icon md-svg-icon="img/icons/chevron-right.svg" ng-if="ctrl2.selectedFilter" />
+				</div>
+				<div class="md-toolbar-item docs-tools layout-row" layout="row" layout-align="start center" ng-if="ctrl2.selectedFilter">
+					<md-input-container md-no-float>
 						<input type="text" placeholder="Value" ng-model="ctrl2.filterValue">
 					</md-input-container>
 				</div>
 				<span flex/>
 				<md-button class="md-icon-button" aria-label="Show Filter" ng-click="ctrl2.filterOpen = !ctrl2.filterOpen" ng-if="!ctrl2.filterOpen">
-					<md-icon md-svg-icon="img/icons/filter.svg"/>
+					<md-icon md-svg-icon="img/icons/filter.svg" />
 				</md-button>
 				<md-button class="md-icon-button" aria-label="Hide Filter" ng-click="ctrl2.filterOpen = !ctrl2.filterOpen" ng-if="ctrl2.filterOpen">
-					<md-icon md-svg-icon="img/icons/close.svg"/>
+					<md-icon md-svg-icon="img/icons/close.svg" />
 				</md-button>
 				<md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.deleteSelected()" ng-if="ctrl2.selectedAdmins.length">
-					<md-icon md-svg-icon="img.icons/delete.svg"/>
+					<md-icon md-svg-icon="img.icons/delete.svg" />
 				</md-button>
 			</div>
 		</md-toolbar>

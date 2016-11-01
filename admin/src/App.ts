@@ -5,6 +5,7 @@ import { Apps } from './services/Apps';
 import { Servers } from './services/Servers';
 import { Admins } from './services/Admins';
 import { MainCtrl } from './controllers/MainCtrl';
+import { DashboardCtrl } from './controllers/DashboardCtrl';
 import { AdminsCtrl } from './controllers/AdminsCtrl';
 import { LoginCtrl } from './controllers/LoginCtrl';
 import { AppsCtrl } from './controllers/AppsCtrl';
@@ -22,6 +23,7 @@ angular.module('2Q2R', [
     .service('Servers', Servers)
     .service('Admins', Admins)
     .controller('MainCtrl', MainCtrl)
+    .controller('DashboardCtrl', DashboardCtrl)
     .controller('AdminsCtrl', AdminsCtrl)
     .controller('LoginCtrl', LoginCtrl)
     .controller('AppsCtrl', AppsCtrl)
@@ -86,7 +88,9 @@ angular.module('2Q2R', [
             })
             .state('main.dashboard', {
                 url: "/dashboard",
-                templateUrl: "views/dashboard.html"
+                templateUrl: "views/dashboard.html",
+                controller: "DashboardCtrl",
+                controllerAs: "ctrl2"
             })
             .state('main.admin', {
                 url: "/admin",
