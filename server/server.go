@@ -150,6 +150,7 @@ func NewServer(r io.Reader, ct string) Server {
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
+	viper.SetDefault("PrivateKeyFile", "priv.pem")
 	viper.SetDefault("PrivateKeyEncrypted", false)
 
 	err := viper.ReadConfig(r)
@@ -197,15 +198,20 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Couldn't open private key file"))
 	}
 
-	der := []byte{}
-	_, err = file.Read(der)
+	info, err := file.Stat()
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't get info about private key file"))
+	}
+
+	bytes := make([]byte, info.Size())
+	_, err = file.Read(bytes)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't read private key file"))
 	}
 
-	p, _ := pem.Decode(der)
+	p, _ := pem.Decode(bytes)
 	if p == nil {
-		panic(errors.Wrap(err, "File was not PEM-formatted"))
+		panic(errors.New("File was not PEM-formatted"))
 	}
 
 	var key []byte
