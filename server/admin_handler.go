@@ -14,6 +14,7 @@ import (
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
 )
 
@@ -27,7 +28,7 @@ type adminHandler struct {
 // challenge signature is valid, then we store the admin.
 // POST /admin/new
 func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
-	req := newAdminRequest{}
+	req := NewAdminRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Could not decode request body")
 
@@ -546,4 +547,21 @@ func (ah *adminHandler) DeletePermission(w http.ResponseWriter,
 	writeJSON(w, http.StatusOK, modificationReply{
 		NumAffected: query.RowsAffected,
 	})
+}
+
+// RegisterListener creates a new websocket-based stats listener from the
+// request.
+// GET /admin/stats/listen
+func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
+	r *http.Request) {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
+
+	ah.s.disperser.addListener(conn)
+	ah.s.disperser.addEvent("listener_created")
+	writeJSON(w, http.StatusOK, "Socket created")
 }

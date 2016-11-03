@@ -81,11 +81,17 @@ func (c *Config) getBaseURLWithProtocol() string {
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
-	Config *Config
-	DB     *gorm.DB
-	cache  cacher
-	pub    *rsa.PublicKey
-	priv   *ecdsa.PrivateKey
+	Config    *Config
+	DB        *gorm.DB
+	cache     cacher
+	disperser *disperser
+	pub       *rsa.PublicKey
+	priv      *ecdsa.PrivateKey
+}
+
+// VerifySignature exposes s.cache.VerifySignature
+func (s *Server) VerifySignature(ks KeySignature) error {
+	return s.cache.VerifySignature(ks)
 }
 
 // Used in registration and authentication templates
@@ -150,6 +156,7 @@ func NewServer(r io.Reader, ct string) Server {
 	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
+	viper.SetDefault("PrivateKeyFile", "priv.pem")
 	viper.SetDefault("PrivateKeyEncrypted", false)
 
 	err := viper.ReadConfig(r)
@@ -197,15 +204,20 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Couldn't open private key file"))
 	}
 
-	der := []byte{}
-	_, err = file.Read(der)
+	info, err := file.Stat()
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't get info about private key file"))
+	}
+
+	bytes := make([]byte, info.Size())
+	_, err = file.Read(bytes)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't read private key file"))
 	}
 
-	p, _ := pem.Decode(der)
+	p, _ := pem.Decode(bytes)
 	if p == nil {
-		panic(errors.Wrap(err, "File was not PEM-formatted"))
+		panic(errors.New("File was not PEM-formatted"))
 	}
 
 	var key []byte
@@ -240,6 +252,11 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
+	// Create and start the disperser
+	d := newDisperser()
+	go d.listen()
+	go d.getMessages()
+
 	return Server{
 		c,
 		db,
@@ -256,6 +273,7 @@ func NewServer(r io.Reader, ct string) Server {
 			validPublicKeys: cache.New(cache.NoExpiration,
 				cache.NoExpiration),
 		},
+		d,
 		pub.(*rsa.PublicKey),
 		priv,
 	}
@@ -429,6 +447,8 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/permission", ah.NewPermissions, "POST")
 	forMethod(router, "/admin/permission/{appID}/{adminID}/{permission}",
 		ah.DeletePermission, "DELETE")
+
+	forMethod(router, "/admin/stats/listen", ah.RegisterListener, "GET")
 
 	// Info routes
 	ih := infoHandler{s}
