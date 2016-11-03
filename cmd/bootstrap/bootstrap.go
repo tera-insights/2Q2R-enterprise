@@ -47,7 +47,7 @@ func main() {
 		panic(errors.Wrapf(err, "Could not open config file at path %s", configPath))
 	}
 
-	s := server.NewServer(server.MakeConfig(r, configType))
+	s := server.NewServer(r, configType)
 
 	// Verify the passed signature
 	adminID, err := server.RandString(32)
@@ -61,7 +61,7 @@ func main() {
 		OwnerID:          adminID,
 		Signature:        req.Signature,
 	}
-	err = s.Cache.VerifySignature(signature)
+	err = s.VerifySignature(signature)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not verify signature"))
 	}
