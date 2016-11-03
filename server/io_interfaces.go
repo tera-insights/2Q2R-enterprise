@@ -206,8 +206,3 @@ type deleteLTRRequest struct {
 type newPermissionsRequest struct {
 	Permissions []Permission `json:"permissions"`
 }
-
-type eventSummary struct {
-	Type   string   `json:"__type__"` // type of message
-	Events []string `json:"events"`
-}
