@@ -1,0 +1,319 @@
+html {
+    /* grayish color */
+    background-color: #E5E6E6;
+}
+
+
+/* the container surrounding pretty much anything revelant */
+
+.main {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* size classes */
+
+.full-size {
+    width: 100%;
+    height: 100%;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.full-height {
+    height: 100%;
+}
+
+.fill-rest {
+    flex: 1 1 auto;
+}
+
+
+/* no highlighting */
+
+.noselect {
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
+/* for dialogs and just in general */
+
+h2 {
+    font-size: 24px;
+    font-weight: 400;
+}
+
+md-dialog {
+    /* for actions to fit within material spec */
+    padding-bottom: 0;
+}
+
+
+/* spaces out the size of the toolbar */
+
+.spacer {
+    margin-top: 64px;
+}
+
+
+/* instead of using md-whiteframe-2dp */
+
+.basic-card {
+    box-shadow: 0 1px 5px 0 rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .12);
+    border-radius: 2px;
+}
+
+
+/* now get us a noice icon color selector */
+
+.icon-black {
+    color: rgba(0, 0, 0, 0.54);
+}
+
+
+/* toolbar styles */
+
+.toolbar-container {
+    width: 100%;
+    position: fixed;
+    padding: 0;
+    /* place it above everything else */
+    z-index: 1;
+}
+
+.toolbar-container > md-toolbar {
+    padding: 0;
+}
+
+.toolbar-open {
+    /* offsets width for some reason */
+    width: 384px;
+    color: rgb(255, 255, 255) !important;
+    /* cyan 700 */
+    background-color: rgb(0, 151, 167) !important;
+}
+
+.toolbar-open svg {
+    fill: white;
+}
+
+.toolbar-actions {
+    color: #757575;
+    background-color: #fff !important;
+}
+
+.toolbar-actions svg {
+    fill: #757575;
+}
+
+
+/* sidenav styles */
+
+md-sidenav {
+    margin-top: 64px;
+}
+
+md-sidenav md-divider {
+    margin: 8px 0;
+}
+
+
+/* menu items inside of a sidenav for icon positioning; a hack */
+
+.fake-menu {}
+
+.fake-menu svg {
+    height: 24px;
+    width: 24px;
+}
+
+
+/* each menu item will be assigned a color based on nth-child when selected */
+
+.menu-active {
+    border-left: 4px solid #FB8C00;
+}
+
+.menu-active > .md-button {
+    padding-left: 12px;
+}
+
+.menu-active svg {
+    fill: #FB8C00;
+}
+
+
+/* applications tab */
+
+.table-content {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #E5E6E6;
+    padding: 22px;
+}
+
+/* stats next to table */
+
+.application-stats {
+    height: 108px;
+    display: flex;
+    margin: 3px 3px 22px 3px;
+}
+
+.stats-card {
+    flex-grow: 1;
+    flex-shrink: 1;
+    background-color: white;
+    margin-left: 25px;
+}
+
+
+/* every one but the first has a margin left for spacing */
+
+.application-stats > div:nth-child(1) {
+    margin-left: 0;
+}
+
+
+/* floating fab */
+
+.application-fab {
+    position: fixed !important;
+    right: 0;
+    bottom: 0;
+    margin: 20px !important;
+}
+
+
+/* table inside of applications */
+
+.table-wrapper {
+    height: auto;
+    background-color: white;
+    margin: 25px;
+}
+
+mdt-table {
+    height: 100%;
+    width: 100%;
+}
+
+mdt-table > md-content {
+    height: 100%;
+    width: 100%;
+    background-color: white;
+}
+
+mdt-table > md-content > ng-include {
+    height: 100%;
+    width: 100%;
+}
+
+.md-virtual-repeat-container {
+    height: 100%;
+    width: 100%;
+}
+
+
+/* make it a monospaced font to keep the app id from moving */
+
+.app-id {
+    font-family: Courier, sans-serif;
+}
+
+
+/* generate dialog */
+
+.generate {
+    width: 450px;
+}
+
+.generate-app {
+    display: flex;
+}
+
+.generate-app > md-input-container {
+    width: 50%;
+}
+
+.generate-server {
+    display: flex;
+}
+
+.generate-server > md-input-container {
+    width: 47.5%;
+    margin-bottom: 0;
+}
+
+.generate-server > md-input-container:nth-child(3) {
+    width: 20%;
+}
+
+
+/* avatar styles */
+
+.avatar {
+    /* alright balance between height/width here, no problem with changing it */
+    width: 250px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 40px;
+    margin: 0 15px 0 5px;
+}
+
+
+/* wraps the avatar name and title */
+
+.avatar-text {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Roboto', sans-serif;
+    margin-right: 10px;
+}
+
+.name {
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 14px;
+    text-overflow: ellipsis;
+}
+
+.title {
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 13px;
+    text-overflow: ellipsis;
+}
+
+
+/* a little bit of special effects */
+
+.avatar:hover {
+    cursor: pointer;
+    background-color: rgba(12, 12, 12, 0.07);
+}
+
+/* for some reason leaflet maps, like table toolbars, have bad z-indexes and overlap the main toolbar */
+.leaflet-map {
+    z-index: 0;
+}
+
+/* leaflet maps must have a size specified in the css */
+#map {
+    width: 80%;
+    height: 480px;
+}

@@ -1,0 +1,11 @@
+Port: ":3040"
+DatabaseType:                    "sqlite3"
+DatabaseName:                    "test.db"
+ExpirationTime:                  5m
+CleanTime:                       30s
+BaseURL:                         "192.168.1.139"
+ListenerExpirationTime:          3m
+RecentlyCompletedExpirationTime: 1m
+HTTPS: false
+LogRequests: true
+Token: "748312907487203129347q97"

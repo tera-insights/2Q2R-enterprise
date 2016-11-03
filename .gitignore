@@ -28,6 +28,8 @@ server/test.db
 
 # Generated
 server/assets.go
+server/assets/admin
+server
 
 # Static files
 server/assets/lib
@@ -35,5 +37,14 @@ server/assets/css
 server/assets/js
 server/assets/img
 
+
 # Dependencies
 vendor/
+
+# Config file so we do not overwrite the config in GIT
+config.yaml
+
+# Keep out bootstrap.go so the initial config does not make it into GIT
+bootstrap.go
+
+test.db

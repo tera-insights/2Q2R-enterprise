@@ -1,0 +1,80 @@
+<md-content class="table-content">
+	<div class="table-wrapper basic-card">
+		<md-toolbar class="md-table-toolbar md-default" style="z-index: 0;">
+			<div class="md-toolbar-tools">
+				<div ng-switch="ctrl2.state">
+					<div ng-switch-when="searchClosed">
+						<span>Servers</span>
+					</div>
+					<div layout="row" ng-switch-when="searchOpen">
+						<md-input-container class="md-block" flex-gt-sm>
+							<label>Filter Type</label>
+							<md-select ng-model="ctrl2.filterProperty">
+								<md-option ng-repeat="(key, filter) in ctrl2.filters" ng-value="key">{{ filter.name }}</md-option>
+							</md-select>
+						</md-input-container>
+						<div ng-switch="ctrl2.filters[ctrl2.filterProperty].type">
+							<div layout="row" ng-switch-when="string">
+								<md-input-container>
+									<label>Value</label>
+									<input type="text" ng-model="ctrl2.filterString" ng-change="ctrl2.applyFilters()">
+								</md-input-container>
+								<md-checkbox ng-model="ctrl2.caseSensitive" ng-change="ctrl2.applyFilters()">
+									Match Case
+								</md-checkbox>
+							</div>
+							<div layout="row" ng-switch-when="number">
+								<md-input-container>
+									<label>Min</label>
+									<input type="number" step="1" min="0" max="{{ ctrl2.maxUsers }}" ng-model="ctrl2.filterRange.min" ng-change="ctrl2.applyFilters()">
+								</md-input-container>
+								<md-input-container>
+									<label>Max</label>
+									<input type="number" step="1" min="{{ ctrl2.filterRange.min }}" max="{{ ctrl2.maxUsers }}" ng-model="ctrl2.filterRange.max"
+										ng-change="ctrl2.applyFilters()">
+								</md-input-container>
+							</div>
+						</div>
+					</div>
+				</div>
+				<span flex></span>
+				<div ng-switch="ctrl2.state">
+					<div layout="row" ng-switch-when="searchOpen">
+						<md-button class="md-icon-button" aria-label="Back" ng-click="ctrl2.state = 'searchClosed'">
+							<md-icon md-svg-icon="img/icons/close.svg"></md-icon>
+						</md-button>
+					</div>
+					<div layout="row" ng-switch-when="searchClosed">
+						<md-button class="md-icon-button" aria-label="Search" ng-click="ctrl2.state = 'searchOpen'">
+							<md-icon md-svg-icon="img/icons/filter.svg"></md-icon>
+						</md-button>
+					</div>
+				</div>
+				<div layout="row" ng-if="ctrl2.selectedServers.length">
+					<md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.deleteSelected()">
+						<md-icon md-svg-icon="img/icons/delete.svg"></md-icon>
+					</md-button>
+				</div>
+			</div>
+		</md-toolbar>
+		<md-table-container>
+			<table md-table md-row-select multiple ng-model="ctrl2.selectedServers">
+				<thead md-head md-order="ctrl2.orderBy">
+					<tr md-row>
+						<th md-column md-order-by="serverName"><span>Name</span></th>
+						<th md-column md-order-by="appName"><span>Application</span></th>
+						<th md-column md-order-by="users" md-numeric><span>Users</span></th>
+					</tr>
+				</thead>
+				<tbody md-body>
+					<tr md-row md-select="server" md-auto-select ng-repeat="server in ctrl2.filteredServers | orderBy: ctrl2.orderBy | limitTo: ctrl2.pagination.pageLimit : (ctrl2.pagination.page - 1) * ctrl2.pagination.pageLimit">
+						<td md-cell>{{ server.serverName }}</td>
+						<td md-cell>{{ server.appName }}</td>
+						<td md-cell>{{ server.userCount }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</md-table-container>
+		<md-table-pagination md-limit="ctrl2.pagination.pageLimit" md-page="ctrl2.pagination.page" md-total="{{ctrl2.filteredServers.length}}"></md-table-pagination>
+	</div>
+</md-content>

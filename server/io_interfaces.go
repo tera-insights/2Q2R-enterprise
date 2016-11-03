@@ -7,18 +7,15 @@ import (
 	"time"
 )
 
-// newAdminRequest the request to add a new admin. It is used both in HTTP
-// requests and in the bootstrap script.
 // REQUEST POST /admin/new/:code
 type newAdminRequest struct {
-	Name             string   `json:"name"`
-	Email            string   `json:"email"`
-	Permissions      []string `json:"permissions"`
-	IV               string   `json:"iv"`               // encoded with web encoding, no padding
-	Salt             string   `json:"salt"`             // same encoding
-	PublicKey        string   `json:"publicKey"`        // same encoding
-	SigningPublicKey string   `json:"signingPublicKey"` // same encoding
-	Signature        string   `json:"signature"`        // same encoding
+	AdminID     string   `json:"adminID"`
+	Name        string   `json:"name"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
+	IV          string   `json:"iv"`   // encoded w/ web encoding, no padding
+	Seed        string   `json:"seed"` // same encoding
+	PublicKey   []byte   `json:"publicKey"`
 }
 
 // REPLY POST /admin/new/:code
@@ -28,27 +25,34 @@ type newAdminReply struct {
 	WaitRoute   string `json:"waitRoute"`
 }
 
-// Request to POST /admin/admin/{adminID}
+// Request to POST /admin/admins/{adminID}
 type adminUpdateRequest struct {
-	Name                string `json:"name"`
-	Email               string `json:"email"`
-	PrimarySigningKeyID string `json:"primarySigningKeyID"`
-}
-
-// Request to POST /admin/admin/roles
-type adminRoleChangeRequest struct {
-	AdminID     string `json:"adminID"`
-	Role        string `json:"role"`
-	Status      string `json:"status"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
 	Permissions string `json:"permissions"`
+	IV          string `json:"iv"`
+	Seed        string `json:"seed"`
+	PublicKey   []byte `json:"publicKey"`
 }
 
-// newAppRequest is the request to POST /admin/app
-type newAppRequest struct {
+// Request to POST /admin/admins/roles
+type adminRoleChangeRequest struct {
+	AdminID string `json:"adminID"`
+	Role    string `json:"role"`
+	Status  string `json:"status"`
+}
+
+// NewAppRequest is the request to POST /admin/apps
+type NewAppRequest struct {
 	AppName string `json:"appName"`
 }
 
-// Request to PUT /admin/app/{appID}
+// NewAppReply is the response to POST /apps/new
+type NewAppReply struct {
+	AppID string `json:"appID"`
+}
+
+// Request to PUT /admin/apps/{appID}
 type appUpdateRequest struct {
 	AppName string `json:"appName"`
 }
@@ -58,7 +62,7 @@ type modificationReply struct {
 }
 
 // AppIDInfoReply is the reply to `GET /v1/info/:appID`.
-type appIDInfoReply struct {
+type AppIDInfoReply struct {
 	// string specifying displayable app name
 	AppName string `json:"appName"`
 
@@ -82,8 +86,9 @@ type adminRegisterRequest struct {
 	S         big.Int `json:"s"`
 }
 
-// NewServerRequest is the request to POST /admin/server
-type newServerRequest struct {
+// NewServerRequest is the request to POST /admin/servers
+type NewServerRequest struct {
+	ServerName  string `json:"serverName"`
 	AppID       string `json:"appID"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
@@ -91,16 +96,24 @@ type newServerRequest struct {
 	Permissions string `json:"permissions"`
 }
 
-// Request to PUT /admin/server/{serverID}
+// NewServerReply is the response to POST /admin/servers
+type NewServerReply struct {
+	ServerName string `json:"serverName"`
+	ServerID   string `json:"serverID"`
+}
+
+// Request to PUT /admin/servers/{serverID}
 type serverUpdateRequest struct {
+	ServerName  string `json:"serverName"`
 	BaseURL     string `json:"baseURL"`
 	KeyType     string `json:"keyType"`
-	PublicKey   string `json:"publicKey"` // base-64 encoded byte array
+	PublicKey   []byte `json:"publicKey"`
 	Permissions string `json:"permissions"`
+	AuthType    string `json:"authType"`
 }
 
 // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
-type registrationSetupReply struct {
+type RegistrationSetupReply struct {
 	// base64Web encoded random reply id
 	RequestID string `json:"id"`
 
@@ -109,14 +122,14 @@ type registrationSetupReply struct {
 }
 
 // RegisterRequest is the request to `POST /v1/register`.
-type registerRequest struct {
+type RegisterRequest struct {
 	Successful bool `json:"successful"`
 	// Either a successfulRegistrationData or a failedRegistrationData
 	Data interface{} `json:"data"`
 }
 
 // RegisterResponse is the response to `POST /v1/register`.
-type registerResponse struct {
+type RegisterResponse struct {
 	Successful bool   `json:"successful"`
 	Message    string `json:"message"`
 }
@@ -135,16 +148,16 @@ type failedRegistrationData struct {
 }
 
 // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
-type authenticationSetupRequest struct {
+type AuthenticationSetupRequest struct {
 	AppID              string             `json:"appID"`
 	Timestamp          time.Time          `json:"timestamp"`
 	UserID             string             `json:"userID"`
 	KeyID              string             `json:"keyID"`
-	authenticationData authenticationData `json:"authentication"`
+	AuthenticationData AuthenticationData `json:"authentication"`
 }
 
 // AuthenticationSetupReply is the response to `POST /v1/auth/request`.
-type authenticationSetupReply struct {
+type AuthenticationSetupReply struct {
 	// base64Web encoded random reply id
 	RequestID string `json:"id"`
 
@@ -159,15 +172,15 @@ type authenticateRequest struct {
 
 // Request to `POST /v1/auth/{requestID}/challenge`
 type setKeyRequest struct {
-	KeyHandle string `json:"keyID"`
+	KeyID string `json:"keyID"`
 }
 
 // Response to `POST /v1/auth/{requestID}/challenge`
 type setKeyReply struct {
-	KeyHandle string `json:"keyID"`
+	KeyID     string `json:"keyID"`
 	Challenge string `json:"challenge"`
 	Counter   uint32 `json:"counter"`
-	AppID     string `json:"AppID"`
+	AppID     string `json:"appID"`
 }
 
 // Reply to `GET /v1/users/:userID`
@@ -175,34 +188,29 @@ type userExistsReply struct {
 	Exists bool `json:"exists"`
 }
 
-type successfulauthenticationData struct {
+type successfulAuthenticationData struct {
 	ClientData    string `json:"clientData"`
 	SignatureData string `json:"signatureData"`
 }
 
-type failedauthenticationData struct {
+type failedAuthenticationData struct {
 	Challenge    string `json:"challenge"`
 	ErrorMessage string `json:"errorMessage"`
 	ErrorStatus  int    `json:"errorStatus"`
 }
 
-// Request to POST /admin/ltr
+// Request to POST /admin/ltr/new
 type newLTRRequest struct {
 	AppID string `json:"appID"`
 }
 
-// Reply to POST /admin/ltr
+// Reply to POST /admin/ltr/new
 type newLTRResponse struct {
 	RequestID string `json:"requestID"`
 }
 
-// Request to DELETE /admin/ltr
+// Request to DELETE /admin/ltr/delete
 type deleteLTRRequest struct {
 	AppID           string `json:"appID"`
 	HashedRequestID string `json:"hashedRequestID"`
-}
-
-// Request to POST /admin/permission
-type newPermissionsRequest struct {
-	Permissions []Permission `json:"permissions"`
 }

@@ -1,0 +1,51 @@
+<div class="full-size" layout="column" ng-cloak>
+    <!-- sidenav for state selection -->
+    <md-sidenav class="md-sidenav-left" md-component-id="left" md-disable-backdrop md-whiteframe="4">
+        <md-content class="fake-menu">
+            <div ng-repeat="menuGroup in ctrl.menuGroups">
+                <md-menu-item ng-repeat="menu in menuGroup">
+                    <md-button ng-click="ctrl.select(menu.state, menu.name)">
+                        <md-icon md-svg-src="{{'img/icons/'+menu.icon}}"></md-icon>
+                        {{menu.name}}
+                    </md-button>
+                </md-menu-item>
+                <md-divider ng-if="$index < ctrl.menuGroups.length-1"></md-divider>
+            </div>
+        </md-content>
+    </md-sidenav>
+    <!-- where everything else exists -->
+    <div class="full-size main">
+        <div class="toolbar-container md-whiteframe-2dp" layout="row">
+            <!-- two toolbars for seperate coloration with minimal effort -->
+            <md-toolbar class="toolbar-open">
+                <div class="md-toolbar-tools">
+                    <md-button class="md-icon-button" id="menu" ng-click="ctrl.toggleLeft()">
+                        <md-icon md-svg-icon="img/icons/menu.svg"></md-icon>
+                    </md-button>
+                    <h2>
+                        <span>{{ctrl.sName}}</span>
+                    </h2>
+                    <span flex></span>
+                </div>
+            </md-toolbar>
+            <!-- actions -->
+            <md-toolbar class="toolbar-actions">
+                <div class="md-toolbar-tools">
+                    <span flex></span>
+                    <md-button class="md-icon-button" ng-click="ctrl.generate()" aria-label="Messages">
+                        <md-icon md-svg-icon="img/icons/message.svg"></md-icon>
+                    </md-button>
+                    <a class="avatar noselect" md-ink-ripple="#0c0c0c">
+                        <img src="img/placeholder/placeman.jpg">
+                        <div class="avatar-text">
+                            <div class="name">{{ctrl.Auth.userid}}</div>
+                            <div class="title">Rampaging Demon Clown</div>
+                        </div>
+                        <i class="material-icons icon-black">keyboard_arrow_down</i>
+                    </a>
+                </div>
+            </md-toolbar>
+        </div>
+        <ui-view class="full-size fill-rest spacer" />
+    </div>
+</div>

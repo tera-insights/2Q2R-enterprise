@@ -1,0 +1,29 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Frontend of 2q2r-enterprise",
+  "main": "gulpfile.js",
+  "scripts": {
+    "postinstall": "bower install",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-nodemon": "^2.2.1",
+    "gulp-order": "^1.1.1",
+    "gulp-print": "^2.0.1",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-typescript": "^3.0.2",
+    "lodash": "^4.16.4",
+    "tsify": "^2.0.2",
+    "typescript": "^2.0.3",
+    "vinyl-source-stream": "^1.1.0"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.37"
+  }
+}

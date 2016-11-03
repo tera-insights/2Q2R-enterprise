@@ -24,8 +24,9 @@ var s = NewServer(Config{
 })
 
 var ts = httptest.NewUnstartedServer(s.GetHandler())
+var goodServerName = "foo"
 var goodAppName = "bar"
-var badAppID = EncodeBase64([]byte("321saWQgc3RyaW5nCg=="))
+var badAppID = encodeBase64([]byte("321saWQgc3RyaW5nCg=="))
 var goodBaseURL = "2q2r.org"
 var goodKeyType = "P256"
 var goodPublicKey = "notHidden!"
@@ -41,7 +42,7 @@ func TestMain(m *testing.M) {
 	ts.Listener = l // overwriting the default random port given by httptest
 	ts.Start()
 	defer ts.Close()
-	res, _ := postJSON("/admin/app", NewAppRequest{
+	res, _ := postJSON("/admin/apps", NewAppRequest{
 		AppName: goodAppName,
 	})
 	appReply := new(NewAppReply)
@@ -70,7 +71,8 @@ func checkStatus(t *testing.T, expected int, r *http.Response) {
 
 func TestCreateNewApp(t *testing.T) {
 	// Create new server
-	res, _ := postJSON("/admin/server", NewServerRequest{
+	res, _ := postJSON("/admin/servers", NewServerRequest{
+		ServerName:  goodServerName,
 		AppID:       goodAppID,
 		BaseURL:     goodBaseURL,
 		KeyType:     goodKeyType,
@@ -79,6 +81,9 @@ func TestCreateNewApp(t *testing.T) {
 	})
 	newReply := new(NewServerReply)
 	unmarshalJSONBody(res, newReply)
+	if newReply.ServerName != goodServerName {
+		t.Errorf("Expected server name of %s. Got %s", goodServerName, newReply.ServerName)
+	}
 
 	// Test app info
 	res, _ = http.Get(ts.URL + "/v1/info/" + goodAppID)
@@ -89,18 +94,21 @@ func TestCreateNewApp(t *testing.T) {
 	}
 
 	// Test server info
-	res, _ = postJSON("/admin/server", AppServerInfoRequest{
+	res, _ = postJSON("/admin/servers", AppServerInfoRequest{
 		ServerID: newReply.ServerID,
 	})
 	serverInfo := new(AppServerInfo)
 	unmarshalJSONBody(res, serverInfo)
+	if serverInfo.ServerName != goodServerName {
+		t.Errorf("Expected server name of %s. Got %s", goodServerName, serverInfo.ServerName)
+	}
 
 	// Delete server
-	res, _ = postJSON("/admin/server/"+serverInfo.ServerID, DeleteServerRequest{})
+	res, _ = postJSON("/admin/servers/"+serverInfo.ServerID, DeleteServerRequest{})
 	checkStatus(t, http.StatusOK, res)
 
 	// Assert that server was deleted
-	res, _ = postJSON("/admin/server", AppServerInfoRequest{
+	res, _ = postJSON("/admin/servers", AppServerInfoRequest{
 		ServerID: newReply.ServerID,
 	})
 	deletedServerInfo := new(AppServerInfo)

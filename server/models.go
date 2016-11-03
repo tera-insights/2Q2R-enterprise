@@ -2,94 +2,78 @@
 
 package server
 
+import "github.com/jinzhu/gorm"
+
 // AppInfo is the Gorm model that holds information about an app.
 type AppInfo struct {
-	ID      string `json:"appID"`
-	AppName string `json:"appName"`
+	gorm.Model
+
+	AppID   string `gorm:"not null" json:"appID"`
+	AppName string `gorm:"not null" json:"appName"`
 }
 
 // AppServerInfo is the Gorm model that holds information about an app server.
 type AppServerInfo struct {
-	ID string `json:"serverID"`
+	gorm.Model
+
+	ServerID   string `gorm:"not null" json:"serverID"`
+	ServerName string `gorm:"not null;unique" json:"serverName"`
 
 	// Base URL for users to connect to
-	BaseURL string `json:"baseURL"`
+	BaseURL string `gorm:"not null" json:"baseURL"`
 
 	// A server can only serve one app
-	AppID string `json:"appID"`
+	AppID string `gorm:"not null" json:"appID"`
 
 	// P256, etc.
-	KeyType string `json:"keyType"`
+	KeyType string `gorm:"not null" json:"keyType"`
 
 	// JSON
-	PublicKey []byte `json:"publicKey"`
+	PublicKey []byte `gorm:"not null;unique" json:"publicKey"`
 
 	// JSON array containing a subset of ["Register", "Delete", "Login"]
-	Permissions string `json:"permissions"`
+	Permissions string `gorm:"not null" json:"permissions"`
+
+	// Either token or DSA
+	AuthType string `gorm:"not null" json:"authType"`
 }
 
 // LongTermRequest is the Gorm model for a long-term registration request set
 // up by an admin.
 type LongTermRequest struct {
-	ID    string `json:"hashedRequestID"` // sha-256 hashed
-	AppID string `json:"appID"`
+	gorm.Model
+
+	HashedRequestID string `gorm:"not null" json:"hashedRequestID"` // sha-256 hashed
+	AppID           string `gorm:"not null" json:"appID"`
 }
 
 // Key is the Gorm model for a user's stored public key.
 type Key struct {
+	gorm.Model
+
 	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
-	ID     string `json:"keyID"`
-	Type   string `json:"type"`
-	Name   string `json:"name"`
-	UserID string `json:"userID"`
-	AppID  string `json:"appID"`
+	KeyID  string `gorm:"primary_key;not null" json:"keyID"`
+	Type   string `gorm:"not null" json:"type"`
+	Name   string `gorm:"not null" json:"name"`
+	UserID string `gorm:"not null" json:"userID"`
+	AppID  string `gorm:"not null" json:"appID"`
 
 	// unmarshalled by go-u2f
-	MarshalledRegistration []byte `json:"marshalledRegistration"`
-	Counter                uint32 `json:"counter"`
+	MarshalledRegistration []byte `gorm:"not null" json:"marshalledRegistration"`
+	Counter                uint32 `gorm:"not null" json:"counter"`
 }
 
 // Admin is the Gorm model for a (super-) admin.
 type Admin struct {
-	ID                  string `json:"activeID"` // can be joined with Key.UserID
-	Status              string `json:"status"`   // either active or inactive
-	Name                string `json:"name"`
-	Email               string `json:"email"`
-	Permissions         string `json:"permissions"`         // JSON-encoded array
-	Role                string `json:"role"`                // if superadmin, this has all permissions
-	PrimarySigningKeyID string `json:"primarySigningKeyID"` // FK into the SigningKey relation
-}
+	gorm.Model
 
-// Permission is the schema for an admin's permissions.
-type Permission struct {
-	AdminID string `gorm:"primary_key" json:"adminID"`
-
-	// If `AppID == 1`, then this is a global permission
-	AppID string `gorm:"primary_key" json:"appID"`
-
-	// Must be inside the valid list of permissions
-	Permission string `gorm:"primary_key" json:"permission"`
-}
-
-// SigningKey is the Gorm model for keys that the admin uses to sign things.
-type SigningKey struct {
-	ID        string `json:"signingKeyID"`
-	IV        string `json:"iv"`        // encoded using encodeBase64
-	Salt      string `json:"salt"`      // same encoding
-	PublicKey string `json:"publicKey"` // same encoding
-}
-
-// KeySignature is the Gorm model for signatures of both signing and
-// second-factor keys.
-type KeySignature struct {
-	// base-64 web encoded
-	// "1" if the signing public key is the TI public key
-	SigningPublicKey string `gorm:"primary_key"`
-	SignedPublicKey  string `gorm:"primary_key"`
-
-	Type    string // either "signing" or "second-factor"
-	OwnerID string // the admin's ID for `type == "signing"`, user's ID else
-
-	// signature of the sha-256 of: SignedPublicKey | Type | OwnerID
-	Signature string // same encoding as above
+	AdminID     string `gorm:"primary_key;not null" json:"activeID"` // can be joined with Key.UserID
+	Status      string `gorm:"not null" json:"status"`               // either active or inactive
+	Name        string `gorm:"not null" json:"name"`
+	Email       string `gorm:"not null" json:"email"`
+	Permissions string `gorm:"not null" json:"permissions"` // JSON-encoded array
+	Role        string `gorm:"not null" json:"role"`        // if superadmin, this has all permissions
+	IV          string `gorm:"not null" json:"iv"`          // encoded using encodeBase64
+	Seed        string `gorm:"not null" json:"seed"`        // same encoding
+	PublicKey   []byte `gorm:"not null" json:"publicKey"`
 }
