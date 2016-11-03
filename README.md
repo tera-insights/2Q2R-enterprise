@@ -13,9 +13,11 @@ installed this package inside your `$GOPATH`.
 
 ## Running
 
-1. If not already done, bootstrap the database with `go run
-cmd/bootstrap/bootstrap.go`.  
-2. `go run cmd/server/server.go`
+1. If not already done, bootstrap the database with `go run cmd/bootstrap/bootstrap.go`.
+Also make sure you have the latest bootstrap file from the 2Q2R Slack; if you replace an
+older bootstrap file, you will need to delete `test.db` before running the new one.
+2. Generate a private key with the following shell script: `openssl ecparam -name secp521r1 -genkey -out priv.pem -noout`
+2. `make run` (which simply executes `go run cmd/server/server.go`)
 
 ## Configuring
 
