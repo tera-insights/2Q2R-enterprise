@@ -42,18 +42,29 @@ type eventSummary struct {
 
 // Receiver keeps track of events (receives them from the outside world)
 type disperser struct {
-	eventInput      chan event
-	aggregatorInput chan chan eventsMap
-	events          map[string][]event // keys are app IDs
-	listeners       []listener
+	eventInput chan event
+
+	// send chans that should receive the event map
+	aggregatorOutput chan chan eventsMap
+
+	// send chans that should receive the most recent events
+	recentOutput chan chan []event
+
+	events      map[string][]event // keys are app IDs
+	listeners   []listener
+	recent      [10000]event
+	recentIndex int
 }
 
 func newDisperser() *disperser {
 	return &disperser{
 		make(chan event, 10000),
 		make(chan chan eventsMap),
+		make(chan chan []event),
 		make(eventsMap),
 		[]listener{},
+		[10000]event{},
+		0,
 	}
 }
 
@@ -79,16 +90,24 @@ func (d *disperser) addEvent(n eventName, id string) error {
 func (d *disperser) listen() {
 	for true {
 		select {
-		case output := <-d.aggregatorInput:
+		case where := <-d.aggregatorOutput:
 			old := d.events
 			d.events = make(map[string][]event)
-			output <- old
+			where <- old
+		case where := <-d.recentOutput:
+			recent := make([]event, len(d.recent))
+			for i := 0; i < len(d.recent); i++ {
+				recent[i] = d.recent[(d.recentIndex+i)%len(d.recent)]
+			}
+			where <- recent
 		case e := <-d.eventInput:
 			d.events[e.AppID] = append(d.events[e.AppID], e)
 			// Add event to the global events list if it not done above
 			if e.AppID != "1" {
 				d.events["1"] = append(d.events["1"], e)
 			}
+			d.recent[d.recentIndex] = e
+			d.recentIndex = (d.recentIndex + 1) % len(d.recent)
 		default:
 			// No message! do nothing
 		}
@@ -100,9 +119,9 @@ func (d *disperser) listen() {
 func (d *disperser) getMessages() {
 	for true {
 		time.Sleep(time.Second)
-		eventsChan := make(chan eventsMap)
-		d.aggregatorInput <- eventsChan
-		events := <-eventsChan
+		ec := make(chan eventsMap)
+		d.aggregatorOutput <- ec
+		events := <-ec
 		for _, l := range d.listeners {
 			l.conn.WriteJSON(eventSummary{
 				Type:   "Summary",
