@@ -5,27 +5,17 @@ Enterprise of the 2Q2R server
 
 1. Install [Glide](https://github.com/Masterminds/glide#install). Make sure
 you've either set your `$GOBIN` or your `$PATH` includes `$GOPATH/bin`.
-2. `make install_dependencies`
+2. `make install_dependencies` will install dependencies inside `vendor/`. 
+`go run` is not always aware of the vendor folder. Specifically, as of 1.7.3,
+go ignores `vendor` unless it is run inside the `$GOPATH`. See more
+[here](https://github.com/golang/go/issues/14566). So, make sure you have
+installed this package inside your `$GOPATH`.
 
 ## Running
 
 1. If not already done, bootstrap the database with `go run
-cmd/bootstrap/bootstrap.go`. 
-2. `go run cmd/server/server.go` 
-
-## Installation 
-
-Make sure that `$GOPATH` is defined. Then: 
-```
-mkdir $GOPATH/src/2q2r
-ln -sf $PATH2Q2R/server $GOPATH/src/2q2r
-```
-where `$PATH2Q2R` is the path to the GIT repository of `2q2r-enterprise`.
-
-Run
-```
-make install_dependencies
-```
+cmd/bootstrap/bootstrap.go`.  
+2. `go run cmd/server/server.go`
 
 ## Configuring
 
