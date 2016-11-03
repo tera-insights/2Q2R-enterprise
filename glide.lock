@@ -1,5 +1,5 @@
-hash: f4e725a1ca816fa97f8d6662cb05a79eb194e63ff81f53861a1dcf2dd8095296
-updated: 2016-10-25T14:31:29.424035092-04:00
+hash: f71c7116b49f112d814b3ae09e4a84fe9d67e0e862b334478a0771a2e84d1711
+updated: 2016-11-02T10:51:29.394681434-04:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -9,12 +9,18 @@ imports:
   version: 9fdfd46f9806a9228aae341d65ab75c5235c383c
   subpackages:
   - embedded
+- name: github.com/gocraft/health
+  version: 25b40f8580168c1f905a6dba35d471cdc51ca629
+  subpackages:
+  - stack
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/handlers
   version: ee54c7b44cab12289237fb8631314790076e728b
 - name: github.com/gorilla/mux
   version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
+- name: github.com/gorilla/websocket
+  version: 1f512fc3f05332ba7117626cdfb4e07474e58e60
 - name: github.com/hashicorp/hcl
   version: 99ce73d4fe576449f7a689d4fc2b2ad09a86bdaa
   subpackages:
@@ -74,7 +80,7 @@ imports:
 - name: github.com/tstranex/u2f
   version: eb799ce68da4150b16ff5d0c89a24e2a2ad993d8
 - name: golang.org/x/crypto
-  version: ca7e7f10cb9fd9c1a6ff7f60436c086d73714180
+  version: ""
   subpackages:
   - curve25519
   - ed25519

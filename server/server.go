@@ -81,11 +81,17 @@ func (c *Config) getBaseURLWithProtocol() string {
 
 // Server is the type that represents the 2Q2R server.
 type Server struct {
-	Config *Config
-	DB     *gorm.DB
-	cache  cacher
-	pub    *rsa.PublicKey
-	priv   *ecdsa.PrivateKey
+	Config    *Config
+	DB        *gorm.DB
+	cache     cacher
+	disperser *disperser
+	pub       *rsa.PublicKey
+	priv      *ecdsa.PrivateKey
+}
+
+// VerifySignature exposes s.cache.VerifySignature
+func (s *Server) VerifySignature(ks KeySignature) error {
+	return s.cache.VerifySignature(ks)
 }
 
 // Used in registration and authentication templates
@@ -246,6 +252,11 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
+	// Create and start the disperser
+	d := newDisperser()
+	go d.listen()
+	go d.getMessages()
+
 	return Server{
 		c,
 		db,
@@ -262,6 +273,7 @@ func NewServer(r io.Reader, ct string) Server {
 			validPublicKeys: cache.New(cache.NoExpiration,
 				cache.NoExpiration),
 		},
+		d,
 		pub.(*rsa.PublicKey),
 		priv,
 	}
@@ -435,6 +447,8 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/permission", ah.NewPermissions, "POST")
 	forMethod(router, "/admin/permission/{appID}/{adminID}/{permission}",
 		ah.DeletePermission, "DELETE")
+
+	forMethod(router, "/admin/stats/listen", ah.RegisterListener, "GET")
 
 	// Info routes
 	ih := infoHandler{s}
