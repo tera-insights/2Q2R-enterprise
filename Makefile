@@ -13,5 +13,5 @@ test_server:
 	rm server/test.db
 
 run: 
-	go run cmd/server.go
+	go run cmd/server/server.go
 	
