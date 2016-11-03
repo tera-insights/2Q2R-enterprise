@@ -4,11 +4,28 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 )
 
 type listener struct {
 	conn  *websocket.Conn
 	appID string // if 1, receives all events
+}
+
+type eventName int
+
+const (
+	listenerRegistered eventName = iota
+	login
+	registration
+	keyDeletion
+)
+
+var events = map[eventName]string{
+	listenerRegistered: "listenerRegistered",
+	login:              "login",
+	registration:       "registration",
+	keyDeletion:        "keyDeletion",
 }
 
 type event struct {
@@ -41,11 +58,20 @@ func newDisperser() *disperser {
 }
 
 func (d *disperser) addListener(l listener) {
+	toSend := map[string]eventName{}
+	for short, long := range events {
+		toSend[long] = short
+	}
+	l.conn.WriteJSON(toSend)
 	d.listeners = append(d.listeners, l)
 }
 
-func (d *disperser) addEvent(e event) {
-	d.eventInput <- e
+func (d *disperser) addEvent(n eventName, id string) error {
+	if _, found := events[n]; !found {
+		return errors.Errorf("%d was not in the event map", n)
+	}
+	d.eventInput <- event{events[n], id}
+	return nil
 }
 
 // Either does nothing, adds a new event to the current list of events, or

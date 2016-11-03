@@ -562,6 +562,6 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
 
 	ah.s.disperser.addListener(listener{conn, "1"})
-	ah.s.disperser.addEvent(event{"listener_created", "1"})
+	ah.s.disperser.addEvent(listenerRegistered, "1")
 	writeJSON(w, http.StatusOK, "Socket created")
 }
