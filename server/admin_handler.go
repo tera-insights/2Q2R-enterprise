@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"time"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
@@ -562,7 +563,7 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
 
 	ah.s.disperser.addListener(listener{conn, "1"})
-	ah.s.disperser.addEvent(listenerRegistered, []string{"1"})
+	ah.s.disperser.addEvent(listenerRegistered, time.Now(), []string{"1"})
 	writeJSON(w, http.StatusOK, "Socket created")
 }
 
