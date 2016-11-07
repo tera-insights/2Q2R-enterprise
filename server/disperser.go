@@ -75,7 +75,7 @@ func (d *disperser) addListener(l listener) {
 	d.listeners = append(d.listeners, l)
 }
 
-func (d *disperser) addEvent(n eventName, ids []string) error {
+func (d *disperser) addEvent(n eventName, t time.Time, ids []string) error {
 	if _, found := events[n]; !found {
 		return errors.Errorf("%d was not in the event map", n)
 	}
