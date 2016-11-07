@@ -50,10 +50,9 @@ type disperser struct {
 	// send chans that should receive the most recent events
 	recentOutput chan chan []event
 
-	events      map[string][]event // keys are app IDs
-	listeners   []listener
-	recent      [10000]event
-	recentIndex int
+	events    map[string][]event // keys are app IDs
+	listeners []listener
+	recent    []event
 }
 
 func newDisperser() *disperser {
@@ -63,8 +62,7 @@ func newDisperser() *disperser {
 		make(chan chan []event),
 		make(eventsMap),
 		[]listener{},
-		[10000]event{},
-		0,
+		make([]event, 0, 10000),
 	}
 }
 
@@ -77,7 +75,7 @@ func (d *disperser) addListener(l listener) {
 	d.listeners = append(d.listeners, l)
 }
 
-func (d *disperser) addEvent(n eventName, ids []string) error {
+func (d *disperser) addEvent(n eventName, t time.Time, ids []string) error {
 	if _, found := events[n]; !found {
 		return errors.Errorf("%d was not in the event map", n)
 	}
@@ -105,15 +103,15 @@ func (d *disperser) listen() {
 			d.events = make(map[string][]event)
 			where <- old
 		case where := <-d.recentOutput:
-			recent := make([]event, len(d.recent))
-			for i := 0; i < len(d.recent); i++ {
-				recent[i] = d.recent[(d.recentIndex+i)%len(d.recent)]
-			}
-			where <- recent
+			where <- d.recent
 		case e := <-d.eventInput:
 			d.events[e.AppID] = append(d.events[e.AppID], e)
-			d.recent[d.recentIndex] = e
-			d.recentIndex = (d.recentIndex + 1) % len(d.recent)
+			// If the recent list is full, overwrite the oldest event
+			if len(d.recent) == cap(d.recent) {
+				copy(d.recent, append(d.recent[1:], e))
+			} else {
+				d.recent = append(d.recent, e)
+			}
 		default:
 			// No message! do nothing
 		}
