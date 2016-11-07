@@ -88,16 +88,6 @@ func (ah *adminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(response)
 		return
 	}
-
-	admin, signingKey, err := ah.s.cache.GetAdmin(requestID)
-	optionalInternalPanic(err, "Failed to find admin to save to database")
-
-	err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
-	optionalInternalPanic(err, "Failed to save admin to database")
-
-	err = ah.s.DB.Model(&SigningKey{}).Create(&signingKey).Error
-	optionalInternalPanic(err, "Failed to save key to database")
-
 	w.WriteHeader(response)
 }
 
@@ -142,14 +132,16 @@ func (ah *adminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// Register registers a new second-factor for an admin.
+// Register registers a new second-factor for an admin. The associated signing
+// key is saved in the database. Also, if it is not already there, the admin
+// is also stored in the database.
 // POST /admin/register
 func (ah *adminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req := adminRegisterRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	optionalBadRequestPanic(err, "Failed to decode request body")
 
-	_, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
+	admin, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
 	optionalBadRequestPanic(err, "Failed to find signing key for "+
 		"registration request")
 
@@ -180,6 +172,21 @@ func (ah *adminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	hash := sha256.Sum256(registerRequest.Challenge)
 	verified := ecdsa.Verify(&pubKey, hash[:], &req.R, &req.S)
 	panicIfFalse(verified, http.StatusBadRequest, "Failed to verify signature")
+
+	// If the admin does not exist in the database, save it
+	count := 0
+	err = ah.s.DB.Where(&Admin{
+		ID: admin.ID,
+	}).Count(&count).Error
+	optionalInternalPanic(err, "Failed to see if admin should be saved")
+
+	if count == 0 {
+		err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
+		optionalInternalPanic(err, "Failed to save admin to database")
+	}
+
+	err = ah.s.DB.Model(&SigningKey{}).Create(&signingKey).Error
+	optionalInternalPanic(err, "Failed to save key to database")
 
 	err = ah.q.MarkCompleted(req.RequestID)
 	optionalInternalPanic(err, "Could not notify request listeners")
