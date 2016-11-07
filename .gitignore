@@ -48,3 +48,6 @@ config.yaml
 bootstrap.go
 
 test.db
+
+# Leave out the generated server private key
+priv.pem

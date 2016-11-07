@@ -1,6 +1,17 @@
 /// <reference path="../../typings/index.d.ts" />
 
+import { IAuthenticationItem, IAuthenticationSocket, Authentications } from '../services/Activity';
+
 export class DashboardCtrl {
+
+    private authentications: IAuthenticationItem[];
+    private filteredAuthentications: IAuthenticationItem[];
+    private selectedAuthentications: IAuthenticationItem[];
+
+    private appCount: number = Math.floor(Math.random() * 100);
+    private serverCount: number = Math.floor(Math.random() * 2000);
+    private adminCount: number = Math.floor(Math.random() * 300);
+    private userCountInThousands: number = Math.floor(Math.random() * 100);
 
     private lConfig = {
         tileLayer: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -18,14 +29,34 @@ export class DashboardCtrl {
         }
     };
 
+    private filterOpen: boolean = false;
+    private filters: string[] = [
+        "time",
+        "name",
+        "country"
+    ];
+    private selectedFilter: string;
+    private filterValue: string;
+
+    private orderBy: string;
+    private pagination = {
+        pageLimit: 11,
+        page: 1
+    }
+
+    applyFilters() {
+        if (this.selectedFilter && this.filterValue) {
+            this.filteredAdmins = this.admins.filter((admin: IAdminItem): boolean => {
+                return admin[this.selectedFilter].includes(this.filterValue);
+            });
+        } else {
+            this.filteredAdmins = this.admins;
+        }
+    }
+
     static $inject = [
         '$timeout'
     ];
-
-    private appCount: number = Math.floor(Math.random() * 100);
-    private serverCount: number = Math.floor(Math.random() * 2000);
-    private adminCount: number = Math.floor(Math.random() * 300);
-    private userCountInThousands: number = Math.floor(Math.random() * 100);
 
     constructor(
         private $timeout: ng.ITimeoutService
@@ -37,44 +68,6 @@ export class DashboardCtrl {
                 id: 'open.street.map',
                 attribution: this.lConfig.tileAttrib
             }).addTo(map);
-
-            var ctx = document.getElementById("chart");
-            var myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-                    datasets: [{
-                        label: '# of Votes',
-                        data: [12, 19, 3, 5, 2, 3],
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)',
-                            'rgba(54, 162, 235, 0.2)',
-                            'rgba(255, 206, 86, 0.2)',
-                            'rgba(75, 192, 192, 0.2)',
-                            'rgba(153, 102, 255, 0.2)',
-                            'rgba(255, 159, 64, 0.2)'
-                        ],
-                        borderColor: [
-                            'rgba(255,99,132,1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(153, 102, 255, 1)',
-                            'rgba(255, 159, 64, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true
-                            }
-                        }]
-                    }
-                }
-            });
         }, 100);
     }
 

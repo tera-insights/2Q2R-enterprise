@@ -1,3 +1,53 @@
-<ul>
-    <li ng-repeat="adm in ctrl2.admins">{{adm.name}}</li>
-</ul>
+<md-content class="table-content">
+	<div class="table-wrapper basic-card">
+		<md-toolbar class="md-table-toolbar md-default zero-z">
+			<div class="md-toolbar-tools">
+				<h2 ng-if="!ctrl2.filterOpen">Administrators</h2>
+				<div class="md-toolbar-item docs-tools layout-row" layout="row" ng-if="ctrl2.filterOpen">
+					<md-select ng-model="ctrl2.selectedFilter" placeholder="Filter">
+						<md-option ng-repeat="filter in ctrl2.filters" ng-value="filter">{{ filter.charAt(0).toUpperCase() + filter.slice(1) }}</md-option>
+					</md-select>
+					<md-icon md-svg-icon="img/icons/chevron-right.svg" ng-if="ctrl2.selectedFilter" />
+				</div>
+				<div class="md-toolbar-item docs-tools layout-row" layout="row" layout-align="start center" ng-if="ctrl2.selectedFilter">
+					<md-input-container md-no-float>
+						<input type="text" placeholder="Value" ng-model="ctrl2.filterValue">
+					</md-input-container>
+				</div>
+				<span flex/>
+				<md-button class="md-icon-button" aria-label="Show Filter" ng-click="ctrl2.filterOpen = !ctrl2.filterOpen" ng-if="!ctrl2.filterOpen">
+					<md-icon md-svg-icon="img/icons/filter.svg" />
+				</md-button>
+				<md-button class="md-icon-button" aria-label="Hide Filter" ng-click="ctrl2.filterOpen = !ctrl2.filterOpen" ng-if="ctrl2.filterOpen">
+					<md-icon md-svg-icon="img/icons/close.svg" />
+				</md-button>
+				<md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.deleteSelected()" ng-if="ctrl2.selectedAdmins.length">
+					<md-icon md-svg-icon="img.icons/delete.svg" />
+				</md-button>
+			</div>
+		</md-toolbar>
+		<md-table-container>
+			<table md-table md-row-select multiple ng-model="ctrl2.selectedAdmins">
+				<thead md-head md-order="ctrl2.orderBy">
+					<tr md-row>
+						<th md-column md-order-by="name"><span>Name</span></th>
+						<th md-column md-order-by="status"><span>Status</span></th>
+						<th md-column md-order-by="email"><span>Email</span></th>
+						<th md-column md-order-by="role"><span>Role</span></th>
+						<th md-column md-order-by="permissions"><span>Permissions</span></th>
+					</tr>
+				</thead>
+				<tbody md-body>
+					<tr md-row md-select="admin" md-auto-select ng-repeat="admin in ctrl2.filteredAdmins | orderBy: ctrl2.orderBy | limitTo: ctrl2.pagination.pageLimit : (ctrl2.pagination.page - 1) * ctrl2.pagination.pageLimit">
+						<td md-cell>{{ admin.name }}</td>
+						<td md-cell>{{ admin.status.charAt(0).toUpperCase() + admin.status.slice(1) }}</td>
+						<td md-cell>{{ admin.email }}</td>
+						<td md-cell>{{ admin.role.charAt(0).toUpperCase() + admin.role.slice(1) }}</td>
+						<td md-cell>{{ admin.permissions }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</md-table-container>
+		<md-table-pagination md-limit="ctrl2.pagination.pageLimit" md-page="ctrl2.pagination.page" md-total="{{ctrl2.filteredAdmins.length}}"></md-table-pagination>
+	</div>
+</md-content>

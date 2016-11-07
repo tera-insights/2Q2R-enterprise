@@ -270,6 +270,13 @@ mdt-table > md-content > ng-include {
     align-items: center;
 }
 
+
+/* fixes the on-click ripple effect so it doesn't appear relative to the parent */
+
+.avatar[md-ink-ripple] {
+    position: relative;
+}
+
 .avatar img {
     width: 40px;
     height: 40px;
@@ -307,13 +314,19 @@ mdt-table > md-content > ng-include {
     background-color: rgba(12, 12, 12, 0.07);
 }
 
-/* for some reason leaflet maps, like table toolbars, have bad z-indexes and overlap the main toolbar */
-.leaflet-map {
+/* for some reason leaflet maps and table toolbars have bad z-indexes and overlap the main toolbar */
+.zero-z {
     z-index: 0;
 }
 
-/* leaflet maps must have a size specified in the css */
+/* size the dashboard activity map */
 #map {
     width: 80%;
     height: 480px;
+}
+
+/* size the dashboard activity table */
+#activityTable {
+    width: 80%;
+    height: auto;
 }
