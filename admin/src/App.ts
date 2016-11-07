@@ -1,6 +1,7 @@
 /// <reference path="../typings/index.d.ts" />
 
 import { Auth } from './services/Auth';
+import { Communicator } from './services/Communicator';
 import { Apps } from './services/Apps';
 import { Servers } from './services/Servers';
 import { Admins } from './services/Admins';
@@ -19,6 +20,7 @@ angular.module('2Q2R', [
     'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table'
 ])
     .service('Auth', Auth)
+    .service('Communicator', Communicator)
     .service('Apps', Apps)
     .service('Servers', Servers)
     .service('Admins', Admins)

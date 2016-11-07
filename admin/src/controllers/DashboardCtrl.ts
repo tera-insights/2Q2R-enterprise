@@ -1,6 +1,6 @@
 /// <reference path="../../typings/index.d.ts" />
 
-import { IAuthenticationItem, IAuthenticationSocket, Authentications } from '../services/Activity';
+import { Communicator } from '../services/Communicator';
 
 export class DashboardCtrl {
 
@@ -12,6 +12,8 @@ export class DashboardCtrl {
     private serverCount: number = Math.floor(Math.random() * 2000);
     private adminCount: number = Math.floor(Math.random() * 300);
     private userCountInThousands: number = Math.floor(Math.random() * 100);
+
+    private communicationID: number;
 
     private lConfig = {
         tileLayer: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -45,22 +47,23 @@ export class DashboardCtrl {
     }
 
     applyFilters() {
-        if (this.selectedFilter && this.filterValue) {
-            this.filteredAdmins = this.admins.filter((admin: IAdminItem): boolean => {
-                return admin[this.selectedFilter].includes(this.filterValue);
-            });
-        } else {
-            this.filteredAdmins = this.admins;
-        }
+        
+    }
+
+    onServerNotification(msg: any[]) {
+        // update dashboard
     }
 
     static $inject = [
+        'Communicator',
         '$timeout'
     ];
 
     constructor(
+        private Communicator: Communicator,
         private $timeout: ng.ITimeoutService
     ) {
+        this.communicationID = this.Communicator.subscribe(['registration', 'authentication'], this.onServerNotification);
         this.$timeout(() => {
             var map = L.map('map').setView([this.lConfig.center.lat, this.lConfig.center.lng], this.lConfig.center.zoom);
             L.tileLayer(this.lConfig.tileLayer, {
@@ -69,6 +72,10 @@ export class DashboardCtrl {
                 attribution: this.lConfig.tileAttrib
             }).addTo(map);
         }, 100);
+    }
+
+    destructor() {
+        this.Communicator.unsubscribe([this.communicationID]);
     }
 
 }
