@@ -134,3 +134,9 @@ func (d *disperser) getMessages() {
 		}
 	}
 }
+
+func (d *disperser) getRecent() []event {
+	out := make(chan []event, 1)
+	d.recentOutput <- out
+	return <-out
+}

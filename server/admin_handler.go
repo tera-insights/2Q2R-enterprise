@@ -565,3 +565,8 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	ah.s.disperser.addEvent(listenerRegistered, []string{"1"})
 	writeJSON(w, http.StatusOK, "Socket created")
 }
+
+func (ah *adminHandler) GetMostRecent(w http.ResponseWriter,
+	r *http.Request) {
+	writeJSON(w, http.StatusOK, ah.s.disperser.getRecent())
+}

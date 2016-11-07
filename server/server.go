@@ -449,6 +449,7 @@ func (s *Server) GetHandler() http.Handler {
 		ah.DeletePermission, "DELETE")
 
 	forMethod(router, "/admin/stats/listen", ah.RegisterListener, "GET")
+	forMethod(router, "/admin/stats/recent", ah.GetMostRecent, "GET")
 
 	// Info routes
 	ih := infoHandler{s}
