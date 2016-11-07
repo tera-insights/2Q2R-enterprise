@@ -77,11 +77,21 @@ func (d *disperser) addListener(l listener) {
 	d.listeners = append(d.listeners, l)
 }
 
-func (d *disperser) addEvent(n eventName, id string) error {
+func (d *disperser) addEvent(n eventName, ids []string) error {
 	if _, found := events[n]; !found {
 		return errors.Errorf("%d was not in the event map", n)
 	}
-	d.eventInput <- event{events[n], id}
+	sentToGlobal := false
+	for _, id := range ids {
+		if id == "1" {
+			sentToGlobal = true
+		}
+		d.eventInput <- event{events[n], id}
+	}
+	// Add event to the global events list if it not done above
+	if !sentToGlobal {
+		d.eventInput <- event{events[n], "1"}
+	}
 	return nil
 }
 
@@ -102,10 +112,6 @@ func (d *disperser) listen() {
 			where <- recent
 		case e := <-d.eventInput:
 			d.events[e.AppID] = append(d.events[e.AppID], e)
-			// Add event to the global events list if it not done above
-			if e.AppID != "1" {
-				d.events["1"] = append(d.events["1"], e)
-			}
 			d.recent[d.recentIndex] = e
 			d.recentIndex = (d.recentIndex + 1) % len(d.recent)
 		default:

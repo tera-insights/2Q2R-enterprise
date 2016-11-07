@@ -94,7 +94,6 @@ func (ah *adminHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
 	optionalInternalPanic(err, "Failed to save admin to database")
 
-	optionalInternalPanic(err, "Failed to generate key ID")
 	err = ah.s.DB.Model(&SigningKey{}).Create(&signingKey).Error
 	optionalInternalPanic(err, "Failed to save key to database")
 
@@ -150,7 +149,8 @@ func (ah *adminHandler) Register(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Failed to decode request body")
 
 	_, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
-	optionalBadRequestPanic(err, "Failed to find signing key for registration request")
+	optionalBadRequestPanic(err, "Failed to find signing key for "+
+		"registration request")
 
 	data, found := ah.s.cache.adminRegistrations.Get(req.RequestID)
 	panicIfFalse(found, http.StatusBadRequest,
@@ -562,6 +562,6 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
 
 	ah.s.disperser.addListener(listener{conn, "1"})
-	ah.s.disperser.addEvent(listenerRegistered, "1")
+	ah.s.disperser.addEvent(listenerRegistered, []string{"1"})
 	writeJSON(w, http.StatusOK, "Socket created")
 }
