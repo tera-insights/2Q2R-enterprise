@@ -415,10 +415,6 @@ func (s *Server) GetHandler() http.Handler {
 			s.Config.CleanTime),
 	}
 	forMethod(router, "/admin/new", ah.NewAdmin, "POST")
-	forMethod(router, "/admin/register/{requestID}", ah.RegisterIFrameHandler,
-		"GET")
-	forMethod(router, "/admin/register", ah.Register, "POST")
-	forMethod(router, "/admin/{requestID}/wait", ah.Wait, "GET")
 
 	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")
 	// super-admins only
