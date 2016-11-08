@@ -36,9 +36,6 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	encodedPermissions, err := json.Marshal(req.Permissions)
 	optionalInternalPanic(err, "Could not encode permissions for storage")
 
-	requestID, err := RandString(32)
-	optionalInternalPanic(err, "Could not generate request ID")
-
 	adminID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate admin ID")
 
@@ -55,25 +52,38 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	optionalPanic(err, http.StatusForbidden,
 		"Could not verify public key signature")
 
-	ah.s.cache.NewAdminRegisterRequest(requestID, Admin{
+	err = ah.s.DB.Create(&Admin{
 		ID:          adminID,
 		Name:        req.Name,
 		Email:       req.Email,
 		Role:        "admin",
-		Status:      "inactive",
+		Status:      "active",
 		Permissions: string(encodedPermissions),
-	}, SigningKey{
+	}).Error
+	optionalInternalPanic(err, "Could not save admin")
+
+	err = ah.s.DB.Create(&SigningKey{
 		ID:        keyID,
 		IV:        req.IV,
 		Salt:      req.Salt,
 		PublicKey: req.PublicKey,
-	})
+	}).Error
+	optionalInternalPanic(err, "Could not save signing key")
 
-	base := ah.s.Config.getBaseURLWithProtocol() + "/admin/"
+	requestID, err := RandString(32)
+	optionalInternalPanic(err, "Could not generate request ID")
+
+	h := crypto.SHA256.New()
+	io.WriteString(h, requestID)
+	query := ah.s.DB.Create(&LongTermRequest{
+		AppID: "1",
+		ID:    string(h.Sum(nil)),
+	})
+	optionalInternalPanic(query.Error, "Could not save long-term request "+
+		"to the database")
+
 	writeJSON(w, http.StatusOK, newAdminReply{
-		RequestID:   requestID,
-		IFrameRoute: base + "register/" + requestID,
-		WaitRoute:   base + requestID + "/wait",
+		RequestID: requestID,
 	})
 }
 

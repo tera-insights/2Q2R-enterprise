@@ -23,9 +23,7 @@ type NewAdminRequest struct {
 
 // REPLY POST /admin/new/:code
 type newAdminReply struct {
-	RequestID   string `json:"requestID"`
-	IFrameRoute string `json:"iFrameRoute"`
-	WaitRoute   string `json:"waitRoute"`
+	RequestID string `json:"requestID"`
 }
 
 // Request to POST /admin/admin/{adminID}
