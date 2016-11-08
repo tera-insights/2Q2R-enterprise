@@ -17,7 +17,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/GeertJohan/go.rice"
@@ -25,7 +24,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
-	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
@@ -83,7 +81,7 @@ func (c *Config) getBaseURLWithProtocol() string {
 type Server struct {
 	Config    *Config
 	DB        *gorm.DB
-	cache     cacher
+	cache     *cacher
 	disperser *disperser
 	pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
@@ -252,7 +250,6 @@ func NewServer(r io.Reader, ct string) Server {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
-	// Create and start the disperser
 	d := newDisperser()
 	go d.listen()
 	go d.getMessages()
@@ -260,19 +257,7 @@ func NewServer(r io.Reader, ct string) Server {
 	return Server{
 		c,
 		db,
-		cacher{
-			baseURL:                c.getBaseURLWithProtocol(),
-			expiration:             c.ExpirationTime,
-			clean:                  c.CleanTime,
-			registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
-			authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
-			challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
-			admins:                 cache.New(c.ExpirationTime, c.CleanTime),
-			signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
-			adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
-			validPublicKeys: cache.New(cache.NoExpiration,
-				cache.NoExpiration),
-		},
+		newCacher(c),
 		d,
 		pub.(*rsa.PublicKey),
 		priv,
@@ -325,14 +310,9 @@ func recoverWrap(h http.Handler) http.Handler {
 	})
 }
 
-// 1. If we don't need to authenticate the route, do nothing
-// 2. Else, generate the ECDH key using our private key and the server's public
-// key. If we can't find the server, return this is a bad request
-// 3. Use the shared key to check the SHA-256 HMAC of the message. If it's OK,
-// pass the request along. Else, refuse and log this unauthorized request.
+// See the wiki for documentation on header authentication
 func (s *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// See if URL is on one of the authentication-required routes
 		needsAuthentication := false
 		for _, pattern := range s.Config.AuthenticationRequiredRoutes {
 			if glob.Glob(pattern, r.URL.Path) {
@@ -345,51 +325,57 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 			return
 		}
 
-		// Assert that we can validly parse the authentication headers
-		serverID, messageMAC := getAuthDataFromHeaders(r)
-		authParts := strings.Split(r.Header.Get("authentication"), ":")
-		if len(authParts) != 2 {
-			writeJSON(w, http.StatusBadRequest,
-				"Authentication header invalid")
-			return
+		id, receivedHMAC, err := getAuthDataFromHeaders(r)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, "Invalid X-Authentication header")
 		}
 
-		// If possible, get the shared key from the cache
-		fetched, found := s.cache.sharedKeys.Get(serverID)
 		var key []byte
-		if found {
-			key = fetched.([]byte)
+
+		if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+			var a Admin
+			err = s.DB.Find(&a, Admin{
+				ID: id,
+			}).Error
+			optionalBadRequestPanic(err, "Could not find admin with ID "+id)
+
+			var sk SigningKey
+			err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
+			optionalInternalPanic(err, "Could not find admin's signing key")
+
+			bytes, err := decodeBase64(sk.PublicKey)
+			optionalInternalPanic(err, "Could not decode admin's signing key")
+
+			x, y := elliptic.Unmarshal(elliptic.P256(), bytes)
+			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.cache.getAdminKey())
 		} else {
-			// Use ECDH to generate the shared key
-			serverInfo := AppServerInfo{}
-			err := s.DB.Model(AppServerInfo{}).Where(AppServerInfo{
-				ID: serverID,
-			}).First(&serverInfo).Error
+			var app AppServerInfo
+			err := s.DB.Find(&app, AppServerInfo{
+				ID: id,
+			}).Error
 			optionalBadRequestPanic(err, "Could not find app server")
 
-			x, y := elliptic.Unmarshal(elliptic.P256(), serverInfo.PublicKey)
+			x, y := elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
 			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
-			s.cache.sharedKeys.Set(serverID, key, cache.NoExpiration)
 		}
 
-		// Hash the path and, if apprpriate, the request body
 		route := []byte(r.URL.Path)
 		var body []byte
 		if r.ContentLength > 0 {
 			_, err := r.Body.Read(body)
 			optionalInternalPanic(err, "Failed to read request body")
 		}
-		mac := hmac.New(sha256.New, key)
-		mac.Write(route)
+
+		hash := hmac.New(sha256.New, key)
+		hash.Write(route)
 		if len(body) > 0 {
-			mac.Write(body)
+			hash.Write(body)
 		}
-		expectedMAC := mac.Sum(nil)
-		bytesOfMessageMAC, err := decodeBase64(messageMAC)
+		bytes, err := decodeBase64(receivedHMAC)
 		optionalInternalPanic(err, "Failed to decode MAC as web-encoded "+
 			"base-64 without padding")
 
-		if !hmac.Equal(bytesOfMessageMAC, expectedMAC) {
+		if !hmac.Equal(bytes, hash.Sum(nil)) {
 			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
 			return
 		}
@@ -446,6 +432,11 @@ func (s *Server) GetHandler() http.Handler {
 
 	forMethod(router, "/admin/stats/listen", ah.RegisterListener, "GET")
 	forMethod(router, "/admin/stats/recent", ah.GetMostRecent, "GET")
+
+	forMethod(router, "/admin/public", func(w http.ResponseWriter,
+		r *http.Request) {
+		writeJSON(w, http.StatusOK, s.cache.getAdminKey())
+	}, "GET")
 
 	// Info routes
 	ih := infoHandler{s}

@@ -64,8 +64,44 @@ type cacher struct {
 	// signed public key to true
 	validPublicKeys *cache.Cache
 
-	// ServerID to server shared keys
-	sharedKeys *cache.Cache
+	adminKeyOutput chan chan string
+}
+
+func newCacher(c *Config) *cacher {
+	return &cacher{
+		baseURL:                c.getBaseURLWithProtocol(),
+		expiration:             c.ExpirationTime,
+		clean:                  c.CleanTime,
+		registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
+		authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
+		challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
+		admins:                 cache.New(c.ExpirationTime, c.CleanTime),
+		signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
+		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
+		validPublicKeys: cache.New(cache.NoExpiration,
+			cache.NoExpiration),
+	}
+}
+
+func (c *cacher) getAdminKey() string {
+	o := make(chan string)
+	c.adminKeyOutput <- o
+	return <-o
+}
+
+// Should run while the server is alive
+func (c *cacher) listen() {
+	for true {
+		select {
+		case k := <-c.adminKeyInput:
+			// update the key
+			// invalidate the cache
+			// generate a new key
+			go func() {
+
+			}()
+		}
+	}
 }
 
 // GetRegistrationRequest returns the registration request for a particular

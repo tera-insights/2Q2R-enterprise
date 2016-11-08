@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // CheckBase64 returns any errors encountered when deserializing a
@@ -42,10 +44,13 @@ func RandString(n int) (string, error) {
 	return EncodeBase64(bytes), nil
 }
 
-// Returns serverID, messageMAC
-func getAuthDataFromHeaders(r *http.Request) (string, string) {
-	authParts := strings.Split(r.Header.Get("authentication"), ":")
-	return authParts[0], authParts[1]
+// Returns error, ID, messageMAC
+func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
+	parts := strings.Split(r.Header.Get("X-Authentication"), ":")
+	if len(parts) != 2 {
+		return "", "", errors.Errorf("Found %d parts, expected 2", len(parts))
+	}
+	return parts[0], parts[1], nil
 }
 
 type bubbledError struct {
