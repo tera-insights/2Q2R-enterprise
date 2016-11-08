@@ -4,16 +4,11 @@ package server
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/sha256"
 	"encoding/json"
-	"html/template"
 	"io"
 	"net/http"
 	"time"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
@@ -84,126 +79,6 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, newAdminReply{
 		RequestID: requestID,
-	})
-}
-
-// Wait waits for the admin to authenticate a particular request. If the
-// authentication is successful, writes the admin and key to the database.
-// GET /admin/{requestID}/wait
-func (ah *adminHandler) Wait(w http.ResponseWriter, r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
-	c := ah.q.Listen(requestID)
-	response := <-c
-	if response != http.StatusOK {
-		w.WriteHeader(response)
-		return
-	}
-	w.WriteHeader(response)
-}
-
-// RegisterIFrameHandler returns the iFrame used for the admin to register.
-// GET /admin/register/{requestID}
-func (ah *adminHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
-	templateBox, err := rice.FindBox("assets")
-	optionalInternalPanic(err, "Failed to load assets")
-
-	templateString, err := templateBox.String("all.html")
-	optionalInternalPanic(err, "Failed to load template")
-
-	t, err := template.New("register").Parse(templateString)
-	optionalInternalPanic(err, "Failed to generate registration iFrame")
-
-	cachedData, found := ah.s.cache.adminRegistrations.Get(requestID)
-	panicIfFalse(found, http.StatusBadRequest, "Failed to find registration request")
-	request := cachedData.(adminRegistrationRequest)
-
-	cachedData, found = ah.s.cache.admins.Get(requestID)
-	panicIfFalse(found, http.StatusInternalServerError, "Failed to find cached admin")
-	admin := cachedData.(Admin)
-
-	base := ah.s.Config.getBaseURLWithProtocol()
-	data, err := json.Marshal(registerData{
-		RequestID:   requestID,
-		KeyTypes:    []string{"2q2r", "u2f"},
-		Challenge:   EncodeBase64(request.Challenge),
-		UserID:      admin.ID,
-		BaseURL:     base,
-		AppURL:      base,
-		RegisterURL: base + "/admin/register",
-		WaitURL:     base + "/admin/" + requestID + "/wait",
-	})
-	optionalInternalPanic(err, "Failed to generate template")
-
-	t.Execute(w, templateData{
-		Name: "Registration",
-		ID:   "register",
-		Data: template.JS(data),
-	})
-}
-
-// Register registers a new second-factor for an admin. The associated signing
-// key is saved in the database. Also, if it is not already there, the admin
-// is also stored in the database.
-// POST /admin/register
-func (ah *adminHandler) Register(w http.ResponseWriter, r *http.Request) {
-	req := adminRegisterRequest{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	optionalBadRequestPanic(err, "Failed to decode request body")
-
-	admin, signingKey, err := ah.s.cache.GetAdmin(req.RequestID)
-	optionalBadRequestPanic(err, "Failed to find signing key for "+
-		"registration request")
-
-	data, found := ah.s.cache.adminRegistrations.Get(req.RequestID)
-	panicIfFalse(found, http.StatusBadRequest,
-		"Failed to find stored registration request")
-
-	registerRequest, ok := data.(adminRegistrationRequest)
-	panicIfFalse(ok, http.StatusInternalServerError,
-		"Failed to load registration request")
-
-	decoded, err := decodeBase64(signingKey.PublicKey)
-	optionalBadRequestPanic(err, "Could not decode public key")
-
-	x, y := elliptic.Unmarshal(elliptic.P256(), decoded)
-	if x == nil {
-		panic(bubbledError{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Could not unmarshal stored public key for admin",
-		})
-	}
-
-	pubKey := ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     x,
-		Y:     y,
-	}
-	hash := sha256.Sum256(registerRequest.Challenge)
-	verified := ecdsa.Verify(&pubKey, hash[:], &req.R, &req.S)
-	panicIfFalse(verified, http.StatusBadRequest, "Failed to verify signature")
-
-	// If the admin does not exist in the database, save it
-	count := 0
-	err = ah.s.DB.Where(&Admin{
-		ID: admin.ID,
-	}).Count(&count).Error
-	optionalInternalPanic(err, "Failed to see if admin should be saved")
-
-	if count == 0 {
-		err = ah.s.DB.Model(&Admin{}).Create(&admin).Error
-		optionalInternalPanic(err, "Failed to save admin to database")
-	}
-
-	err = ah.s.DB.Model(&SigningKey{}).Create(&signingKey).Error
-	optionalInternalPanic(err, "Failed to save key to database")
-
-	err = ah.q.MarkCompleted(req.RequestID)
-	optionalInternalPanic(err, "Could not notify request listeners")
-
-	writeJSON(w, http.StatusOK, registerResponse{
-		Successful: true,
-		Message:    "OK",
 	})
 }
 
