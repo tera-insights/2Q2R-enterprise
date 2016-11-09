@@ -64,11 +64,11 @@ type cacher struct {
 	// signed public key to true
 	validPublicKeys *cache.Cache
 
-	adminKeyOutput chan chan string
+	generatedKeys *cache.Cache
 }
 
 func newCacher(c *Config) *cacher {
-	return &cacher{
+	cache := cacher{
 		baseURL:                c.getBaseURLWithProtocol(),
 		expiration:             c.ExpirationTime,
 		clean:                  c.CleanTime,
@@ -80,27 +80,29 @@ func newCacher(c *Config) *cacher {
 		adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
 		validPublicKeys: cache.New(cache.NoExpiration,
 			cache.NoExpiration),
+		generatedKeys: cache.New(5*time.Minute, 6*time.Minute),
 	}
+	go cache.regenerateKeys()
+	return &cache
 }
 
-func (c *cacher) getAdminKey() string {
-	o := make(chan string)
-	c.adminKeyOutput <- o
-	return <-o
+func (c *cacher) getAdminPrivateKey() ([]byte, error) {
+	val, found := c.generatedKeys.Get("admin")
+	if !found {
+		return []byte{}, errors.Errorf("Could not find admin key")
+	}
+	return val.([]byte), nil
 }
 
 // Should run while the server is alive
-func (c *cacher) listen() {
+func (c *cacher) regenerateKeys() {
 	for true {
-		select {
-		case k := <-c.adminKeyInput:
-			// update the key
-			// invalidate the cache
-			// generate a new key
-			go func() {
-
-			}()
+		priv, _, _, err := elliptic.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			panic(errors.Wrapf(err, "Could not generate private key"))
 		}
+		c.generatedKeys.Set("admin", priv, 6*time.Minute)
+		time.Sleep(5 * time.Minute)
 	}
 }
 

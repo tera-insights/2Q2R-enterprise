@@ -257,7 +257,7 @@ func NewServer(r io.Reader, ct string) Server {
 	return Server{
 		c,
 		db,
-		newCacher(c),
+		newCacher(c), // regenerates keys when appropriate
 		d,
 		pub.(*rsa.PublicKey),
 		priv,
@@ -343,11 +343,14 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 			err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
 			optionalInternalPanic(err, "Could not find admin's signing key")
 
-			bytes, err := decodeBase64(sk.PublicKey)
+			skBytes, err := decodeBase64(sk.PublicKey)
 			optionalInternalPanic(err, "Could not decode admin's signing key")
 
-			x, y := elliptic.Unmarshal(elliptic.P256(), bytes)
-			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.cache.getAdminKey())
+			x, y := elliptic.Unmarshal(elliptic.P256(), skBytes)
+			priv, err := s.cache.getAdminPrivateKey()
+			optionalInternalPanic(err, "Could not private key for admin frontend")
+
+			key = ecdh.ComputeShared(elliptic.P256(), x, y, priv)
 		} else {
 			var app AppServerInfo
 			err := s.DB.Find(&app, AppServerInfo{
@@ -435,7 +438,12 @@ func (s *Server) GetHandler() http.Handler {
 
 	forMethod(router, "/admin/public", func(w http.ResponseWriter,
 		r *http.Request) {
-		writeJSON(w, http.StatusOK, s.cache.getAdminKey())
+		priv, err := s.cache.getAdminPrivateKey()
+		optionalInternalPanic(err, "Could not get keys for admin frontend")
+
+		x, y := elliptic.P256().ScalarBaseMult(priv)
+		writeJSON(w, http.StatusOK,
+			EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y)))
 	}, "GET")
 
 	// Info routes
