@@ -40,6 +40,11 @@ type adminRegistrationRequest struct {
 	Challenge []byte
 }
 
+type wrappedKey struct {
+	key     []byte
+	expires time.Time
+}
+
 // Holds various requests. If they are not found, it hits the database.
 type cacher struct {
 	baseURL                string
@@ -64,6 +69,7 @@ type cacher struct {
 	// signed public key to true
 	validPublicKeys *cache.Cache
 
+	// key-name -> wrappedKey
 	generatedKeys *cache.Cache
 }
 
@@ -86,12 +92,12 @@ func newCacher(c *Config) *cacher {
 	return &cache
 }
 
-func (c *cacher) getAdminPrivateKey() ([]byte, error) {
+func (c *cacher) getAdminPrivateKey() ([]byte, time.Duration, error) {
 	val, found := c.generatedKeys.Get("admin")
 	if !found {
-		return []byte{}, errors.Errorf("Could not find admin key")
+		return []byte{}, 0, errors.Errorf("Could not find admin key")
 	}
-	return val.([]byte), nil
+	return val.(wrappedKey).key, val.(wrappedKey).expires.Sub(time.Now()), nil
 }
 
 // Should run while the server is alive
@@ -101,7 +107,10 @@ func (c *cacher) regenerateKeys() {
 		if err != nil {
 			panic(errors.Wrapf(err, "Could not generate private key"))
 		}
-		c.generatedKeys.Set("admin", priv, 6*time.Minute)
+		c.generatedKeys.Set("admin", wrappedKey{
+			key:     priv,
+			expires: time.Now().Add(5 * time.Minute),
+		}, 6*time.Minute)
 		time.Sleep(5 * time.Minute)
 	}
 }

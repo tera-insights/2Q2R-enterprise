@@ -347,7 +347,7 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 			optionalInternalPanic(err, "Could not decode admin's signing key")
 
 			x, y := elliptic.Unmarshal(elliptic.P256(), skBytes)
-			priv, err := s.cache.getAdminPrivateKey()
+			priv, _, err := s.cache.getAdminPrivateKey()
 			optionalInternalPanic(err, "Could not private key for admin frontend")
 
 			key = ecdh.ComputeShared(elliptic.P256(), x, y, priv)
@@ -438,12 +438,15 @@ func (s *Server) GetHandler() http.Handler {
 
 	forMethod(router, "/admin/public", func(w http.ResponseWriter,
 		r *http.Request) {
-		priv, err := s.cache.getAdminPrivateKey()
+		priv, exp, err := s.cache.getAdminPrivateKey()
 		optionalInternalPanic(err, "Could not get keys for admin frontend")
 
 		x, y := elliptic.P256().ScalarBaseMult(priv)
-		writeJSON(w, http.StatusOK,
-			EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y)))
+		encoded := EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y))
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"public":  encoded,
+			"expires": exp.Seconds(),
+		})
 	}, "GET")
 
 	// Info routes
