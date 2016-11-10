@@ -22,6 +22,7 @@ import (
 	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	"github.com/pkg/errors"
@@ -462,10 +463,9 @@ func (s *Server) GetHandler() http.Handler {
 
 	// Auth routes
 	th := authHandler{
-		s: s,
-		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
-			s.Config.CleanTime, s.Config.ListenerExpirationTime,
-			s.Config.CleanTime),
+		sc: securecookie.New(securecookie.GenerateRandomKey(64), nil),
+		s:  s,
+		a:  newAuthenticator(s.Config),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
 		"GET")

@@ -25,15 +25,6 @@ type registrationRequest struct {
 	UserID    string
 }
 
-// authenticationRequest stores data used during authentication.
-type authenticationRequest struct {
-	RequestID string
-	Challenge *u2f.Challenge
-	KeyHandle string
-	AppID     string
-	UserID    string
-}
-
 // adminRegistrationRequest is the what admins use to add their initial second
 // factor.
 type adminRegistrationRequest struct {
@@ -160,46 +151,11 @@ func (c *cacher) GetRegistrationRequest(id string) (*registrationRequest,
 	return &r, nil
 }
 
-// GetAuthenticationRequest returns the string(h.Sum(nil))n request for a
-// particular request ID.
-func (c *cacher) GetAuthenticationRequest(id string) (*authenticationRequest,
-	error) {
-	val, ok := c.authenticationRequests.Get(id)
-	if ok {
-		ar := val.(authenticationRequest)
-		ptr := &ar
-		return ptr, nil
-	}
-	return nil, errors.Errorf("Could not find authentication request with "+
-		"id %s", id)
-}
-
-// SetAuthenticationRequest puts an authenticationRequest into the cache.
-func (c *cacher) SetAuthenticationRequest(id string, r authenticationRequest) {
-	c.authenticationRequests.Set(id, r, c.expiration)
-	s := EncodeBase64(r.Challenge.Challenge)
-	c.challengeToRequestID.Set(s, id, c.expiration)
-}
-
 // SetRegistrationRequest puts a RegistrationRequest into the cache.
 func (c *cacher) SetRegistrationRequest(id string, r registrationRequest) {
 	c.registrationRequests.Set(id, r, c.expiration)
 	s := EncodeBase64(r.Challenge.Challenge)
 	c.challengeToRequestID.Set(s, id, c.expiration)
-}
-
-// SetKeyForAuthenticationRequest sets the key handle used by an authentication
-// request.
-func (c *cacher) SetKeyForAuthenticationRequest(requestID,
-	keyHandle string) error {
-	if val, found := c.authenticationRequests.Get(requestID); found {
-		ar := val.(authenticationRequest)
-		ar.KeyHandle = keyHandle
-		c.authenticationRequests.Set(requestID, ar, c.expiration)
-		return nil
-	}
-	return errors.Errorf("Could not find authentication request with id %s",
-		requestID)
 }
 
 // NewAdminRegisterRequest stores a new admin, signing key, and registration
