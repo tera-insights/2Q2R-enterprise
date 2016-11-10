@@ -26,7 +26,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
 	"github.com/pkg/errors"
-	"github.com/ryanuber/go-glob"
+	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
 	"github.com/telehash/gogotelehash/e3x/cipherset/cs1a/ecdh"
 )
@@ -311,79 +311,68 @@ func recoverWrap(h http.Handler) http.Handler {
 	})
 }
 
+// For requests coming from an app sever or the admin frontend
+func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
+	id, received, err := getAuthDataFromHeaders(r)
+	optionalBadRequestPanic(err, "Invalid X-Authentication header")
+
+	hmacBytes, err := decodeBase64(received)
+	optionalInternalPanic(err, "Failed to decode MAC")
+
+	var key []byte
+	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+		var a Admin
+		err = s.DB.Find(&a, Admin{ID: id}).Error
+		optionalBadRequestPanic(err, "Could not find admin with ID "+id)
+
+		var sk SigningKey
+		err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
+		optionalInternalPanic(err, "Could not find admin's signing key")
+
+		skBytes, err := decodeBase64(sk.PublicKey)
+		optionalInternalPanic(err, "Could not decode admin's signing key")
+
+		x, y := elliptic.Unmarshal(elliptic.P256(), skBytes)
+		priv, _, err := s.cache.getAdminPrivateKey()
+		optionalInternalPanic(err, "Could not private key for admin frontend")
+
+		key = ecdh.ComputeShared(elliptic.P256(), x, y, priv)
+	} else {
+		var app AppServerInfo
+		err := s.DB.Find(&app, AppServerInfo{ID: id}).Error
+		optionalBadRequestPanic(err, "Could not find app server")
+
+		x, y := elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
+		key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
+	}
+
+	route := []byte(r.URL.Path)
+	var body []byte
+	if r.ContentLength > 0 {
+		_, err := r.Body.Read(body)
+		optionalInternalPanic(err, "Failed to read request body")
+	}
+
+	hash := hmac.New(sha256.New, key)
+	hash.Write(route)
+	if len(body) > 0 {
+		hash.Write(body)
+	}
+
+	match := hmac.Equal(hmacBytes, hash.Sum(nil))
+	panicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
+}
+
 // See the wiki for documentation on header authentication
 func (s *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		needsAuthentication := false
 		for _, pattern := range s.Config.AuthenticationRequiredRoutes {
 			if glob.Glob(pattern, r.URL.Path) {
-				needsAuthentication = true
+				s.headerAuthentication(w, r)
+				break
 			}
 		}
-
-		if !needsAuthentication {
-			handle.ServeHTTP(w, r)
-			return
-		}
-
-		id, receivedHMAC, err := getAuthDataFromHeaders(r)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, "Invalid X-Authentication header")
-		}
-
-		var key []byte
-
-		if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
-			var a Admin
-			err = s.DB.Find(&a, Admin{
-				ID: id,
-			}).Error
-			optionalBadRequestPanic(err, "Could not find admin with ID "+id)
-
-			var sk SigningKey
-			err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
-			optionalInternalPanic(err, "Could not find admin's signing key")
-
-			skBytes, err := decodeBase64(sk.PublicKey)
-			optionalInternalPanic(err, "Could not decode admin's signing key")
-
-			x, y := elliptic.Unmarshal(elliptic.P256(), skBytes)
-			priv, _, err := s.cache.getAdminPrivateKey()
-			optionalInternalPanic(err, "Could not private key for admin frontend")
-
-			key = ecdh.ComputeShared(elliptic.P256(), x, y, priv)
-		} else {
-			var app AppServerInfo
-			err := s.DB.Find(&app, AppServerInfo{
-				ID: id,
-			}).Error
-			optionalBadRequestPanic(err, "Could not find app server")
-
-			x, y := elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
-			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
-		}
-
-		route := []byte(r.URL.Path)
-		var body []byte
-		if r.ContentLength > 0 {
-			_, err := r.Body.Read(body)
-			optionalInternalPanic(err, "Failed to read request body")
-		}
-
-		hash := hmac.New(sha256.New, key)
-		hash.Write(route)
-		if len(body) > 0 {
-			hash.Write(body)
-		}
-		bytes, err := decodeBase64(receivedHMAC)
-		optionalInternalPanic(err, "Failed to decode MAC as web-encoded "+
-			"base-64 without padding")
-
-		if !hmac.Equal(bytes, hash.Sum(nil)) {
-			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
-			return
-		}
-
+		// If none of the middleware panicked, serve the main route
 		handle.ServeHTTP(w, r)
 	})
 }
