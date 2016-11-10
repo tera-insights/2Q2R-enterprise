@@ -200,7 +200,10 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 		optionalInternalPanic(err, "Could not notify request listeners")
 	}
 
-	tx.Commit()
+	err = tx.Commit().Error
+	optionalInternalPanic(err, "Could not commit transaction to database")
+
+	writeJSON(w, http.StatusOK, "Authentication successful")
 }
 
 // Wait allows the requester to check the result of the authentication. It
