@@ -56,9 +56,6 @@ type Config struct {
 	CertFile string
 	KeyFile  string
 
-	// A list of glob patterns mapping to routes that require auth headers
-	AuthenticationRequiredRoutes []string
-
 	Base64EncodedPublicKey string
 	KeyType                string
 
@@ -69,6 +66,8 @@ type Config struct {
 	// Whether or nor the private ECDSA key file is encrypted
 	PrivateKeyEncrypted bool
 	PrivateKeyPassword  string
+
+	AdminSessionLength time.Duration
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -86,6 +85,7 @@ type Server struct {
 	disperser *disperser
 	pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
+	sc        *securecookie.SecureCookie
 }
 
 // VerifySignature exposes s.cache.VerifySignature
@@ -150,13 +150,11 @@ func NewServer(r io.Reader, ct string) Server {
 	viper.SetDefault("BaseURL", "127.0.0.1")
 	viper.SetDefault("HTTPS", true)
 	viper.SetDefault("LogRequests", false)
-	viper.SetDefault("AuthenticationRequiredRoutes", []string{
-		"/*/register/request/*",
-	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
 	viper.SetDefault("PrivateKeyFile", "priv.pem")
 	viper.SetDefault("PrivateKeyEncrypted", false)
+	viper.SetDefault("AdminSessionLength", 15*time.Minute)
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -171,17 +169,16 @@ func NewServer(r io.Reader, ct string) Server {
 		CleanTime:                       viper.GetDuration("CleanTime"),
 		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
 		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
-		BaseURL:     viper.GetString("BaseURL"),
-		HTTPS:       viper.GetBool("HTTPS"),
-		LogRequests: viper.GetBool("LogRequests"),
-		CertFile:    viper.GetString("CertFile"),
-		KeyFile:     viper.GetString("KeyFile"),
-		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
-		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
-		KeyType:                      viper.GetString("KeyType"),
-		PrivateKeyFile:               viper.GetString("PrivateKeyFile"),
-		PrivateKeyEncrypted:          viper.GetBool("PrivateKeyEncrypted"),
-		PrivateKeyPassword:           viper.GetString("PrivateKeyPassword"),
+		BaseURL:                viper.GetString("BaseURL"),
+		HTTPS:                  viper.GetBool("HTTPS"),
+		LogRequests:            viper.GetBool("LogRequests"),
+		CertFile:               viper.GetString("CertFile"),
+		KeyFile:                viper.GetString("KeyFile"),
+		Base64EncodedPublicKey: viper.GetString("Base64EncodedPublicKey"),
+		KeyType:                viper.GetString("KeyType"),
+		PrivateKeyFile:         viper.GetString("PrivateKeyFile"),
+		PrivateKeyEncrypted:    viper.GetBool("PrivateKeyEncrypted"),
+		PrivateKeyPassword:     viper.GetString("PrivateKeyPassword"),
 	}
 
 	// Load the Tera Insights RSA public key
@@ -262,6 +259,7 @@ func NewServer(r io.Reader, ct string) Server {
 		d,
 		pub.(*rsa.PublicKey),
 		priv,
+		securecookie.New(securecookie.GenerateRandomKey(64), nil),
 	}
 }
 
@@ -366,12 +364,39 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 // See the wiki for documentation on header authentication
 func (s *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, pattern := range s.Config.AuthenticationRequiredRoutes {
+		headerAuthPatterns := []string{
+			"/*/register/request/*",
+		}
+		for _, pattern := range headerAuthPatterns {
 			if glob.Glob(pattern, r.URL.Path) {
 				s.headerAuthentication(w, r)
 				break
 			}
 		}
+
+		if glob.Glob("/admin/*", r.URL.Path) {
+			cookie, err := r.Cookie("admin-session")
+			optionalPanic(err, http.StatusUnauthorized, "No session cookie")
+
+			var expires time.Time
+			err = s.sc.Decode("admin-session", cookie.Value, &expires)
+			optionalPanic(err, http.StatusUnauthorized, "Invalid session "+
+				"cookie")
+
+			distance := time.Now().Sub(expires).Nanoseconds()
+			valid := distance < s.Config.AdminSessionLength.Nanoseconds()
+			panicIfFalse(valid, http.StatusUnauthorized, "Session expired")
+
+			encoded, err := s.sc.Encode("admin-session", time.Now())
+			optionalInternalPanic(err, "Could not update session cookie")
+
+			http.SetCookie(w, &http.Cookie{
+				Name:  "admin-session",
+				Value: encoded,
+				Path:  "/",
+			})
+		}
+
 		// If none of the middleware panicked, serve the main route
 		handle.ServeHTTP(w, r)
 	})
@@ -452,9 +477,8 @@ func (s *Server) GetHandler() http.Handler {
 
 	// Auth routes
 	th := authHandler{
-		sc: securecookie.New(securecookie.GenerateRandomKey(64), nil),
-		s:  s,
-		a:  newAuthenticator(s.Config),
+		s: s,
+		a: newAuthenticator(s.Config),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
 		"GET")

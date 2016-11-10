@@ -12,7 +12,6 @@ import (
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/tstranex/u2f"
 )
 
@@ -23,9 +22,8 @@ type authenticationData struct {
 }
 
 type authHandler struct {
-	s  *Server
-	sc *securecookie.SecureCookie
-	a  *authenticator
+	s *Server
+	a *authenticator
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
@@ -220,7 +218,7 @@ func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 
 	status := <-c
 	if status == http.StatusOK && ar.AppID == "1" {
-		encoded, err := ah.sc.Encode("admin-session", time.Now())
+		encoded, err := ah.s.sc.Encode("admin-session", time.Now())
 		optionalInternalPanic(err, "Could not set session cookie")
 
 		http.SetCookie(w, &http.Cookie{
