@@ -28,7 +28,8 @@ import (
 	"github.com/pkg/errors"
 	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
-	"github.com/telehash/gogotelehash/e3x/cipherset/cs1a/ecdh"
+
+	"2q2r/crypto"
 )
 
 // Config is the configuration for the server.
@@ -86,11 +87,8 @@ type Server struct {
 	pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
 	sc        *securecookie.SecureCookie
-}
-
-// VerifySignature exposes s.cache.VerifySignature
-func (s *Server) VerifySignature(ks KeySignature) error {
-	return s.cache.VerifySignature(ks)
+	kc        *keyCache
+	kg        *crypto.KeyGen
 }
 
 // Used in registration and authentication templates
@@ -260,6 +258,8 @@ func NewServer(r io.Reader, ct string) Server {
 		pub.(*rsa.PublicKey),
 		priv,
 		securecookie.New(securecookie.GenerateRandomKey(64), nil),
+		newKeyCache(c, pub.(*rsa.PublicKey), db),
+		crypto.NewKeyGen(),
 	}
 }
 
@@ -331,17 +331,14 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 		optionalInternalPanic(err, "Could not decode admin's signing key")
 
 		x, y := elliptic.Unmarshal(elliptic.P256(), skBytes)
-		priv, _, err := s.cache.getAdminPrivateKey()
-		optionalInternalPanic(err, "Could not private key for admin frontend")
-
-		key = ecdh.ComputeShared(elliptic.P256(), x, y, priv)
+		key = s.kg.GetShared(x, y, nil)
 	} else {
 		var app AppServerInfo
 		err := s.DB.Find(&app, AppServerInfo{ID: id}).Error
 		optionalBadRequestPanic(err, "Could not find app server")
 
 		x, y := elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
-		key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
+		key := s.kg.GetShared(x, y, s.priv.D.Bytes())
 	}
 
 	route := []byte(r.URL.Path)
@@ -359,6 +356,8 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 
 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
 	panicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
+
+	s.kc.putGeneratedKey(elliptic.Marshal(elliptic.P256(), x, y), key)
 }
 
 // See the wiki for documentation on header authentication
@@ -453,7 +452,7 @@ func (s *Server) GetHandler() http.Handler {
 
 	forMethod(router, "/admin/public", func(w http.ResponseWriter,
 		r *http.Request) {
-		priv, exp, err := s.cache.getAdminPrivateKey()
+		priv, exp, err := s.kc.getAdminPriv()
 		optionalInternalPanic(err, "Could not get keys for admin frontend")
 
 		x, y := elliptic.P256().ScalarBaseMult(priv)
