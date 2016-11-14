@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -36,8 +37,17 @@ var events = map[eventName]string{
 }
 
 type event struct {
-	Name  string `json:"name"`
-	AppID string `json:"appID"`
+	Name          string    `json:"name"`
+	OriginalIP    net.IP    `json:"originalIP"`
+	OriginalLat   float64   `json:"originalLat"`
+	OriginalLong  float64   `json:"originalLong"`
+	ResolvingIP   net.IP    `json:"resolvingIP"`
+	ResolvingLat  float64   `json:"resolvingLat"`
+	ResolvingLong float64   `json:"resolvingLong"`
+	AppID         string    `json:"appID"`
+	Timestamp     time.Time `json:"when"`
+	Status        string    `json:"status"` // success, failure, or timeout
+	UserID        string    `json:"userID"`
 }
 
 type eventsMap map[string][]event
@@ -83,20 +93,19 @@ func (d *disperser) addListener(l listener) {
 	d.listeners = append(d.listeners, l)
 }
 
-func (d *disperser) addEvent(n eventName, t time.Time, ids []string) error {
+func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID string,
+	oIP net.IP, rIP net.IP) error {
 	if _, found := events[n]; !found {
 		return errors.Errorf("%d was not in the event map", n)
 	}
-	sentToGlobal := false
-	for _, id := range ids {
-		if id == "1" {
-			sentToGlobal = true
-		}
-		d.eventInput <- event{events[n], id}
-	}
-	// Add event to the global events list if it not done above
-	if !sentToGlobal {
-		d.eventInput <- event{events[n], "1"}
+	d.eventInput <- event{
+		Name:        events[n],
+		AppID:       aID,
+		Timestamp:   t,
+		Status:      s,
+		UserID:      uID,
+		OriginalIP:  oIP,
+		ResolvingIP: rIP,
 	}
 	return nil
 }
@@ -114,6 +123,12 @@ func (d *disperser) listen() {
 			where <- d.recent
 		case e := <-d.eventInput:
 			d.events[e.AppID] = append(d.events[e.AppID], e)
+
+			// Add event to the global events list if it not done above
+			if e.AppID != "1" {
+				d.events["1"] = append(d.events[e.AppID], e)
+			}
+
 			// If the recent list is full, overwrite the oldest event
 			if len(d.recent) == cap(d.recent) {
 				copy(d.recent, append(d.recent[1:], e))
