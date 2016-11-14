@@ -57,9 +57,9 @@ func NewKeyGen() *KeyGen {
 	return &kc
 }
 
-// PutSharedKey stores `shared` in the cache at the index determined by x, y,
+// PutShared stores `shared` in the cache at the index determined by x, y,
 // and the elliptic curve.
-func (kg *KeyGen) PutSharedKey(x, y *big.Int, shared []byte) {
+func (kg *KeyGen) PutShared(x, y *big.Int, shared []byte) {
 	kg.sharedIn <- sharedIn{x, y, shared}
 }
 

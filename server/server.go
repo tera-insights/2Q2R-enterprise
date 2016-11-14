@@ -359,7 +359,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
 	panicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
-	s.kg.PutSharedKey(x, y, key)
+	s.kg.PutShared(x, y, key)
 }
 
 // See the wiki for documentation on header authentication
