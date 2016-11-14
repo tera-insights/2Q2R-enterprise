@@ -42,7 +42,8 @@ type event struct {
 
 type eventsMap map[string][]event
 
-type eventSummary struct {
+// Lists the events that happened over the previous 100 ms
+type eventsList struct {
 	Type   string  `json:"__type__"` // type of message
 	Events []event `json:"events"`
 }
@@ -129,13 +130,13 @@ func (d *disperser) listen() {
 // results out to the clients.
 func (d *disperser) getMessages() {
 	for true {
-		time.Sleep(time.Second)
+		time.Sleep(100 * time.Millisecond)
 		ec := make(chan eventsMap)
 		d.aggregatorOutput <- ec
 		events := <-ec
 		for _, l := range d.listeners {
-			l.conn.WriteJSON(eventSummary{
-				Type:   "Summary",
+			l.conn.WriteJSON(eventsList{
+				Type:   "List",
 				Events: events[l.appID],
 			})
 		}
