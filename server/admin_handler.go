@@ -55,6 +55,7 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 		Role:        "admin",
 		Status:      "active",
 		Permissions: string(encodedPermissions),
+		AdminFor:    req.AdminFor,
 	}).Error
 	optionalInternalPanic(err, "Could not save admin")
 
@@ -110,6 +111,7 @@ func (ah *adminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 		Name:                req.Name,
 		Email:               req.Email,
 		PrimarySigningKeyID: req.PrimarySigningKeyID,
+		AdminFor:            req.AdminFor,
 	}).Error
 	optionalInternalPanic(err, "Failed to update admin")
 
@@ -152,6 +154,7 @@ func (ah *adminHandler) ChangeAdminRoles(w http.ResponseWriter, r *http.Request)
 		Role:        req.Role,
 		Status:      req.Status,
 		Permissions: req.Permissions,
+		AdminFor:    req.AdminFor,
 	}).Error
 	optionalInternalPanic(err, "Failed to change admin roles")
 
@@ -448,6 +451,20 @@ func (ah *adminHandler) DeletePermission(w http.ResponseWriter,
 // GET /admin/stats/listen
 func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	r *http.Request) {
+	cookie, err := r.Cookie("admin-session")
+	optionalPanic(err, http.StatusUnauthorized, "No session cookie")
+
+	var m map[string]interface{}
+	err = ah.s.sc.Decode("admin-session", cookie.Value, &m)
+	optionalPanic(err, http.StatusUnauthorized, "Invalid session "+
+		"cookie")
+
+	val, found := m["app"]
+	panicIfFalse(found, http.StatusBadRequest, "Invalid cookie")
+
+	appID, ok := val.(string)
+	panicIfFalse(ok, http.StatusBadRequest, "Invalid app ID in cookie")
+
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -455,8 +472,8 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	conn, err := upgrader.Upgrade(w, r, nil)
 	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
 
-	ah.s.disperser.addListener(listener{conn, "1"})
-	ah.s.disperser.addEvent(listenerRegistered, time.Now(), []string{"1"})
+	ah.s.disperser.addListener(listener{conn, appID})
+	ah.s.disperser.addEvent(listenerRegistered, time.Now(), []string{appID})
 	writeJSON(w, http.StatusOK, "Socket created")
 }
 

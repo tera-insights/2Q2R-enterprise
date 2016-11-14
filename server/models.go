@@ -51,13 +51,20 @@ type Key struct {
 
 // Admin is the Gorm model for a (super-) admin.
 type Admin struct {
-	ID                  string `json:"activeID"` // can be joined with Key.UserID
-	Status              string `json:"status"`   // either active or inactive
-	Name                string `json:"name"`
-	Email               string `json:"email"`
-	Permissions         string `json:"permissions"`         // JSON-encoded array
-	Role                string `json:"role"`                // if superadmin, this has all permissions
-	PrimarySigningKeyID string `json:"primarySigningKeyID"` // FK into the SigningKey relation
+	ID          string `json:"activeID"` // can be joined with Key.UserID
+	Status      string `json:"status"`   // either active or inactive
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Permissions string `json:"permissions"` // JSON-encoded array
+
+	// if superadmin, this has all permissions
+	Role string `json:"role"`
+
+	// FK into the SigningKey relation
+	PrimarySigningKeyID string `json:"primarySigningKeyID"`
+
+	// The AppID for which this admin can act
+	AdminFor string `json:"adminFor"`
 }
 
 // Permission is the schema for an admin's permissions.

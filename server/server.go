@@ -379,10 +379,16 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 			cookie, err := r.Cookie("admin-session")
 			optionalPanic(err, http.StatusUnauthorized, "No session cookie")
 
-			var expires time.Time
-			err = s.sc.Decode("admin-session", cookie.Value, &expires)
+			var m map[string]interface{}
+			err = s.sc.Decode("admin-session", cookie.Value, &m)
 			optionalPanic(err, http.StatusUnauthorized, "Invalid session "+
 				"cookie")
+
+			var expires time.Time
+			val, found := m["set"]
+			panicIfFalse(found, http.StatusBadRequest, "Invalid cookie")
+
+			expires = val.(time.Time)
 
 			distance := time.Now().Sub(expires).Nanoseconds()
 			valid := distance < s.Config.AdminSessionLength.Nanoseconds()

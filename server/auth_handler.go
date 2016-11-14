@@ -218,7 +218,17 @@ func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 
 	status := <-c
 	if status == http.StatusOK && ar.AppID == "1" {
-		encoded, err := ah.s.sc.Encode("admin-session", time.Now())
+		var a Admin
+		err = ah.s.DB.First(&a, Admin{
+			ID: ar.UserID,
+		}).Error
+		optionalBadRequestPanic(err, "Could not find admin with id "+ar.UserID)
+
+		encoded, err := ah.s.sc.Encode("admin-session", map[string]interface{}{
+			"set": time.Now(),
+			"app": a.AdminFor,
+		})
+
 		optionalInternalPanic(err, "Could not set session cookie")
 
 		http.SetCookie(w, &http.Cookie{

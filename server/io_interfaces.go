@@ -14,6 +14,7 @@ type NewAdminRequest struct {
 	Name             string   `json:"name"`
 	Email            string   `json:"email"`
 	Permissions      []string `json:"permissions"`
+	AdminFor         string   `json:"adminFor"`
 	IV               string   `json:"iv"`               // encoded with web encoding, no padding
 	Salt             string   `json:"salt"`             // same encoding
 	PublicKey        string   `json:"publicKey"`        // same encoding
@@ -31,6 +32,7 @@ type adminUpdateRequest struct {
 	Name                string `json:"name"`
 	Email               string `json:"email"`
 	PrimarySigningKeyID string `json:"primarySigningKeyID"`
+	AdminFor            string `json:"adminFor"`
 }
 
 // Request to POST /admin/admin/roles
@@ -39,6 +41,7 @@ type adminRoleChangeRequest struct {
 	Role        string `json:"role"`
 	Status      string `json:"status"`
 	Permissions string `json:"permissions"`
+	AdminFor    string `json:"adminFor"`
 }
 
 // newAppRequest is the request to POST /admin/app

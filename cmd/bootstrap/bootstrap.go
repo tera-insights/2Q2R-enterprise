@@ -97,6 +97,7 @@ func main() {
 		Permissions:         string(encodedPermissions),
 		Role:                "superadmin",
 		PrimarySigningKeyID: keyID,
+		AdminFor:            "1",
 	}).Error; err != nil {
 		tx.Rollback()
 		panic(errors.Wrap(err, "Could not save admin to the database"))
