@@ -1,20 +1,38 @@
 // Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
-package server
+package security
 
 import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
+	"encoding/base64"
 	"io"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 )
 
-type keyCache struct {
+// KeySignature is the Gorm model for signatures of both signing and
+// second-factor keys.
+type KeySignature struct {
+	// base-64 web encoded
+	// "1" if the signing public key is the TI public key
+	SigningPublicKey string `gorm:"primary_key"`
+	SignedPublicKey  string `gorm:"primary_key"`
+
+	Type    string // either "signing" or "second-factor"
+	OwnerID string // the admin's ID for `type == "signing"`, user's ID else
+
+	// signature of the sha-256 of: SignedPublicKey | Type | OwnerID
+	Signature string // same encoding as above
+}
+
+// KeyCache stores and checks the validity of signing keys.
+type KeyCache struct {
 	// Stores valid public signing keys
 	validPublic *cache.Cache
 
@@ -23,20 +41,20 @@ type keyCache struct {
 	db *gorm.DB
 }
 
-func newKeyCache(c *Config, p *rsa.PublicKey, db *gorm.DB) *keyCache {
-	kc := keyCache{
-		cache.New(c.ExpirationTime, c.CleanTime),
+// NewKeyCache uses the config to create a new KeyCache.
+func NewKeyCache(et, ct time.Duration, p *rsa.PublicKey, db *gorm.DB) *KeyCache {
+	return &KeyCache{
+		cache.New(et, ct),
 		p,
 		db,
 	}
-	return &kc
 }
 
 // VerifySignature validates the passed key signature using ECDSA. It uses the
 // cache as much as possible to avoid database accesses. Additionally, if it
 // ever reaches the Tera Insights public key (`SigningPublicKey == "1"`), then
 // the signature is verified using `rsa.VerifyPSS`.
-func (kc *keyCache) VerifySignature(sig KeySignature) error {
+func (kc *KeyCache) VerifySignature(sig KeySignature) error {
 	if sig.Type != "signing" {
 		return errors.Errorf("Signature had type %s, not \"signing\"",
 			sig.Type)
@@ -138,4 +156,12 @@ func (kc *keyCache) VerifySignature(sig KeySignature) error {
 	}
 
 	return nil
+}
+
+// Copied from go-u2f and 2q2r/server
+func decodeBase64(s string) ([]byte, error) {
+	for i := 0; i < len(s)%4; i++ {
+		s += "="
+	}
+	return base64.URLEncoding.DecodeString(s)
 }

@@ -1,6 +1,6 @@
 // Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
-package crypto
+package security
 
 import (
 	"crypto/elliptic"

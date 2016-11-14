@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/security"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/hmac"
@@ -29,8 +30,6 @@ import (
 	"github.com/pkg/errors"
 	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
-
-	"2q2r/crypto"
 )
 
 // Config is the configuration for the server.
@@ -88,8 +87,8 @@ type Server struct {
 	pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
 	sc        *securecookie.SecureCookie
-	kc        *keyCache
-	kg        *crypto.KeyGen
+	kc        *security.KeyCache
+	kg        *security.KeyGen
 }
 
 // Used in registration and authentication templates
@@ -240,7 +239,7 @@ func NewServer(r io.Reader, ct string) Server {
 		AutoMigrate(&AppServerInfo{}).
 		AutoMigrate(&Key{}).
 		AutoMigrate(&Admin{}).
-		AutoMigrate(&KeySignature{}).
+		AutoMigrate(&security.KeySignature{}).
 		AutoMigrate(&SigningKey{}).
 		AutoMigrate(&Permission{}).Error
 	if err != nil {
@@ -251,16 +250,17 @@ func NewServer(r io.Reader, ct string) Server {
 	go d.listen()
 	go d.getMessages()
 
+	rsa := pub.(*rsa.PublicKey)
 	return Server{
 		c,
 		db,
 		newCacher(c), // regenerates keys when appropriate
 		d,
-		pub.(*rsa.PublicKey),
+		rsa,
 		priv,
 		securecookie.New(securecookie.GenerateRandomKey(64), nil),
-		newKeyCache(c, pub.(*rsa.PublicKey), db),
-		crypto.NewKeyGen(),
+		security.NewKeyCache(c.ExpirationTime, c.CleanTime, rsa, db),
+		security.NewKeyGen(),
 	}
 }
 

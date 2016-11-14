@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/security"
 	"crypto"
 	"encoding/json"
 	"io"
@@ -37,7 +38,7 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	keyID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate key ID")
 
-	err = ah.s.kc.VerifySignature(KeySignature{
+	err = ah.s.kc.VerifySignature(security.KeySignature{
 		SigningPublicKey: req.SigningPublicKey,
 		SignedPublicKey:  req.PublicKey,
 		Type:             "signing",
