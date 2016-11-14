@@ -63,7 +63,7 @@ type Admin struct {
 	// FK into the SigningKey relation
 	PrimarySigningKeyID string `json:"primarySigningKeyID"`
 
-	// The AppID for which this admin can act
+	// The AppID for which this admin can act. "1" for superadmins
 	AdminFor string `json:"adminFor"`
 }
 
