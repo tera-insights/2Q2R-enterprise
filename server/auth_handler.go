@@ -58,7 +58,8 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
 // GET /v1/auth/:id
-func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
+	r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
 	templateBox, err := rice.FindBox("assets")
 	optionalInternalPanic(err, "Failed to load assets")
@@ -73,7 +74,9 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	optionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
 	query := Key{AppID: cached.AppID, UserID: cached.UserID}
-	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
+	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{
+		"key_id", "type", "name",
+	}).Rows()
 	optionalInternalPanic(err, "Could not load keys")
 
 	defer rows.Close()
@@ -204,6 +207,22 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	err = tx.Commit().Error
 	optionalInternalPanic(err, "Could not commit transaction to database")
+
+	// If the authentication was for an admin, then look up the admin's app ID
+	// and log the event under that key
+	var appID string
+	if ar.AppID == "1" {
+		var a Admin
+		err = ah.s.DB.First(&a, Admin{
+			ID: ar.UserID,
+		}).Error
+		optionalBadRequestPanic(err, "Could not find admin")
+
+		appID = a.AdminFor
+	} else {
+		appID = ar.AppID
+	}
+	ah.s.disperser.addEvent(authentication, time.Now(), []string{appID})
 
 	writeJSON(w, http.StatusOK, "Authentication successful")
 }

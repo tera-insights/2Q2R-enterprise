@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
@@ -195,6 +196,8 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Successful: true,
 		Message:    "OK",
 	})
+
+	rh.s.disperser.addEvent(registration, time.Now(), []string{rr.AppID})
 }
 
 // Wait allows the requester to check the result of the registration. It blocks

@@ -4,6 +4,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -66,11 +67,32 @@ func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	keyHandle := mux.Vars(r)["keyHandle"]
 	panicIfFalse(keyHandle != "", http.StatusBadRequest, "Key handle cannot be \"\"")
 
-	query := kh.s.DB.Delete(Key{}, &Key{
+	var k Key
+	query := kh.s.DB.First(&k, Key{
+		UserID: userID,
+		ID:     keyHandle,
+	}).Delete(Key{}, &Key{
 		UserID: userID,
 		ID:     keyHandle,
 	})
+
 	optionalInternalPanic(query.Error, "Could not delete key")
+
+	// If the key deletion was for an admin, then look up the admin's app ID
+	// and log the event under that key
+	var appID string
+	if k.AppID == "1" {
+		var a Admin
+		err := kh.s.DB.First(&a, Admin{
+			ID: k.UserID,
+		}).Error
+		optionalBadRequestPanic(err, "Could not find admin")
+
+		appID = a.AdminFor
+	} else {
+		appID = k.AppID
+	}
+	kh.s.disperser.addEvent(keyDeletion, time.Now(), []string{appID})
 
 	writeJSON(w, http.StatusOK, modificationReply{
 		NumAffected: query.RowsAffected,
