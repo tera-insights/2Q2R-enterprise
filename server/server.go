@@ -15,6 +15,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"time"
@@ -318,6 +319,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	optionalInternalPanic(err, "Failed to decode MAC")
 
 	var key []byte
+	var x, y *big.Int
 	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
 		var a Admin
 		err = s.DB.Find(&a, Admin{ID: id}).Error
@@ -330,15 +332,15 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 		skBytes, err := decodeBase64(sk.PublicKey)
 		optionalInternalPanic(err, "Could not decode admin's signing key")
 
-		x, y := elliptic.Unmarshal(elliptic.P256(), skBytes)
+		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
 		key = s.kg.GetShared(x, y, nil)
 	} else {
 		var app AppServerInfo
 		err := s.DB.Find(&app, AppServerInfo{ID: id}).Error
 		optionalBadRequestPanic(err, "Could not find app server")
 
-		x, y := elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
-		key := s.kg.GetShared(x, y, s.priv.D.Bytes())
+		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
+		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
 	}
 
 	route := []byte(r.URL.Path)
@@ -357,7 +359,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
 	panicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
-	s.kc.putGeneratedKey(elliptic.Marshal(elliptic.P256(), x, y), key)
+	s.kg.PutSharedKey(x, y, key)
 }
 
 // See the wiki for documentation on header authentication
@@ -452,7 +454,7 @@ func (s *Server) GetHandler() http.Handler {
 
 	forMethod(router, "/admin/public", func(w http.ResponseWriter,
 		r *http.Request) {
-		priv, exp, err := s.kc.getAdminPriv()
+		priv, exp, err := s.kg.GetAdminPriv()
 		optionalInternalPanic(err, "Could not get keys for admin frontend")
 
 		x, y := elliptic.P256().ScalarBaseMult(priv)

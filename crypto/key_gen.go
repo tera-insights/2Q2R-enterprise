@@ -23,6 +23,9 @@ type KeyGen struct {
 
 	// Send requests for shared keys
 	sharedReq chan sharedReq
+
+	// Send shared keys here
+	sharedIn chan sharedIn
 }
 
 type wrappedKey struct {
@@ -36,6 +39,11 @@ type sharedReq struct {
 	out  chan []byte
 }
 
+type sharedIn struct {
+	x, y   *big.Int
+	shared []byte
+}
+
 // NewKeyGen creates a new KeyGen that automatically regenerates its private
 // key.
 func NewKeyGen() *KeyGen {
@@ -43,9 +51,16 @@ func NewKeyGen() *KeyGen {
 		make(chan []byte),
 		make(chan chan wrappedKey),
 		make(chan sharedReq),
+		make(chan sharedIn),
 	}
 	go kc.listen()
 	return &kc
+}
+
+// PutSharedKey stores `shared` in the cache at the index determined by x, y,
+// and the elliptic curve.
+func (kg *KeyGen) PutSharedKey(x, y *big.Int, shared []byte) {
+	kg.sharedIn <- sharedIn{x, y, shared}
 }
 
 // GetAdminPriv returns the current admin-frontend private key along with how
@@ -108,9 +123,11 @@ func (kg *KeyGen) listen() {
 					priv = sr.priv
 				}
 				key := ecdh.ComputeShared(elliptic.P256(), sr.x, sr.y, priv)
-				shared.Set(index, key, cache.NoExpiration)
 				sr.out <- key
 			}
+		case si := <-kg.sharedIn:
+			index := string(elliptic.Marshal(elliptic.P256(), si.x, si.y))
+			shared.Set(index, si.shared, cache.NoExpiration)
 		case priv := <-kg.generated:
 			wk = wrappedKey{priv, time.Now().Add(5 * time.Minute)}
 		}

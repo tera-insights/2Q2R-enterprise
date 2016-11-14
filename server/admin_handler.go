@@ -37,7 +37,7 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	keyID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate key ID")
 
-	err = ah.s.VerifySignature(KeySignature{
+	err = ah.s.kc.VerifySignature(KeySignature{
 		SigningPublicKey: req.SigningPublicKey,
 		SignedPublicKey:  req.PublicKey,
 		Type:             "signing",
