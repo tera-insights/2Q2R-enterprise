@@ -8,6 +8,8 @@ import (
 	"html/template"
 	"net/http"
 
+	"time"
+
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"github.com/tstranex/u2f"
@@ -21,7 +23,7 @@ type authenticationData struct {
 
 type authHandler struct {
 	s *Server
-	q queue
+	a *authenticator
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
@@ -41,16 +43,16 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Failed to generate request ID")
 
-	cachedRequest := authenticationRequest{
+	req := authReq{
 		RequestID: requestID,
 		Challenge: challenge,
 		AppID:     key.AppID,
 		UserID:    userID,
 	}
-	ah.s.cache.SetAuthenticationRequest(cachedRequest.RequestID, cachedRequest)
+	ah.a.PutRequest(requestID, req)
 	writeJSON(w, http.StatusOK, authenticationSetupReply{
-		cachedRequest.RequestID,
-		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + cachedRequest.RequestID,
+		requestID,
+		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + requestID,
 	})
 }
 
@@ -67,10 +69,10 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 	t, err := template.New("auth").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate authentication iFrame")
 
-	cachedRequest, err := ah.s.cache.GetAuthenticationRequest(requestID)
+	cached, err := ah.a.GetRequest(requestID)
 	optionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
-	query := Key{AppID: cachedRequest.AppID, UserID: cachedRequest.UserID}
+	query := Key{AppID: cached.AppID, UserID: cached.UserID}
 	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{"key_id", "type", "name"}).Rows()
 	optionalInternalPanic(err, "Could not load keys")
 
@@ -94,15 +96,15 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter, r *http.Request)
 		RequestID:    requestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    EncodeBase64(cachedRequest.Challenge.Challenge),
-		UserID:       cachedRequest.UserID,
-		AppID:        cachedRequest.AppID,
+		Challenge:    EncodeBase64(cached.Challenge.Challenge),
+		UserID:       cached.UserID,
+		AppID:        cached.AppID,
 		BaseURL:      base,
 		AppURL:       base,
 		AuthURL:      base + "/v1/auth/",
-		InfoURL:      base + "/v1/info/" + cachedRequest.AppID,
-		WaitURL:      base + "/v1/auth/" + cachedRequest.RequestID + "/wait",
-		ChallengeURL: base + "/v1/auth/" + cachedRequest.RequestID + "/challenge",
+		InfoURL:      base + "/v1/info/" + cached.AppID,
+		WaitURL:      base + "/v1/auth/" + cached.RequestID + "/wait",
+		ChallengeURL: base + "/v1/auth/" + cached.RequestID + "/challenge",
 	})
 	optionalInternalPanic(err, "Failed to render template")
 
@@ -159,7 +161,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get authentication request
-	ar, err := ah.s.cache.GetAuthenticationRequest(requestID.(string))
+	ar, err := ah.a.GetRequest(requestID.(string))
 	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	storedKey := Key{}
@@ -194,22 +196,38 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Notify request listeners
-	err = ah.q.MarkCompleted(requestID.(string))
+	err = ah.a.MarkCompleted(requestID.(string))
 	if err != nil {
 		tx.Rollback()
 		optionalInternalPanic(err, "Could not notify request listeners")
 	}
 
-	tx.Commit()
+	err = tx.Commit().Error
+	optionalInternalPanic(err, "Could not commit transaction to database")
+
+	writeJSON(w, http.StatusOK, "Authentication successful")
 }
 
 // Wait allows the requester to check the result of the authentication. It
 // blocks until the authentication is complete.
 // GET /v1/auth/{requestID}/wait
 func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
-	c := ah.q.Listen(requestID)
-	w.WriteHeader(<-c)
+	id := mux.Vars(r)["requestID"]
+	c, ar, err := ah.a.Listen(id)
+	optionalBadRequestPanic(err, "Could not listen for unknown request")
+
+	status := <-c
+	if status == http.StatusOK && ar.AppID == "1" {
+		encoded, err := ah.s.sc.Encode("admin-session", time.Now())
+		optionalInternalPanic(err, "Could not set session cookie")
+
+		http.SetCookie(w, &http.Cookie{
+			Name:  "admin-session",
+			Value: encoded,
+			Path:  "/",
+		})
+	}
+	w.WriteHeader(status)
 }
 
 // SetKey sets the key for a given authentication request.
@@ -221,10 +239,10 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	err = ah.s.cache.SetKeyForAuthenticationRequest(requestID, req.KeyHandle)
+	err = ah.a.SetKey(requestID, req.KeyHandle)
 	optionalInternalPanic(err, "Failed to set key for authentication request")
 
-	ar, err := ah.s.cache.GetAuthenticationRequest(requestID)
+	ar, err := ah.a.GetRequest(requestID)
 	optionalInternalPanic(err, "Failed to get authentication request")
 
 	storedKey := Key{}

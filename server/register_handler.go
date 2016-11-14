@@ -21,11 +21,12 @@ type registerHandler struct {
 // RegisterSetupHandler sets up the registration of a new two-factor device.
 // GET /v1/register/request/:userID
 func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
+	serverID, _, err := getAuthDataFromHeaders(r)
+	optionalInternalPanic(err, "Could not decode authentication headers")
+
 	userID := mux.Vars(r)["userID"]
-	serverID, _ := getAuthDataFromHeaders(r)
-	serverInfo := AppServerInfo{}
-	err := rh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
-		First(&serverInfo).Error
+	server := AppServerInfo{}
+	err = rh.s.DB.First(&server, AppServerInfo{ID: serverID}).Error
 	optionalBadRequestPanic(err, "Could not find app server")
 
 	challenge, err := u2f.NewChallenge(rh.s.Config.getBaseURLWithProtocol(),
@@ -38,7 +39,7 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	rr := registrationRequest{
 		RequestID: requestID,
 		Challenge: challenge,
-		AppID:     serverInfo.AppID,
+		AppID:     server.AppID,
 		UserID:    userID,
 	}
 	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)

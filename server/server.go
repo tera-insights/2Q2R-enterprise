@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/security"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/hmac"
@@ -15,21 +16,20 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
-	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
-	"github.com/ryanuber/go-glob"
+	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
-	"github.com/telehash/gogotelehash/e3x/cipherset/cs1a/ecdh"
 )
 
 // Config is the configuration for the server.
@@ -57,9 +57,6 @@ type Config struct {
 	CertFile string
 	KeyFile  string
 
-	// A list of glob patterns mapping to routes that require auth headers
-	AuthenticationRequiredRoutes []string
-
 	Base64EncodedPublicKey string
 	KeyType                string
 
@@ -70,6 +67,8 @@ type Config struct {
 	// Whether or nor the private ECDSA key file is encrypted
 	PrivateKeyEncrypted bool
 	PrivateKeyPassword  string
+
+	AdminSessionLength time.Duration
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -83,15 +82,13 @@ func (c *Config) getBaseURLWithProtocol() string {
 type Server struct {
 	Config    *Config
 	DB        *gorm.DB
-	cache     cacher
+	cache     *cacher
 	disperser *disperser
 	pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
-}
-
-// VerifySignature exposes s.cache.VerifySignature
-func (s *Server) VerifySignature(ks KeySignature) error {
-	return s.cache.VerifySignature(ks)
+	sc        *securecookie.SecureCookie
+	kc        *security.KeyCache
+	kg        *security.KeyGen
 }
 
 // Used in registration and authentication templates
@@ -151,13 +148,11 @@ func NewServer(r io.Reader, ct string) Server {
 	viper.SetDefault("BaseURL", "127.0.0.1")
 	viper.SetDefault("HTTPS", true)
 	viper.SetDefault("LogRequests", false)
-	viper.SetDefault("AuthenticationRequiredRoutes", []string{
-		"/*/register/request/*",
-	})
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
 	viper.SetDefault("PrivateKeyFile", "priv.pem")
 	viper.SetDefault("PrivateKeyEncrypted", false)
+	viper.SetDefault("AdminSessionLength", 15*time.Minute)
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -172,17 +167,16 @@ func NewServer(r io.Reader, ct string) Server {
 		CleanTime:                       viper.GetDuration("CleanTime"),
 		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
 		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
-		BaseURL:     viper.GetString("BaseURL"),
-		HTTPS:       viper.GetBool("HTTPS"),
-		LogRequests: viper.GetBool("LogRequests"),
-		CertFile:    viper.GetString("CertFile"),
-		KeyFile:     viper.GetString("KeyFile"),
-		AuthenticationRequiredRoutes: viper.GetStringSlice("AuthenticationRequiredRoutes"),
-		Base64EncodedPublicKey:       viper.GetString("Base64EncodedPublicKey"),
-		KeyType:                      viper.GetString("KeyType"),
-		PrivateKeyFile:               viper.GetString("PrivateKeyFile"),
-		PrivateKeyEncrypted:          viper.GetBool("PrivateKeyEncrypted"),
-		PrivateKeyPassword:           viper.GetString("PrivateKeyPassword"),
+		BaseURL:                viper.GetString("BaseURL"),
+		HTTPS:                  viper.GetBool("HTTPS"),
+		LogRequests:            viper.GetBool("LogRequests"),
+		CertFile:               viper.GetString("CertFile"),
+		KeyFile:                viper.GetString("KeyFile"),
+		Base64EncodedPublicKey: viper.GetString("Base64EncodedPublicKey"),
+		KeyType:                viper.GetString("KeyType"),
+		PrivateKeyFile:         viper.GetString("PrivateKeyFile"),
+		PrivateKeyEncrypted:    viper.GetBool("PrivateKeyEncrypted"),
+		PrivateKeyPassword:     viper.GetString("PrivateKeyPassword"),
 	}
 
 	// Load the Tera Insights RSA public key
@@ -245,37 +239,28 @@ func NewServer(r io.Reader, ct string) Server {
 		AutoMigrate(&AppServerInfo{}).
 		AutoMigrate(&Key{}).
 		AutoMigrate(&Admin{}).
-		AutoMigrate(&KeySignature{}).
+		AutoMigrate(&security.KeySignature{}).
 		AutoMigrate(&SigningKey{}).
 		AutoMigrate(&Permission{}).Error
 	if err != nil {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
-	// Create and start the disperser
 	d := newDisperser()
 	go d.listen()
 	go d.getMessages()
 
+	rsa := pub.(*rsa.PublicKey)
 	return Server{
 		c,
 		db,
-		cacher{
-			baseURL:                c.getBaseURLWithProtocol(),
-			expiration:             c.ExpirationTime,
-			clean:                  c.CleanTime,
-			registrationRequests:   cache.New(c.ExpirationTime, c.CleanTime),
-			authenticationRequests: cache.New(c.ExpirationTime, c.CleanTime),
-			challengeToRequestID:   cache.New(c.ExpirationTime, c.CleanTime),
-			admins:                 cache.New(c.ExpirationTime, c.CleanTime),
-			signingKeys:            cache.New(c.ExpirationTime, c.CleanTime),
-			adminRegistrations:     cache.New(c.ExpirationTime, c.CleanTime),
-			validPublicKeys: cache.New(cache.NoExpiration,
-				cache.NoExpiration),
-		},
+		newCacher(c), // regenerates keys when appropriate
 		d,
-		pub.(*rsa.PublicKey),
+		rsa,
 		priv,
+		securecookie.New(securecookie.GenerateRandomKey(64), nil),
+		security.NewKeyCache(c.ExpirationTime, c.CleanTime, rsa, db),
+		security.NewKeyGen(),
 	}
 }
 
@@ -325,75 +310,95 @@ func recoverWrap(h http.Handler) http.Handler {
 	})
 }
 
-// 1. If we don't need to authenticate the route, do nothing
-// 2. Else, generate the ECDH key using our private key and the server's public
-// key. If we can't find the server, return this is a bad request
-// 3. Use the shared key to check the SHA-256 HMAC of the message. If it's OK,
-// pass the request along. Else, refuse and log this unauthorized request.
+// For requests coming from an app sever or the admin frontend
+func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
+	id, received, err := getAuthDataFromHeaders(r)
+	optionalBadRequestPanic(err, "Invalid X-Authentication header")
+
+	hmacBytes, err := decodeBase64(received)
+	optionalInternalPanic(err, "Failed to decode MAC")
+
+	var key []byte
+	var x, y *big.Int
+	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+		var a Admin
+		err = s.DB.Find(&a, Admin{ID: id}).Error
+		optionalBadRequestPanic(err, "Could not find admin with ID "+id)
+
+		var sk SigningKey
+		err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
+		optionalInternalPanic(err, "Could not find admin's signing key")
+
+		skBytes, err := decodeBase64(sk.PublicKey)
+		optionalInternalPanic(err, "Could not decode admin's signing key")
+
+		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
+		key = s.kg.GetShared(x, y, nil)
+	} else {
+		var app AppServerInfo
+		err := s.DB.Find(&app, AppServerInfo{ID: id}).Error
+		optionalBadRequestPanic(err, "Could not find app server")
+
+		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
+		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
+	}
+
+	route := []byte(r.URL.Path)
+	var body []byte
+	if r.ContentLength > 0 {
+		_, err := r.Body.Read(body)
+		optionalInternalPanic(err, "Failed to read request body")
+	}
+
+	hash := hmac.New(sha256.New, key)
+	hash.Write(route)
+	if len(body) > 0 {
+		hash.Write(body)
+	}
+
+	match := hmac.Equal(hmacBytes, hash.Sum(nil))
+	panicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
+
+	s.kg.PutShared(x, y, key)
+}
+
+// See the wiki for documentation on header authentication
 func (s *Server) middleware(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// See if URL is on one of the authentication-required routes
-		needsAuthentication := false
-		for _, pattern := range s.Config.AuthenticationRequiredRoutes {
+		headerAuthPatterns := []string{
+			"/*/register/request/*",
+		}
+		for _, pattern := range headerAuthPatterns {
 			if glob.Glob(pattern, r.URL.Path) {
-				needsAuthentication = true
+				s.headerAuthentication(w, r)
+				break
 			}
 		}
 
-		if !needsAuthentication {
-			handle.ServeHTTP(w, r)
-			return
+		if glob.Glob("/admin/*", r.URL.Path) {
+			cookie, err := r.Cookie("admin-session")
+			optionalPanic(err, http.StatusUnauthorized, "No session cookie")
+
+			var expires time.Time
+			err = s.sc.Decode("admin-session", cookie.Value, &expires)
+			optionalPanic(err, http.StatusUnauthorized, "Invalid session "+
+				"cookie")
+
+			distance := time.Now().Sub(expires).Nanoseconds()
+			valid := distance < s.Config.AdminSessionLength.Nanoseconds()
+			panicIfFalse(valid, http.StatusUnauthorized, "Session expired")
+
+			encoded, err := s.sc.Encode("admin-session", time.Now())
+			optionalInternalPanic(err, "Could not update session cookie")
+
+			http.SetCookie(w, &http.Cookie{
+				Name:  "admin-session",
+				Value: encoded,
+				Path:  "/",
+			})
 		}
 
-		// Assert that we can validly parse the authentication headers
-		serverID, messageMAC := getAuthDataFromHeaders(r)
-		authParts := strings.Split(r.Header.Get("authentication"), ":")
-		if len(authParts) != 2 {
-			writeJSON(w, http.StatusBadRequest,
-				"Authentication header invalid")
-			return
-		}
-
-		// If possible, get the shared key from the cache
-		fetched, found := s.cache.sharedKeys.Get(serverID)
-		var key []byte
-		if found {
-			key = fetched.([]byte)
-		} else {
-			// Use ECDH to generate the shared key
-			serverInfo := AppServerInfo{}
-			err := s.DB.Model(AppServerInfo{}).Where(AppServerInfo{
-				ID: serverID,
-			}).First(&serverInfo).Error
-			optionalBadRequestPanic(err, "Could not find app server")
-
-			x, y := elliptic.Unmarshal(elliptic.P256(), serverInfo.PublicKey)
-			key = ecdh.ComputeShared(elliptic.P256(), x, y, s.priv.D.Bytes())
-			s.cache.sharedKeys.Set(serverID, key, cache.NoExpiration)
-		}
-
-		// Hash the path and, if apprpriate, the request body
-		route := []byte(r.URL.Path)
-		var body []byte
-		if r.ContentLength > 0 {
-			_, err := r.Body.Read(body)
-			optionalInternalPanic(err, "Failed to read request body")
-		}
-		mac := hmac.New(sha256.New, key)
-		mac.Write(route)
-		if len(body) > 0 {
-			mac.Write(body)
-		}
-		expectedMAC := mac.Sum(nil)
-		bytesOfMessageMAC, err := decodeBase64(messageMAC)
-		optionalInternalPanic(err, "Failed to decode MAC as web-encoded "+
-			"base-64 without padding")
-
-		if !hmac.Equal(bytesOfMessageMAC, expectedMAC) {
-			writeJSON(w, http.StatusUnauthorized, "Invalid security headers")
-			return
-		}
-
+		// If none of the middleware panicked, serve the main route
 		handle.ServeHTTP(w, r)
 	})
 }
@@ -447,6 +452,19 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/stats/listen", ah.RegisterListener, "GET")
 	forMethod(router, "/admin/stats/recent", ah.GetMostRecent, "GET")
 
+	forMethod(router, "/admin/public", func(w http.ResponseWriter,
+		r *http.Request) {
+		priv, exp, err := s.kg.GetAdminPriv()
+		optionalInternalPanic(err, "Could not get keys for admin frontend")
+
+		x, y := elliptic.P256().ScalarBaseMult(priv)
+		encoded := EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y))
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"public":  encoded,
+			"expires": exp.Seconds(),
+		})
+	}, "GET")
+
 	// Info routes
 	ih := infoHandler{s}
 	forMethod(router, "/v1/info/{appID}", ih.AppinfoHandler, "GET")
@@ -461,9 +479,7 @@ func (s *Server) GetHandler() http.Handler {
 	// Auth routes
 	th := authHandler{
 		s: s,
-		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
-			s.Config.CleanTime, s.Config.ListenerExpirationTime,
-			s.Config.CleanTime),
+		a: newAuthenticator(s.Config),
 	}
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
 		"GET")

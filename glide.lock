@@ -1,5 +1,5 @@
-hash: f71c7116b49f112d814b3ae09e4a84fe9d67e0e862b334478a0771a2e84d1711
-updated: 2016-11-02T10:51:29.394681434-04:00
+hash: b355a16cba5f66bf10cad1a6ed43ebbb835319367869e88eea73b880fa43a5b8
+updated: 2016-11-10T15:08:10.188049732-05:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -9,16 +9,14 @@ imports:
   version: 9fdfd46f9806a9228aae341d65ab75c5235c383c
   subpackages:
   - embedded
-- name: github.com/gocraft/health
-  version: 25b40f8580168c1f905a6dba35d471cdc51ca629
-  subpackages:
-  - stack
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/handlers
   version: ee54c7b44cab12289237fb8631314790076e728b
 - name: github.com/gorilla/mux
   version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
+- name: github.com/gorilla/securecookie
+  version: 667fe4e3466a040b780561fe9b51a83a3753eefc
 - name: github.com/gorilla/websocket
   version: 1f512fc3f05332ba7117626cdfb4e07474e58e60
 - name: github.com/hashicorp/hcl
