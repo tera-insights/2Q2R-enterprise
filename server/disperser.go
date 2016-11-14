@@ -7,6 +7,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Disperser sends events to external clients through websockets.
+// If a client C is a superadmin, C receives all events in the system.
+// Else if a client C is an admin for an app A, C receives all events about
+// A, including when other admins start listening to A's events. C does not
+// receive events when other admins start listening to apps that are not A. C
+// does not receive events when superadmins start listening.
+
 type listener struct {
 	conn  *websocket.Conn
 	appID string // if 1, receives all events
@@ -16,14 +23,14 @@ type eventName int
 
 const (
 	listenerRegistered eventName = iota
-	login
+	authentication
 	registration
 	keyDeletion
 )
 
 var events = map[eventName]string{
 	listenerRegistered: "listenerRegistered",
-	login:              "login",
+	authentication:     "authentication",
 	registration:       "registration",
 	keyDeletion:        "keyDeletion",
 }
