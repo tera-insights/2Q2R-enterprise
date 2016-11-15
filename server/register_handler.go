@@ -19,6 +19,19 @@ type registerHandler struct {
 	q queue
 }
 
+type registerData struct {
+	RequestID   string   `json:"id"`
+	KeyTypes    []string `json:"keyTypes"`
+	Challenge   string   `json:"challenge"` // base-64 URL-encoded
+	UserID      string   `json:"userID"`
+	AppID       string   `json:"appId"`
+	BaseURL     string   `json:"baseUrl"`
+	InfoURL     string   `json:"infoUrl"`
+	RegisterURL string   `json:"registerUrl"`
+	WaitURL     string   `json:"waitUrl"`
+	AppURL      string   `json:"appUrl"`
+}
+
 // RegisterSetupHandler sets up the registration of a new two-factor device.
 // GET /v1/register/request/:userID
 func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {

@@ -26,6 +26,27 @@ type authHandler struct {
 	a *authenticator
 }
 
+type keyDataToEmbed struct {
+	KeyID string `json:"keyID"`
+	Type  string `json:"type"`
+	Name  string `json:"name"`
+}
+
+type authenticateData struct {
+	RequestID    string           `json:"id"`
+	Counter      int              `json:"counter"`
+	Keys         []keyDataToEmbed `json:"keys"`
+	Challenge    string           `json:"challenge"` // base-64 URL-encoded
+	UserID       string           `json:"userID"`
+	AppID        string           `json:"appId"`
+	BaseURL      string           `json:"baseUrl"`
+	AuthURL      string           `json:"authUrl"`
+	InfoURL      string           `json:"infoUrl"`
+	WaitURL      string           `json:"waitUrl"`
+	ChallengeURL string           `json:"challengeUrl"`
+	AppURL       string           `json:"appUrl"`
+}
+
 // AuthRequestSetupHandler sets up a two-factor authentication request.
 // GET /v1/auth/request/{userID}
 func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Request) {

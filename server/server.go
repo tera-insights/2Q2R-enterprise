@@ -101,42 +101,6 @@ type templateData struct {
 	Data template.JS
 }
 
-// Embedded in the templates
-type registerData struct {
-	RequestID   string   `json:"id"`
-	KeyTypes    []string `json:"keyTypes"`
-	Challenge   string   `json:"challenge"` // base-64 URL-encoded
-	UserID      string   `json:"userID"`
-	AppID       string   `json:"appId"`
-	BaseURL     string   `json:"baseUrl"`
-	InfoURL     string   `json:"infoUrl"`
-	RegisterURL string   `json:"registerUrl"`
-	WaitURL     string   `json:"waitUrl"`
-	AppURL      string   `json:"appUrl"`
-}
-
-type keyDataToEmbed struct {
-	KeyID string `json:"keyID"`
-	Type  string `json:"type"`
-	Name  string `json:"name"`
-}
-
-// Embedded in the templates
-type authenticateData struct {
-	RequestID    string           `json:"id"`
-	Counter      int              `json:"counter"`
-	Keys         []keyDataToEmbed `json:"keys"`
-	Challenge    string           `json:"challenge"` // base-64 URL-encoded
-	UserID       string           `json:"userID"`
-	AppID        string           `json:"appId"`
-	BaseURL      string           `json:"baseUrl"`
-	AuthURL      string           `json:"authUrl"`
-	InfoURL      string           `json:"infoUrl"`
-	WaitURL      string           `json:"waitUrl"`
-	ChallengeURL string           `json:"challengeUrl"`
-	AppURL       string           `json:"appUrl"`
-}
-
 // NewServer creates a new 2Q2R server.
 func NewServer(r io.Reader, ct string) (s Server) {
 	defer func() {
