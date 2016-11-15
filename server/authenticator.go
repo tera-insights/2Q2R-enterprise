@@ -11,11 +11,12 @@ import (
 )
 
 type authReq struct {
-	RequestID string
-	Challenge *u2f.Challenge
-	KeyHandle string
-	AppID     string
-	UserID    string
+	RequestID       string
+	Challenge       *u2f.Challenge
+	KeyHandle       string
+	AppID           string
+	UserID          string
+	OrigininatingIP string
 }
 
 type authenticator struct {

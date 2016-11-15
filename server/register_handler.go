@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"html/template"
+	"net"
 	"net/http"
 	"time"
 
@@ -50,16 +51,17 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Could not generate request ID")
 
-	rr := registrationRequest{
-		RequestID: requestID,
-		Challenge: challenge,
-		AppID:     server.AppID,
-		UserID:    userID,
-	}
-	rh.s.cache.SetRegistrationRequest(rr.RequestID, rr)
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	rh.s.cache.SetRegistrationRequest(requestID, registrationRequest{
+		RequestID:       requestID,
+		Challenge:       challenge,
+		AppID:           server.AppID,
+		UserID:          userID,
+		OrigininatingIP: host,
+	})
 	writeJSON(w, http.StatusOK, registrationSetupReply{
-		rr.RequestID,
-		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + rr.RequestID,
+		requestID,
+		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + requestID,
 	})
 }
 
@@ -205,12 +207,13 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	tx.Commit()
 
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	rh.s.disperser.addEvent(registration, time.Now(), rr.AppID,
+		"success", rr.UserID, rr.OrigininatingIP, host)
 	writeJSON(w, http.StatusOK, registerResponse{
 		Successful: true,
 		Message:    "OK",
 	})
-
-	rh.s.disperser.addEvent(registration, time.Now(), []string{rr.AppID})
 }
 
 // Wait allows the requester to check the result of the registration. It blocks

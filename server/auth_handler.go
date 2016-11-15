@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"html/template"
+	"net"
 	"net/http"
 
 	"time"
@@ -64,13 +65,14 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	requestID, err := RandString(32)
 	optionalInternalPanic(err, "Failed to generate request ID")
 
-	req := authReq{
-		RequestID: requestID,
-		Challenge: challenge,
-		AppID:     key.AppID,
-		UserID:    userID,
-	}
-	ah.a.PutRequest(requestID, req)
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ah.a.PutRequest(requestID, authReq{
+		RequestID:       requestID,
+		Challenge:       challenge,
+		AppID:           key.AppID,
+		UserID:          userID,
+		OrigininatingIP: host,
+	})
 	writeJSON(w, http.StatusOK, authenticationSetupReply{
 		requestID,
 		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + requestID,
@@ -243,8 +245,10 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		appID = ar.AppID
 	}
-	ah.s.disperser.addEvent(authentication, time.Now(), []string{appID})
 
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ah.s.disperser.addEvent(authentication, time.Now(), appID, "success",
+		ar.UserID, ar.OrigininatingIP, host)
 	writeJSON(w, http.StatusOK, "Authentication successful")
 }
 

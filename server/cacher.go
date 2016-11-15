@@ -16,10 +16,11 @@ import (
 // registrationRequest stores data used during the registration of a new
 // device, etc.
 type registrationRequest struct {
-	RequestID string
-	Challenge *u2f.Challenge
-	AppID     string
-	UserID    string
+	RequestID       string
+	Challenge       *u2f.Challenge
+	AppID           string
+	UserID          string
+	OrigininatingIP string
 }
 
 // adminRegistrationRequest is the what admins use to add their initial second

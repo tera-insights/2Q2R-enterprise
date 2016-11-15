@@ -480,9 +480,7 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	conn, err := upgrader.Upgrade(w, r, nil)
 	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	optionalInternalPanic(err, "Could not determine IP from remote address")
-
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
 	ah.s.disperser.addListener(listener{conn, appID})
 	ah.s.disperser.addEvent(listenerRegistered, time.Now(), appID, adminID,
 		"success", host, host)

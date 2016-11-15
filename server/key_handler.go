@@ -3,6 +3,7 @@
 package server
 
 import (
+	"net"
 	"net/http"
 	"time"
 
@@ -92,8 +93,11 @@ func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	} else {
 		appID = k.AppID
 	}
-	kh.s.disperser.addEvent(keyDeletion, time.Now(), []string{appID})
 
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+	kh.s.disperser.addEvent(keyDeletion, time.Now(), appID, "success",
+		userID, host, host)
 	writeJSON(w, http.StatusOK, modificationReply{
 		NumAffected: query.RowsAffected,
 	})
