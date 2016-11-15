@@ -143,6 +143,8 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		PrivateKeyFile:         viper.GetString("PrivateKeyFile"),
 		PrivateKeyEncrypted:    viper.GetBool("PrivateKeyEncrypted"),
 		PrivateKeyPassword:     viper.GetString("PrivateKeyPassword"),
+		AdminSessionLength:     viper.GetDuration("AdminSessionLength"),
+		MaxMindPath:            viper.GetString("MaxMindPath"),
 	}
 
 	// Load the Tera Insights RSA public key
