@@ -36,6 +36,15 @@ type queue struct {
 	listeners         *cache.Cache
 	lTimeout          time.Duration
 	lInterval         time.Duration
+
+	newListeners chan newListener
+	completed    chan string
+	timedOut     chan string
+}
+
+type newListener struct {
+	id  string
+	out chan chan int
 }
 
 // non-blocking send.
@@ -58,6 +67,9 @@ func newQueue(rcTimeout time.Duration, rcInterval time.Duration,
 		cache.New(lTimeout, lInterval),
 		lTimeout,
 		lInterval,
+		make(chan newListener),
+		make(chan string),
+		make(chan string),
 	}
 	q.listeners.OnEvicted(func(requestID string, data interface{}) {
 		listeners := data.([]chan int)
@@ -66,6 +78,7 @@ func newQueue(rcTimeout time.Duration, rcInterval time.Duration,
 			close(listener)
 		}
 	})
+	go q.listen()
 	return q
 }
 
@@ -74,26 +87,10 @@ func newQueue(rcTimeout time.Duration, rcInterval time.Duration,
 // 200, for success
 // 401, for requests canceled by the user
 // 408, for requests that timed out
-func (q queue) Listen(requestID string) chan int {
-	c := make(chan int, 1)
-	if status, found := q.recentlyCompleted.Get(requestID); found {
-		signal(c, status.(int))
-		return c
-	}
-	if cached, found := q.listeners.Get(requestID); found {
-		listeners := cached.([]chan int)
-		newListeners := append(listeners, c)
-		q.listeners.Set(requestID, newListeners, q.lTimeout)
-	} else {
-		q.listeners.Set(requestID, []chan int{c}, q.lTimeout)
-		go func() {
-			time.Sleep(q.lTimeout)
-			q.recentlyCompleted.Set(requestID, http.StatusRequestTimeout,
-				q.rcTimeout)
-			q.listeners.Delete(requestID)
-		}()
-	}
-	return c
+func (q queue) Listen(id string) chan int {
+	c := make(chan chan int)
+	q.newListeners <- newListener{id, c}
+	return <-c
 }
 
 // MarkCompleted records that a request was successfully completed.
@@ -106,25 +103,44 @@ func (q queue) MarkCompleted(requestID string) (err error) {
 		}
 	}()
 
-	q.recentlyCompleted.Set(requestID, http.StatusOK, q.rcTimeout)
-	if cached, found := q.listeners.Get(requestID); found {
-		listeners := cached.([]chan int)
-		for _, listener := range listeners {
-			signal(listener, http.StatusOK)
-		}
-		q.listeners.Delete(requestID)
-	}
 	return
 }
 
-// MarkRefused records that a request was refused.
-func (q queue) MarkRefused(requestID string) {
-	q.recentlyCompleted.Set(requestID, http.StatusUnauthorized, q.rcTimeout)
-	if cached, found := q.listeners.Get(requestID); found {
-		listeners := cached.([]chan int)
-		for _, listener := range listeners {
-			signal(listener, http.StatusUnauthorized)
+func (q *queue) listen() {
+	for {
+		select {
+		case id := <-q.completed:
+			q.recentlyCompleted.Set(id, http.StatusOK, q.rcTimeout)
+			if cached, found := q.listeners.Get(id); found {
+				listeners := cached.([]chan int)
+				for _, listener := range listeners {
+					signal(listener, http.StatusOK)
+				}
+				q.listeners.Delete(id)
+			}
+		case id := <-q.timedOut:
+			q.recentlyCompleted.Set(id, http.StatusRequestTimeout, q.rcTimeout)
+			q.listeners.Delete(id)
+		case nl := <-q.newListeners:
+			c := make(chan int, 1)
+			if status, found := q.recentlyCompleted.Get(nl.id); found {
+				signal(c, status.(int))
+				nl.out <- c
+			}
+			if cached, found := q.listeners.Get(nl.id); found {
+				listeners := cached.([]chan int)
+				newListeners := append(listeners, c)
+				q.listeners.Set(nl.id, newListeners, q.lTimeout)
+			} else {
+				q.listeners.Set(nl.id, []chan int{c}, q.lTimeout)
+				go func() {
+					time.Sleep(q.lTimeout)
+					q.timedOut <- nl.id
+				}()
+			}
+			nl.out <- c
+		default:
+			// No message! Do nothing
 		}
-		q.listeners.Delete(requestID)
 	}
 }
