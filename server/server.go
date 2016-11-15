@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
+	"github.com/oschwald/maxminddb-golang"
 	"github.com/pkg/errors"
 	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
@@ -69,6 +70,7 @@ type Config struct {
 	PrivateKeyPassword  string
 
 	AdminSessionLength time.Duration
+	MaxMindPath        string
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -89,6 +91,7 @@ type Server struct {
 	sc        *securecookie.SecureCookie
 	kc        *security.KeyCache
 	kg        *security.KeyGen
+	mmdb      *maxminddb.Reader
 }
 
 // Used in registration and authentication templates
@@ -135,7 +138,14 @@ type authenticateData struct {
 }
 
 // NewServer creates a new 2Q2R server.
-func NewServer(r io.Reader, ct string) Server {
+func NewServer(r io.Reader, ct string) (s Server) {
+	defer func() {
+		err := s.mmdb.Close()
+		if err != nil {
+			panic(errors.Wrap(err, "Could not close MaxMind DB"))
+		}
+	}()
+
 	viper.SetConfigType(ct)
 
 	viper.SetDefault("Port", ":8080")
@@ -153,6 +163,7 @@ func NewServer(r io.Reader, ct string) Server {
 	viper.SetDefault("PrivateKeyFile", "priv.pem")
 	viper.SetDefault("PrivateKeyEncrypted", false)
 	viper.SetDefault("AdminSessionLength", 15*time.Minute)
+	viper.SetDefault("MaxMindPath", "db.mmdb")
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -250,8 +261,18 @@ func NewServer(r io.Reader, ct string) Server {
 	go d.listen()
 	go d.getMessages()
 
-	rsa := pub.(*rsa.PublicKey)
-	return Server{
+	mmdb, err := maxminddb.Open(c.MaxMindPath)
+	if err != nil {
+		panic(errors.Wrapf(err, "Could not open MaxMind DB file at path %s",
+			c.MaxMindPath))
+	}
+
+	rsa, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		panic(errors.New("Could not cast key as RSA"))
+	}
+
+	s = Server{
 		c,
 		db,
 		newCacher(c), // regenerates keys when appropriate
@@ -261,7 +282,9 @@ func NewServer(r io.Reader, ct string) Server {
 		securecookie.New(securecookie.GenerateRandomKey(64), nil),
 		security.NewKeyCache(c.ExpirationTime, c.CleanTime, rsa, db),
 		security.NewKeyGen(),
+		mmdb,
 	}
+	return s
 }
 
 // Taken from https://git.io/v6xHB.

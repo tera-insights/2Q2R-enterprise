@@ -1,5 +1,5 @@
-hash: b355a16cba5f66bf10cad1a6ed43ebbb835319367869e88eea73b880fa43a5b8
-updated: 2016-11-10T15:08:10.188049732-05:00
+hash: 1e94e4a828847b5096977f95deaf3958bdb251baaf90d821764c1e0eb561d7b2
+updated: 2016-11-15T08:27:55.82169448-05:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -46,6 +46,8 @@ imports:
   version: e5a3c16c5c1d80b24f633e68aecd6b0702786d3d
 - name: github.com/mitchellh/mapstructure
   version: f3009df150dadf309fdee4a54ed65c124afad715
+- name: github.com/oschwald/maxminddb-golang
+  version: 2af0544f8e032bc7a363e897fbd9c6ed4884a1d6
 - name: github.com/patrickmn/go-cache
   version: 1881a9bccb818787f68c52bfba648c6cf34c34fa
 - name: github.com/pelletier/go-buffruneio
