@@ -67,11 +67,11 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
 	ah.a.PutRequest(requestID, authReq{
-		RequestID:       requestID,
-		Challenge:       challenge,
-		AppID:           key.AppID,
-		UserID:          userID,
-		OrigininatingIP: host,
+		RequestID:  requestID,
+		Challenge:  challenge,
+		AppID:      key.AppID,
+		UserID:     userID,
+		OriginalIP: host,
 	})
 	writeJSON(w, http.StatusOK, authenticationSetupReply{
 		requestID,
@@ -248,7 +248,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
 	ah.s.disperser.addEvent(authentication, time.Now(), appID, "success",
-		ar.UserID, ar.OrigininatingIP, host)
+		ar.UserID, ar.OriginalIP, host)
 	writeJSON(w, http.StatusOK, "Authentication successful")
 }
 

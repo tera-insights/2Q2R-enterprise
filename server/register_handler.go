@@ -53,11 +53,11 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
 	rh.s.cache.SetRegistrationRequest(requestID, registrationRequest{
-		RequestID:       requestID,
-		Challenge:       challenge,
-		AppID:           server.AppID,
-		UserID:          userID,
-		OrigininatingIP: host,
+		RequestID:  requestID,
+		Challenge:  challenge,
+		AppID:      server.AppID,
+		UserID:     userID,
+		OriginalIP: host,
 	})
 	writeJSON(w, http.StatusOK, registrationSetupReply{
 		requestID,
@@ -209,7 +209,7 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
 	rh.s.disperser.addEvent(registration, time.Now(), rr.AppID,
-		"success", rr.UserID, rr.OrigininatingIP, host)
+		"success", rr.UserID, rr.OriginalIP, host)
 	writeJSON(w, http.StatusOK, registerResponse{
 		Successful: true,
 		Message:    "OK",
