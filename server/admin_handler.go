@@ -460,10 +460,16 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 		"cookie")
 
 	val, found := m["app"]
-	panicIfFalse(found, http.StatusBadRequest, "Invalid cookie")
+	panicIfFalse(found, http.StatusUnauthorized, "Missing app ID in cookie")
 
 	appID, ok := val.(string)
-	panicIfFalse(ok, http.StatusBadRequest, "Invalid app ID in cookie")
+	panicIfFalse(ok, http.StatusUnauthorized, "Invalid app ID in cookie")
+
+	val, found = m["admin"]
+	panicIfFalse(found, http.StatusUnauthorized, "Missing admin ID in cookie")
+
+	adminID, ok := val.(string)
+	panicIfFalse(ok, http.StatusUnauthorized, "Invalid admin ID in cookie")
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -473,7 +479,8 @@ func (ah *adminHandler) RegisterListener(w http.ResponseWriter,
 	optionalBadRequestPanic(err, "Could not upgrade request to a websocket")
 
 	ah.s.disperser.addListener(listener{conn, appID})
-	ah.s.disperser.addEvent(listenerRegistered, time.Now(), []string{appID})
+	ah.s.disperser.addEvent(listenerRegistered, time.Now(), appID, adminID,
+		"success")
 	writeJSON(w, http.StatusOK, "Socket created")
 }
 

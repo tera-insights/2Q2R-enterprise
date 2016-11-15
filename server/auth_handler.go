@@ -244,8 +244,9 @@ func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 		optionalBadRequestPanic(err, "Could not find admin with id "+ar.UserID)
 
 		encoded, err := ah.s.sc.Encode("admin-session", map[string]interface{}{
-			"set": time.Now(),
-			"app": a.AdminFor,
+			"set":   time.Now(),
+			"app":   a.AdminFor,
+			"admin": a.ID,
 		})
 
 		optionalInternalPanic(err, "Could not set session cookie")
