@@ -27,7 +27,6 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
-	"github.com/oschwald/maxminddb-golang"
 	"github.com/pkg/errors"
 	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
@@ -91,7 +90,6 @@ type Server struct {
 	sc        *securecookie.SecureCookie
 	kc        *security.KeyCache
 	kg        *security.KeyGen
-	mmdb      *maxminddb.Reader
 }
 
 // Used in registration and authentication templates
@@ -103,13 +101,6 @@ type templateData struct {
 
 // NewServer creates a new 2Q2R server.
 func NewServer(r io.Reader, ct string) (s Server) {
-	defer func() {
-		err := s.mmdb.Close()
-		if err != nil {
-			panic(errors.Wrap(err, "Could not close MaxMind DB"))
-		}
-	}()
-
 	viper.SetConfigType(ct)
 
 	viper.SetDefault("Port", ":8080")
@@ -221,14 +212,9 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}
 
-	d := newDisperser()
-	go d.listen()
-	go d.getMessages()
-
-	mmdb, err := maxminddb.Open(c.MaxMindPath)
+	d, err := newDisperser(c.MaxMindPath)
 	if err != nil {
-		panic(errors.Wrapf(err, "Could not open MaxMind DB file at path %s",
-			c.MaxMindPath))
+		panic(errors.Wrap(err, "Could not create event disperser"))
 	}
 
 	rsa, ok := pub.(*rsa.PublicKey)
@@ -246,7 +232,6 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		securecookie.New(securecookie.GenerateRandomKey(64), nil),
 		security.NewKeyCache(c.ExpirationTime, c.CleanTime, rsa, db),
 		security.NewKeyGen(),
-		mmdb,
 	}
 	return s
 }

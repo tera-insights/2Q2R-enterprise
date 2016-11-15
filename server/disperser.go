@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	maxminddb "github.com/oschwald/maxminddb-golang"
 	"github.com/pkg/errors"
 )
 
@@ -14,6 +15,23 @@ import (
 // A, including when other admins start listening to A's events. C does not
 // receive events when other admins start listening to apps that are not A. C
 // does not receive events when superadmins start listening.
+
+// Receiver keeps track of events (receives them from the outside world)
+type disperser struct {
+	eventInput chan event
+
+	// send chans that should receive the event map
+	aggregatorOutput chan chan eventsMap
+
+	// send chans that should receive the most recent events
+	recentOutput chan chan []event
+
+	events    map[string][]event // keys are app IDs
+	listeners []listener
+	recent    []event
+
+	mmdb *maxminddb.Reader
+}
 
 type listener struct {
 	conn  *websocket.Conn
@@ -38,10 +56,10 @@ var events = map[eventName]string{
 
 type event struct {
 	Name          string    `json:"name"`
-	OriginalIP    net.IP    `json:"originalIP"`
+	OriginalIP    string    `json:"originalIP"`
 	OriginalLat   float64   `json:"originalLat"`
 	OriginalLong  float64   `json:"originalLong"`
-	ResolvingIP   net.IP    `json:"resolvingIP"`
+	ResolvingIP   string    `json:"resolvingIP"`
 	ResolvingLat  float64   `json:"resolvingLat"`
 	ResolvingLong float64   `json:"resolvingLong"`
 	AppID         string    `json:"appID"`
@@ -58,30 +76,26 @@ type eventsList struct {
 	Events []event `json:"events"`
 }
 
-// Receiver keeps track of events (receives them from the outside world)
-type disperser struct {
-	eventInput chan event
+func newDisperser(f string) (*disperser, error) {
+	mmdb, err := maxminddb.Open(f)
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not open maxmind DB")
+	}
 
-	// send chans that should receive the event map
-	aggregatorOutput chan chan eventsMap
-
-	// send chans that should receive the most recent events
-	recentOutput chan chan []event
-
-	events    map[string][]event // keys are app IDs
-	listeners []listener
-	recent    []event
-}
-
-func newDisperser() *disperser {
-	return &disperser{
+	d := &disperser{
 		make(chan event, 10000),
 		make(chan chan eventsMap),
 		make(chan chan []event),
 		make(eventsMap),
 		[]listener{},
 		make([]event, 0, 10000),
+		mmdb,
 	}
+
+	go d.listen()
+	go d.getMessages()
+
+	return d, nil
 }
 
 func (d *disperser) addListener(l listener) {
@@ -93,12 +107,13 @@ func (d *disperser) addListener(l listener) {
 	d.listeners = append(d.listeners, l)
 }
 
-func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID string,
-	oIP net.IP, rIP net.IP) error {
+func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID,
+	oIP, rIP string) error {
 	if _, found := events[n]; !found {
 		return errors.Errorf("%d was not in the event map", n)
 	}
-	d.eventInput <- event{
+
+	e := event{
 		Name:        events[n],
 		AppID:       aID,
 		Timestamp:   t,
@@ -107,12 +122,55 @@ func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID string,
 		OriginalIP:  oIP,
 		ResolvingIP: rIP,
 	}
+
+	var oRec struct {
+		Location struct {
+			AccuracyRadius uint16  `maxminddb:"accuracy_radius"`
+			Latitude       float64 `maxminddb:"latitude"`
+			Longitude      float64 `maxminddb:"longitude"`
+			MetroCode      uint    `maxminddb:"metro_code"`
+			TimeZone       string  `maxminddb:"time_zone"`
+		} `maxminddb:"location"`
+	}
+
+	err := d.mmdb.Lookup(net.ParseIP(oIP), &oRec)
+	if err != nil {
+		return err
+	}
+	e.OriginalLat = oRec.Location.Latitude
+	e.OriginalLong = oRec.Location.Longitude
+
+	var rRec struct {
+		Location struct {
+			AccuracyRadius uint16  `maxminddb:"accuracy_radius"`
+			Latitude       float64 `maxminddb:"latitude"`
+			Longitude      float64 `maxminddb:"longitude"`
+			MetroCode      uint    `maxminddb:"metro_code"`
+			TimeZone       string  `maxminddb:"time_zone"`
+		} `maxminddb:"location"`
+	}
+	err = d.mmdb.Lookup(net.ParseIP(rIP), &rRec)
+	if err != nil {
+		return err
+	}
+
+	e.ResolvingLat = rRec.Location.Latitude
+	e.ResolvingLong = rRec.Location.Longitude
+
+	d.eventInput <- e
 	return nil
 }
 
 // Either does nothing, adds a new event to the current list of events, or
 // sends the slice of events.
 func (d *disperser) listen() {
+	defer func() {
+		err := d.mmdb.Close()
+		if err != nil {
+			panic(errors.Wrap(err, "Could not close MaxMind DB"))
+		}
+	}()
+
 	for true {
 		select {
 		case where := <-d.aggregatorOutput:
