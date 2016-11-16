@@ -114,48 +114,52 @@ func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID,
 	}
 
 	e := event{
-		Name:        events[n],
-		AppID:       aID,
-		Timestamp:   t,
-		Status:      s,
-		UserID:      uID,
-		OriginalIP:  oIP,
-		ResolvingIP: rIP,
+		Name:      events[n],
+		AppID:     aID,
+		Timestamp: t,
+		Status:    s,
+		UserID:    uID,
 	}
 
-	var oRec struct {
-		Location struct {
-			AccuracyRadius uint16  `maxminddb:"accuracy_radius"`
-			Latitude       float64 `maxminddb:"latitude"`
-			Longitude      float64 `maxminddb:"longitude"`
-			MetroCode      uint    `maxminddb:"metro_code"`
-			TimeZone       string  `maxminddb:"time_zone"`
-		} `maxminddb:"location"`
+	if net.ParseIP(oIP) != nil {
+		var oRec struct {
+			Location struct {
+				AccuracyRadius uint16  `maxminddb:"accuracy_radius"`
+				Latitude       float64 `maxminddb:"latitude"`
+				Longitude      float64 `maxminddb:"longitude"`
+				MetroCode      uint    `maxminddb:"metro_code"`
+				TimeZone       string  `maxminddb:"time_zone"`
+			} `maxminddb:"location"`
+		}
+		err := d.mmdb.Lookup(net.ParseIP(oIP), &oRec)
+		if err != nil {
+			return err
+		}
+
+		e.OriginalIP = oIP
+		e.OriginalLat = oRec.Location.Latitude
+		e.OriginalLong = oRec.Location.Longitude
 	}
 
-	err := d.mmdb.Lookup(net.ParseIP(oIP), &oRec)
-	if err != nil {
-		return err
-	}
-	e.OriginalLat = oRec.Location.Latitude
-	e.OriginalLong = oRec.Location.Longitude
+	if net.ParseIP(rIP) != nil {
+		var rRec struct {
+			Location struct {
+				AccuracyRadius uint16  `maxminddb:"accuracy_radius"`
+				Latitude       float64 `maxminddb:"latitude"`
+				Longitude      float64 `maxminddb:"longitude"`
+				MetroCode      uint    `maxminddb:"metro_code"`
+				TimeZone       string  `maxminddb:"time_zone"`
+			} `maxminddb:"location"`
+		}
+		err := d.mmdb.Lookup(net.ParseIP(rIP), &rRec)
+		if err != nil {
+			return err
+		}
 
-	var rRec struct {
-		Location struct {
-			AccuracyRadius uint16  `maxminddb:"accuracy_radius"`
-			Latitude       float64 `maxminddb:"latitude"`
-			Longitude      float64 `maxminddb:"longitude"`
-			MetroCode      uint    `maxminddb:"metro_code"`
-			TimeZone       string  `maxminddb:"time_zone"`
-		} `maxminddb:"location"`
+		e.ResolvingIP = rIP
+		e.ResolvingLat = rRec.Location.Latitude
+		e.ResolvingLong = rRec.Location.Longitude
 	}
-	err = d.mmdb.Lookup(net.ParseIP(rIP), &rRec)
-	if err != nil {
-		return err
-	}
-
-	e.ResolvingLat = rRec.Location.Latitude
-	e.ResolvingLong = rRec.Location.Longitude
 
 	d.eventInput <- e
 	return nil
