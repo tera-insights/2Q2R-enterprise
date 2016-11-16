@@ -394,13 +394,9 @@ func (rh *registerHandler) receive() {
 				nl.out <- newListenerResponse{err, c}
 			}
 			if val, found := rh.listeners.Get(nl.id); found {
-				if nl.exclusive {
-					err = errors.New("Someone is already listening")
-				} else {
-					listeners := val.([]chan int)
-					newListeners := append(listeners, c)
-					rh.listeners.Set(nl.id, newListeners, rh.lTimeout)
-				}
+				listeners := val.([]chan int)
+				newListeners := append(listeners, c)
+				rh.listeners.Set(nl.id, newListeners, rh.lTimeout)
 			} else {
 				rh.listeners.Set(nl.id, []chan int{c}, rh.lTimeout)
 				go func() {
