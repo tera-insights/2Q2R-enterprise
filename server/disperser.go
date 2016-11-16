@@ -4,6 +4,8 @@ import (
 	"net"
 	"time"
 
+	"sync"
+
 	"github.com/gorilla/websocket"
 	maxminddb "github.com/oschwald/maxminddb-golang"
 	"github.com/pkg/errors"
@@ -18,17 +20,12 @@ import (
 
 // Receiver keeps track of events (receives them from the outside world)
 type disperser struct {
-	eventInput chan event
+	listenersLock sync.RWMutex
+	listeners     map[string]listener
 
-	// send chans that should receive the event map
-	aggregatorOutput chan chan eventsMap
-
-	// send chans that should receive the most recent events
-	recentOutput chan chan []event
-
-	events    map[string][]event // keys are app IDs
-	listeners []listener
-	recent    []event
+	events     map[string][]event // keys are app IDs
+	recent     []event
+	eventsLock sync.RWMutex
 
 	mmdb *maxminddb.Reader
 }
@@ -83,28 +80,35 @@ func newDisperser(f string) (*disperser, error) {
 	}
 
 	d := &disperser{
-		make(chan event, 10000),
-		make(chan chan eventsMap),
-		make(chan chan []event),
+		sync.RWMutex{},
+		make(map[string]listener),
 		make(eventsMap),
-		[]listener{},
 		make([]event, 0, 10000),
+		sync.RWMutex{},
 		mmdb,
 	}
 
-	go d.listen()
 	go d.getMessages()
 
 	return d, nil
 }
 
 func (d *disperser) addListener(l listener) {
+	d.listenersLock.Lock()
+
 	toSend := map[string]eventName{}
 	for short, long := range events {
 		toSend[long] = short
 	}
 	l.conn.WriteJSON(toSend)
-	d.listeners = append(d.listeners, l)
+	d.listeners[l.conn.LocalAddr().String()] = l
+	origHandler := l.conn.CloseHandler()
+	l.conn.SetCloseHandler(func(code int, text string) {
+		delete(d.listeners, l.conn.LocalAddr().String())
+		origHandler(code, text)
+	})
+
+	d.listenersLock.Unlock()
 }
 
 func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID,
@@ -161,13 +165,30 @@ func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID,
 		e.ResolvingLong = rRec.Location.Longitude
 	}
 
-	d.eventInput <- e
+	go func() {
+		d.eventsLock.Lock()
+		d.events[e.AppID] = append(d.events[e.AppID], e)
+
+		// Add event to the global events list if it not done above
+		if e.AppID != "1" {
+			d.events["1"] = append(d.events[e.AppID], e)
+		}
+
+		// If the recent list is full, overwrite the oldest event
+		if len(d.recent) == cap(d.recent) {
+			copy(d.recent, append(d.recent[1:], e))
+		} else {
+			d.recent = append(d.recent, e)
+		}
+		d.eventsLock.Unlock()
+	}()
+
 	return nil
 }
 
-// Either does nothing, adds a new event to the current list of events, or
-// sends the slice of events.
-func (d *disperser) listen() {
+// Every second, aggregates all the events for the last second. Sends the
+// results out to the clients.
+func (d *disperser) getMessages() {
 	defer func() {
 		err := d.mmdb.Close()
 		if err != nil {
@@ -176,52 +197,38 @@ func (d *disperser) listen() {
 	}()
 
 	for true {
-		select {
-		case where := <-d.aggregatorOutput:
-			old := d.events
-			d.events = make(map[string][]event)
-			where <- old
-		case where := <-d.recentOutput:
-			where <- d.recent
-		case e := <-d.eventInput:
-			d.events[e.AppID] = append(d.events[e.AppID], e)
-
-			// Add event to the global events list if it not done above
-			if e.AppID != "1" {
-				d.events["1"] = append(d.events[e.AppID], e)
-			}
-
-			// If the recent list is full, overwrite the oldest event
-			if len(d.recent) == cap(d.recent) {
-				copy(d.recent, append(d.recent[1:], e))
-			} else {
-				d.recent = append(d.recent, e)
-			}
-		default:
-			// No message! do nothing
-		}
-	}
-}
-
-// Every second, aggregates all the events for the last second. Sends the
-// results out to the clients.
-func (d *disperser) getMessages() {
-	for true {
 		time.Sleep(100 * time.Millisecond)
-		ec := make(chan eventsMap)
-		d.aggregatorOutput <- ec
-		events := <-ec
-		for _, l := range d.listeners {
+
+		// Copy current events
+		eventsCopy := make(map[string][]event)
+		d.eventsLock.RLock()
+		for k, v := range d.events {
+			eventsCopy[k] = v
+		}
+		d.eventsLock.RUnlock()
+
+		// Copy current listeners
+		listenersCopy := make(map[string]listener)
+		d.listenersLock.RLock()
+		for k, v := range d.listeners {
+			listenersCopy[k] = v
+		}
+		d.listenersLock.RUnlock()
+
+		// Send events to listeners
+		for _, l := range listenersCopy {
 			l.conn.WriteJSON(eventsList{
 				Type:   "List",
-				Events: events[l.appID],
+				Events: eventsCopy[l.appID],
 			})
 		}
 	}
 }
 
 func (d *disperser) getRecent() []event {
-	out := make(chan []event, 1)
-	d.recentOutput <- out
-	return <-out
+	var out []event
+	d.eventsLock.RLock()
+	copy(out, d.recent)
+	d.eventsLock.RUnlock()
+	return out
 }
