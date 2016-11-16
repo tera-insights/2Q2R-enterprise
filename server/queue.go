@@ -30,12 +30,12 @@ import (
 // at fixed time intervals. Note that this means that some requests will wait
 // for the full (e.g.) 3 minutes, and others will wait for less.
 type queue struct {
-	recentlyCompleted *cache.Cache // Maps request ID to status code
-	rcTimeout         time.Duration
-	rcInterval        time.Duration
-	listeners         *cache.Cache
-	lTimeout          time.Duration
-	lInterval         time.Duration
+	recent     *cache.Cache // Maps request ID to status code
+	rcTimeout  time.Duration
+	rcInterval time.Duration
+	listeners  *cache.Cache
+	lTimeout   time.Duration
+	lInterval  time.Duration
 
 	newListeners chan newListener
 	completed    chan string
@@ -104,7 +104,7 @@ func (q queue) Listen(id string, exclusive bool) (chan int, error) {
 func (q queue) MarkCompleted(requestID string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			q.recentlyCompleted.Delete(requestID)
+			q.recent.Delete(requestID)
 			err = errors.Errorf("Could not mark request as completed. "+
 				"Panicked with value %s", r)
 		}
@@ -118,7 +118,7 @@ func (q *queue) listen() {
 	for {
 		select {
 		case id := <-q.completed:
-			q.recentlyCompleted.Set(id, http.StatusOK, q.rcTimeout)
+			q.recent.Set(id, http.StatusOK, q.rcTimeout)
 			if cached, found := q.listeners.Get(id); found {
 				listeners := cached.([]chan int)
 				for _, listener := range listeners {
@@ -127,12 +127,14 @@ func (q *queue) listen() {
 				q.listeners.Delete(id)
 			}
 		case id := <-q.timedOut:
-			q.recentlyCompleted.Set(id, http.StatusRequestTimeout, q.rcTimeout)
-			q.listeners.Delete(id)
+			if _, found := q.recent.Get(id); !found {
+				q.recent.Set(id, http.StatusRequestTimeout, q.rcTimeout)
+				q.listeners.Delete(id)
+			}
 		case nl := <-q.newListeners:
 			var err error
 			c := make(chan int, 1)
-			if status, found := q.recentlyCompleted.Get(nl.id); found {
+			if status, found := q.recent.Get(nl.id); found {
 				signal(c, status.(int))
 				nl.out <- newListenerResponse{err, c}
 			}
