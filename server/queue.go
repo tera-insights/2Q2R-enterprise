@@ -19,8 +19,7 @@ import (
 //    that timeout resets everytime we call set.
 //    We also want to make sure that we don't send more than one message to the
 //    channel because it's buffered with one slot.
-// 4. Could set up a goroutine to, after lTimeout seconds, send the timeout
-//    message to all the listeners for that requestID.
+// 4. After lTimeout seconds, send the timeout message to all the listeners for that requestID.
 //
 // When a new request completion comes in:
 // 1. Alert all listeners that the request was completed
@@ -64,8 +63,7 @@ func signal(c chan int, code int) {
 }
 
 // Initializes a new queue.
-func newQueue(rcTimeout time.Duration, rcInterval time.Duration,
-	lTimeout time.Duration, lInterval time.Duration) queue {
+func newQueue(rcTimeout, rcInterval, lTimeout, lInterval time.Duration) queue {
 	q := queue{
 		cache.New(rcTimeout, rcInterval),
 		rcTimeout,

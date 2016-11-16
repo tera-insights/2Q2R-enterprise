@@ -13,6 +13,8 @@ import (
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
+	cache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/tstranex/u2f"
 )
 
@@ -24,7 +26,23 @@ type authenticationData struct {
 
 type authHandler struct {
 	s *Server
-	a *authenticator
+
+	// Migrated from authenticator
+	authReqs             *cache.Cache
+	challengeToRequestID *cache.Cache
+	expiration           time.Duration
+
+	// Migrated from queue
+	recent     *cache.Cache // Maps request ID to status code
+	rcTimeout  time.Duration
+	rcInterval time.Duration
+	listeners  *cache.Cache
+	lTimeout   time.Duration
+	lInterval  time.Duration
+
+	newListeners chan newListener
+	completed    chan string
+	timedOut     chan string
 }
 
 type keyDataToEmbed struct {
@@ -48,6 +66,112 @@ type authenticateData struct {
 	AppURL       string           `json:"appUrl"`
 }
 
+func newAuthHandler(s *Server) *authHandler {
+	rcet := s.Config.RecentlyCompletedExpirationTime
+	ct := s.Config.CleanTime
+
+	a := authHandler{
+		s,
+		cache.New(rcet, ct),
+		cache.New(rcet, ct),
+		s.Config.ExpirationTime,
+		cache.New(rcet, ct),
+		rcet,
+		ct,
+		cache.New(s.Config.ListenerExpirationTime, ct),
+		s.Config.ListenerExpirationTime,
+		ct,
+		make(chan newListener),
+		make(chan string),
+		make(chan string),
+	}
+
+	go a.receive()
+	return &a
+}
+
+type authReq struct {
+	RequestID  string
+	Challenge  *u2f.Challenge
+	KeyHandle  string
+	AppID      string
+	UserID     string
+	OriginalIP string
+}
+
+// GetRequest returns the request for a particular request ID.
+func (ah *authHandler) GetRequest(id string) (*authReq, error) {
+	if val, found := ah.authReqs.Get(id); found {
+		ar := val.(authReq)
+		ptr := &ar
+		return ptr, nil
+	}
+	return nil, errors.Errorf("Could not find auth request with id %s", id)
+}
+
+// Listen returns a chan that emits an HTTP status code corresponding to the
+// authentication request. It also returns a pointer to the request so that, if
+// appropriate, handlers can attach cookies.
+func (ah *authHandler) Listen(id string) (chan int, *authReq, error) {
+	ar, err := ah.GetRequest(id)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Could not listen to unknown request")
+	}
+	c := make(chan newListenerResponse)
+	ah.newListeners <- newListener{id, c, true}
+	r := <-c
+	if r.err != nil {
+		return nil, nil, errors.Wrap(err, "Could not listen to request")
+	}
+	return r.out, ar, nil
+}
+
+func (ah *authHandler) receive() {
+	for {
+		select {
+		case id := <-ah.completed:
+			ah.recent.Set(id, http.StatusOK, ah.rcTimeout)
+			if cached, found := ah.listeners.Get(id); found {
+				listeners := cached.([]chan int)
+				for _, listener := range listeners {
+					signal(listener, http.StatusOK)
+				}
+				ah.listeners.Delete(id)
+			}
+		case id := <-ah.timedOut:
+			if _, found := ah.recent.Get(id); !found {
+				ah.recent.Set(id, http.StatusRequestTimeout, ah.rcTimeout)
+				ah.listeners.Delete(id)
+			}
+		case nl := <-ah.newListeners:
+			var err error
+			c := make(chan int, 1)
+			if status, found := ah.recent.Get(nl.id); found {
+				signal(c, status.(int))
+				nl.out <- newListenerResponse{err, c}
+			}
+			if val, found := ah.listeners.Get(nl.id); found {
+				if nl.exclusive {
+					err = errors.New("Someone is already listening")
+				} else {
+					listeners := val.([]chan int)
+					newListeners := append(listeners, c)
+					ah.listeners.Set(nl.id, newListeners, ah.lTimeout)
+				}
+			} else {
+				ah.listeners.Set(nl.id, []chan int{c}, ah.lTimeout)
+				go func() {
+					time.Sleep(ah.lTimeout)
+					ah.timedOut <- nl.id
+				}()
+			}
+			nl.out <- newListenerResponse{err, c}
+		default:
+			// No message! Do nothing
+		}
+	}
+}
+
 // AuthRequestSetupHandler sets up a two-factor authentication request.
 // GET /v1/auth/request/{userID}
 func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,13 +190,17 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	optionalInternalPanic(err, "Failed to generate request ID")
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
-	ah.a.PutRequest(requestID, authReq{
+	ar := authReq{
 		RequestID:  requestID,
 		Challenge:  challenge,
 		AppID:      key.AppID,
 		UserID:     userID,
 		OriginalIP: host,
-	})
+	}
+	ah.authReqs.Set(requestID, ar, ah.expiration)
+	s := EncodeBase64(ar.Challenge.Challenge)
+	ah.challengeToRequestID.Set(s, requestID, ah.expiration)
+
 	writeJSON(w, http.StatusOK, authenticationSetupReply{
 		requestID,
 		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + requestID,
@@ -93,7 +221,7 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
 	t, err := template.New("auth").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate authentication iFrame")
 
-	cached, err := ah.a.GetRequest(requestID)
+	cached, err := ah.GetRequest(requestID)
 	optionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
 	query := Key{AppID: cached.AppID, UserID: cached.UserID}
@@ -187,7 +315,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get authentication request
-	ar, err := ah.a.GetRequest(requestID.(string))
+	ar, err := ah.GetRequest(requestID.(string))
 	optionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	storedKey := Key{}
@@ -222,7 +350,15 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Notify request listeners
-	err = ah.a.MarkCompleted(requestID.(string))
+	ah.completed <- requestID.(string)
+
+	// If there was an error, remove the request from the "ok" cache
+	defer func() {
+		if r := recover(); r != nil {
+			ah.recent.Delete(requestID.(string))
+		}
+	}()
+
 	if err != nil {
 		tx.Rollback()
 		optionalInternalPanic(err, "Could not notify request listeners")
@@ -257,7 +393,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 // GET /v1/auth/{requestID}/wait
 func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["requestID"]
-	c, ar, err := ah.a.Listen(id)
+	c, ar, err := ah.Listen(id)
 	optionalBadRequestPanic(err, "Could not listen for unknown request")
 
 	status := <-c
@@ -294,20 +430,24 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	optionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	err = ah.a.SetKey(requestID, req.KeyHandle)
-	optionalInternalPanic(err, "Failed to set key for authentication request")
+	val, found := ah.authReqs.Get(requestID)
+	panicIfFalse(found, http.StatusBadRequest, "Could not find auth request "+
+		"with id "+requestID)
 
-	ar, err := ah.a.GetRequest(requestID)
-	optionalInternalPanic(err, "Failed to get authentication request")
+	ar := val.(authReq)
+	ar.KeyHandle = req.KeyHandle
+	ah.authReqs.Set(requestID, ar, ah.expiration)
 
-	storedKey := Key{}
-	err = ah.s.DB.Model(&Key{}).Where(&Key{ID: req.KeyHandle}).First(&storedKey).Error
+	var stored Key
+	err = ah.s.DB.Model(&Key{}).Where(&Key{
+		ID: req.KeyHandle,
+	}).First(&stored).Error
 	optionalBadRequestPanic(err, "Failed to get stored key")
 
 	writeJSON(w, http.StatusOK, setKeyReply{
 		KeyHandle: req.KeyHandle,
 		Challenge: EncodeBase64(ar.Challenge.Challenge),
-		Counter:   storedKey.Counter,
-		AppID:     storedKey.AppID,
+		Counter:   stored.Counter,
+		AppID:     stored.AppID,
 	})
 }

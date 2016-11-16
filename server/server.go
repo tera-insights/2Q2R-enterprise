@@ -457,10 +457,7 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/keys/{userID}/{keyHandle}", kh.DeleteKey, "DELETE")
 
 	// Auth routes
-	th := authHandler{
-		s: s,
-		a: newAuthenticator(s.Config),
-	}
+	th := newAuthHandler(s)
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
 		"GET")
 	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
