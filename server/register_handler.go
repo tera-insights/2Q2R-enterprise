@@ -221,6 +221,11 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 // GET /v1/register/{requestID}/wait
 func (rh registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	requestID := mux.Vars(r)["requestID"]
-	c := rh.q.Listen(requestID)
-	w.WriteHeader(<-c)
+	c, err := rh.q.Listen(requestID, false)
+	if err != nil { // Should never happen
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(<-c)
+	}
+
 }

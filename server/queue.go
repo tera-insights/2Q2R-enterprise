@@ -43,8 +43,14 @@ type queue struct {
 }
 
 type newListener struct {
-	id  string
-	out chan chan int
+	id        string
+	out       chan newListenerResponse
+	exclusive bool
+}
+
+type newListenerResponse struct {
+	err error
+	out chan int
 }
 
 // non-blocking send.
@@ -87,10 +93,11 @@ func newQueue(rcTimeout time.Duration, rcInterval time.Duration,
 // 200, for success
 // 401, for requests canceled by the user
 // 408, for requests that timed out
-func (q queue) Listen(id string) chan int {
-	c := make(chan chan int)
-	q.newListeners <- newListener{id, c}
-	return <-c
+func (q queue) Listen(id string, exclusive bool) (chan int, error) {
+	c := make(chan newListenerResponse)
+	q.newListeners <- newListener{id, c, exclusive}
+	r := <-c
+	return r.out, r.err
 }
 
 // MarkCompleted records that a request was successfully completed.
@@ -103,6 +110,7 @@ func (q queue) MarkCompleted(requestID string) (err error) {
 		}
 	}()
 
+	q.completed <- requestID
 	return
 }
 
@@ -122,15 +130,20 @@ func (q *queue) listen() {
 			q.recentlyCompleted.Set(id, http.StatusRequestTimeout, q.rcTimeout)
 			q.listeners.Delete(id)
 		case nl := <-q.newListeners:
+			var err error
 			c := make(chan int, 1)
 			if status, found := q.recentlyCompleted.Get(nl.id); found {
 				signal(c, status.(int))
-				nl.out <- c
+				nl.out <- newListenerResponse{err, c}
 			}
-			if cached, found := q.listeners.Get(nl.id); found {
-				listeners := cached.([]chan int)
-				newListeners := append(listeners, c)
-				q.listeners.Set(nl.id, newListeners, q.lTimeout)
+			if val, found := q.listeners.Get(nl.id); found {
+				if nl.exclusive {
+					err = errors.New("Someone is already listening")
+				} else {
+					listeners := val.([]chan int)
+					newListeners := append(listeners, c)
+					q.listeners.Set(nl.id, newListeners, q.lTimeout)
+				}
 			} else {
 				q.listeners.Set(nl.id, []chan int{c}, q.lTimeout)
 				go func() {
@@ -138,7 +151,7 @@ func (q *queue) listen() {
 					q.timedOut <- nl.id
 				}()
 			}
-			nl.out <- c
+			nl.out <- newListenerResponse{err, c}
 		default:
 			// No message! Do nothing
 		}

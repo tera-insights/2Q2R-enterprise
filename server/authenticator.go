@@ -30,10 +30,10 @@ func newAuthenticator(c *Config) *authenticator {
 	rcet := c.RecentlyCompletedExpirationTime
 	ct := c.CleanTime
 	return &authenticator{
-		authReqs:             cache.New(rcet, ct),
-		challengeToRequestID: cache.New(rcet, ct),
-		expiration:           c.ExpirationTime,
-		q:                    newQueue(rcet, ct, c.ListenerExpirationTime, ct),
+		cache.New(rcet, ct),
+		cache.New(rcet, ct),
+		c.ExpirationTime,
+		newQueue(rcet, ct, c.ListenerExpirationTime, ct),
 	}
 }
 
@@ -77,5 +77,9 @@ func (a *authenticator) Listen(id string) (chan int, *authReq, error) {
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Could not listen to unknown request")
 	}
-	return a.q.Listen(id), ar, nil
+	c, err := a.q.Listen(id, ar.AppID == "1")
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Could not listen to request")
+	}
+	return c, ar, nil
 }
