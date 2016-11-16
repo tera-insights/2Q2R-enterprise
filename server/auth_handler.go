@@ -309,7 +309,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&clientData)
 	optionalBadRequestPanic(err, "Could not decode client data")
 
-	requestID, found := ah.s.cache.challengeToRequestID.Get(clientData.Challenge)
+	requestID, found := ah.challengeToRequestID.Get(clientData.Challenge)
 	if !found {
 		panic(bubbledError{
 			StatusCode: http.StatusForbidden,

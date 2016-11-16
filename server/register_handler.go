@@ -4,20 +4,61 @@ package server
 
 import (
 	"bytes"
+	"crypto"
 	"encoding/json"
 	"html/template"
+	"io"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
+	cache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/tstranex/u2f"
 )
 
+type newListener struct {
+	id        string
+	out       chan newListenerResponse
+	exclusive bool
+}
+
+type newListenerResponse struct {
+	err error
+	out chan int
+}
+
+// non-blocking send.
+func signal(c chan int, code int) {
+	select {
+	case c <- code:
+		return
+	default:
+		return
+	}
+}
+
 type registerHandler struct {
 	s *Server
-	q queue
+
+	// Migrated from cache
+	registrationReqs     *cache.Cache
+	challengeToRequestID *cache.Cache
+	expiration           time.Duration
+
+	// Migrated from queue
+	recent     *cache.Cache // Maps request ID to status code
+	rcTimeout  time.Duration
+	rcInterval time.Duration
+	listeners  *cache.Cache
+	lTimeout   time.Duration
+	lInterval  time.Duration
+
+	newListeners chan newListener
+	completed    chan string
+	timedOut     chan string
 }
 
 type registerData struct {
@@ -31,6 +72,81 @@ type registerData struct {
 	RegisterURL string   `json:"registerUrl"`
 	WaitURL     string   `json:"waitUrl"`
 	AppURL      string   `json:"appUrl"`
+}
+
+type registrationReq struct {
+	RequestID  string
+	Challenge  *u2f.Challenge
+	AppID      string
+	UserID     string
+	OriginalIP string
+}
+
+func newRegisterHandler(s *Server) *registerHandler {
+	rcet := s.Config.RecentlyCompletedExpirationTime
+	ct := s.Config.CleanTime
+
+	r := registerHandler{
+		s,
+		cache.New(rcet, ct),
+		cache.New(rcet, ct),
+		s.Config.ExpirationTime,
+		cache.New(rcet, ct),
+		rcet,
+		ct,
+		cache.New(s.Config.ListenerExpirationTime, ct),
+		s.Config.ListenerExpirationTime,
+		ct,
+		make(chan newListener),
+		make(chan string),
+		make(chan string),
+	}
+
+	go r.receive()
+	return &r
+}
+
+// GetRequest returns the request for a particular request ID.
+func (rh *registerHandler) GetRequest(id string) (*registrationReq, error) {
+	if val, found := rh.registrationReqs.Get(id); found {
+		rr := val.(registrationReq)
+		ptr := &rr
+		return ptr, nil
+	}
+
+	// For long-term requests
+	ltr := LongTermRequest{}
+	h := crypto.SHA256.New()
+	io.WriteString(h, id)
+
+	// We transactionally find the long-term request and then delete it from
+	// the DB.
+	tx := rh.s.DB.Begin()
+	query := LongTermRequest{ID: string(h.Sum(nil))}
+	if err := tx.First(ltr, query).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if err := tx.Delete(LongTermRequest{}, query).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	tx.Commit()
+
+	base := rh.s.Config.getBaseURLWithProtocol()
+	challenge, err := u2f.NewChallenge(base, []string{base})
+	if err != nil {
+		return nil, err
+	}
+
+	rh.registrationReqs.Set(id, registrationReq{
+		RequestID: id,
+		Challenge: challenge,
+		AppID:     ltr.AppID,
+	}, rh.expiration)
+	s := EncodeBase64(challenge.Challenge)
+	rh.challengeToRequestID.Set(s, id, rh.expiration)
+	return nil, errors.Errorf("Could not find request with id %s", id)
 }
 
 // RegisterSetupHandler sets up the registration of a new two-factor device.
@@ -52,13 +168,17 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	optionalInternalPanic(err, "Could not generate request ID")
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
-	rh.s.cache.SetRegistrationRequest(requestID, registrationRequest{
+	rr := registrationReq{
 		RequestID:  requestID,
 		Challenge:  challenge,
 		AppID:      server.AppID,
 		UserID:     userID,
 		OriginalIP: host,
-	})
+	}
+	rh.registrationReqs.Set(requestID, rr, rh.expiration)
+	s := EncodeBase64(rr.Challenge.Challenge)
+	rh.challengeToRequestID.Set(s, requestID, rh.expiration)
+
 	writeJSON(w, http.StatusOK, registrationSetupReply{
 		requestID,
 		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + requestID,
@@ -78,7 +198,7 @@ func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	t, err := template.New("register").Parse(templateString)
 	optionalInternalPanic(err, "Failed to generate registration iFrame")
 
-	cachedRequest, err := rh.s.cache.GetRegistrationRequest(requestID)
+	cachedRequest, err := rh.GetRequest(requestID)
 	optionalBadRequestPanic(err, "Failed to get registration request")
 
 	var appInfo AppInfo
@@ -161,12 +281,19 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 	optionalBadRequestPanic(err, "Could not decode client data")
 
 	// Assert that the challenge exists
-	requestID, found := rh.s.cache.challengeToRequestID.Get(clientData.Challenge)
+	val, found := rh.challengeToRequestID.Get(clientData.Challenge)
 	panicIfFalse(found, http.StatusForbidden, "Challenge does not exist")
 
+	requestID, ok := val.(string)
+	panicIfFalse(ok, http.StatusInternalServerError, "Invalid cached data")
+
 	// Get challenge data
-	rr, err := rh.s.cache.GetRegistrationRequest(requestID.(string))
-	optionalInternalPanic(err, "Failed to look up data for valid challenge")
+	val, found = rh.registrationReqs.Get(requestID)
+	panicIfFalse(found, http.StatusInternalServerError, "Failed to look up "+
+		"data for valid challenge")
+
+	rr, ok := val.(registrationReq)
+	panicIfFalse(ok, http.StatusInternalServerError, "Invalid cached data")
 
 	// Verify signature
 	resp := u2f.RegisterResponse{
@@ -198,8 +325,15 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 		optionalInternalPanic(err, "Could not save key to database")
 	}
 
-	// Notify request listeners
-	err = rh.q.MarkCompleted(requestID.(string))
+	rh.completed <- requestID
+
+	// If there was an error, remove the request from the "ok" cache
+	defer func() {
+		if r := recover(); r != nil {
+			rh.recent.Delete(requestID)
+		}
+	}()
+
 	if err != nil {
 		tx.Rollback()
 		optionalInternalPanic(err, "Could not notify request listeners")
@@ -220,12 +354,63 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 // until the registration is complete.
 // GET /v1/register/{requestID}/wait
 func (rh registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
-	c, err := rh.q.Listen(requestID, false)
-	if err != nil { // Should never happen
+	id := mux.Vars(r)["requestID"]
+	c := make(chan newListenerResponse)
+	rh.newListeners <- newListener{id, c, false}
+	response := <-c
+	if response.err != nil { // Should never happen
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {
-		w.WriteHeader(<-c)
+		w.WriteHeader(<-response.out)
 	}
 
+}
+
+func (rh *registerHandler) receive() {
+	for {
+		select {
+		case id := <-rh.completed:
+			rh.recent.Set(id, http.StatusOK, rh.rcTimeout)
+			if cached, found := rh.listeners.Get(id); found {
+				listeners := cached.([]chan int)
+				for _, listener := range listeners {
+					signal(listener, http.StatusOK)
+				}
+				rh.listeners.Delete(id)
+			}
+		case id := <-rh.timedOut:
+			if _, found := rh.recent.Get(id); !found {
+				rr, _ := rh.GetRequest(id)
+				rh.recent.Set(id, http.StatusRequestTimeout, rh.rcTimeout)
+				rh.listeners.Delete(id)
+				rh.s.disperser.addEvent(registration, time.Now(), rr.AppID,
+					"timeout", rr.UserID, rr.OriginalIP, "")
+			}
+		case nl := <-rh.newListeners:
+			var err error
+			c := make(chan int, 1)
+			if status, found := rh.recent.Get(nl.id); found {
+				signal(c, status.(int))
+				nl.out <- newListenerResponse{err, c}
+			}
+			if val, found := rh.listeners.Get(nl.id); found {
+				if nl.exclusive {
+					err = errors.New("Someone is already listening")
+				} else {
+					listeners := val.([]chan int)
+					newListeners := append(listeners, c)
+					rh.listeners.Set(nl.id, newListeners, rh.lTimeout)
+				}
+			} else {
+				rh.listeners.Set(nl.id, []chan int{c}, rh.lTimeout)
+				go func() {
+					time.Sleep(rh.lTimeout)
+					rh.timedOut <- nl.id
+				}()
+			}
+			nl.out <- newListenerResponse{err, c}
+		default:
+			// No message! Do nothing
+		}
+	}
 }

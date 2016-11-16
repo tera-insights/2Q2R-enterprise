@@ -83,7 +83,6 @@ func (c *Config) getBaseURLWithProtocol() string {
 type Server struct {
 	Config    *Config
 	DB        *gorm.DB
-	cache     *cacher
 	disperser *disperser
 	pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
@@ -227,7 +226,6 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	s = Server{
 		c,
 		db,
-		newCacher(c), // regenerates keys when appropriate
 		d,
 		rsa,
 		priv,
@@ -393,12 +391,7 @@ func (s *Server) GetHandler() http.Handler {
 	}, "GET")
 
 	// Admin routes
-	ah := adminHandler{
-		s: s,
-		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
-			s.Config.CleanTime, s.Config.ListenerExpirationTime,
-			s.Config.CleanTime),
-	}
+	ah := adminHandler{s}
 	forMethod(router, "/admin/new", ah.NewAdmin, "POST")
 
 	forMethod(router, "/admin/admin", ah.GetAdmins, "GET")
@@ -466,12 +459,7 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
-	rh := registerHandler{
-		s: s,
-		q: newQueue(s.Config.RecentlyCompletedExpirationTime,
-			s.Config.CleanTime, s.Config.ListenerExpirationTime,
-			s.Config.CleanTime),
-	}
+	rh := newRegisterHandler(s)
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler,
 		"GET")
 	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")

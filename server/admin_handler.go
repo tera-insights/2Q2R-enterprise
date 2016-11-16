@@ -19,7 +19,6 @@ import (
 
 type adminHandler struct {
 	s *Server
-	q queue
 }
 
 // NewAdmin challenges the incoming admin, replying with a request ID that must
