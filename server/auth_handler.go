@@ -140,8 +140,11 @@ func (ah *authHandler) receive() {
 			}
 		case id := <-ah.timedOut:
 			if _, found := ah.recent.Get(id); !found {
+				ar, _ := ah.GetRequest(id)
 				ah.recent.Set(id, http.StatusRequestTimeout, ah.rcTimeout)
 				ah.listeners.Delete(id)
+				ah.s.disperser.addEvent(authentication, time.Now(), ar.AppID,
+					"timeout", ar.UserID, ar.OriginalIP, "")
 			}
 		case nl := <-ah.newListeners:
 			var err error
