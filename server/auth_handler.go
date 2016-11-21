@@ -420,7 +420,9 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	panicIfFalse(found, http.StatusBadRequest, "Could not find auth request "+
 		"with id "+requestID)
 
-	ar := val.(authReq)
+	ar, ok := val.(authReq)
+	panicIfFalse(ok, http.StatusInternalServerError, "Invalid cached request")
+
 	ar.KeyHandle = req.KeyHandle
 	ah.authReqs.Set(requestID, ar, ah.expiration)
 
