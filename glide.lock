@@ -1,5 +1,5 @@
-hash: 21200bb97854d7577b7b83208576b61855c4036f6fc9c201a35b0192fb6df637
-updated: 2016-11-16T13:43:58.148108725-05:00
+hash: c3bd60f6f27afe140c931740425003bb409d00e61a4aa9cfbc621aa3526a7b0f
+updated: 2016-11-21T07:58:47.39879712-05:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -18,7 +18,7 @@ imports:
 - name: github.com/gorilla/securecookie
   version: 667fe4e3466a040b780561fe9b51a83a3753eefc
 - name: github.com/gorilla/websocket
-  version: 1f512fc3f05332ba7117626cdfb4e07474e58e60
+  version: e8f0f8aaa98dfb6586cbdf2978d511e3199a960a
 - name: github.com/hashicorp/hcl
   version: 99ce73d4fe576449f7a689d4fc2b2ad09a86bdaa
   subpackages:

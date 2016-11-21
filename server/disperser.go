@@ -103,9 +103,9 @@ func (d *disperser) addListener(l listener) {
 	l.conn.WriteJSON(toSend)
 	d.listeners[l.conn.LocalAddr().String()] = l
 	origHandler := l.conn.CloseHandler()
-	l.conn.SetCloseHandler(func(code int, text string) {
+	l.conn.SetCloseHandler(func(code int, text string) error {
 		delete(d.listeners, l.conn.LocalAddr().String())
-		origHandler(code, text)
+		return origHandler(code, text)
 	})
 
 	d.listenersLock.Unlock()
