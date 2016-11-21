@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"net"
 	"net/http"
+	"sync"
 
 	"time"
 
@@ -40,9 +41,7 @@ type authHandler struct {
 	lTimeout   time.Duration
 	lInterval  time.Duration
 
-	newListeners chan newListener
-	completed    chan string
-	timedOut     chan string
+	stateLock *sync.RWMutex
 }
 
 type keyDataToEmbed struct {
@@ -70,7 +69,7 @@ func newAuthHandler(s *Server) *authHandler {
 	rcet := s.Config.RecentlyCompletedExpirationTime
 	ct := s.Config.CleanTime
 
-	a := authHandler{
+	return &authHandler{
 		s,
 		cache.New(rcet, ct),
 		cache.New(rcet, ct),
@@ -81,13 +80,8 @@ func newAuthHandler(s *Server) *authHandler {
 		cache.New(s.Config.ListenerExpirationTime, ct),
 		s.Config.ListenerExpirationTime,
 		ct,
-		make(chan newListener),
-		make(chan string),
-		make(chan string),
+		&sync.RWMutex{},
 	}
-
-	go a.receive()
-	return &a
 }
 
 type authReq struct {
@@ -112,73 +106,45 @@ func (ah *authHandler) GetRequest(id string) (*authReq, error) {
 // Listen returns a chan that emits an HTTP status code corresponding to the
 // authentication request. It also returns a pointer to the request so that, if
 // appropriate, handlers can attach cookies.
-func (ah *authHandler) Listen(id string) (chan int, *authReq, error) {
-	ar, err := ah.GetRequest(id)
+func (ah *authHandler) Listen(id string) (c chan int, ar *authReq, err error) {
+	ar, err = ah.GetRequest(id)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Could not listen to unknown request")
 	}
-	c := make(chan newListenerResponse)
-	ah.newListeners <- newListener{id, c, true}
-	r := <-c
-	if r.err != nil {
-		return nil, nil, errors.Wrap(err, "Could not listen to request")
-	}
-	return r.out, ar, nil
-}
 
-func (ah *authHandler) receive() {
-	for {
-		select {
-		case id := <-ah.completed:
-			ah.recent.Set(id, http.StatusOK, ah.rcTimeout)
-			if cached, found := ah.listeners.Get(id); found {
-				listeners := cached.([]chan int)
-				for _, listener := range listeners {
-					select {
-					case listener <- http.StatusOK:
-					default:
-					}
-				}
-				ah.listeners.Delete(id)
-			}
-		case id := <-ah.timedOut:
-			if _, found := ah.recent.Get(id); !found {
-				ar, _ := ah.GetRequest(id)
-				ah.recent.Set(id, http.StatusRequestTimeout, ah.rcTimeout)
-				ah.listeners.Delete(id)
-				ah.s.disperser.addEvent(authentication, time.Now(), ar.AppID,
-					"timeout", ar.UserID, ar.OriginalIP, "")
-			}
-		case nl := <-ah.newListeners:
-			var err error
-			c := make(chan int, 1)
-			if status, found := ah.recent.Get(nl.id); found {
-				select {
-				case c <- status.(int):
-				default:
-				}
-				nl.out <- newListenerResponse{err, c}
-			}
-			if val, found := ah.listeners.Get(nl.id); found {
-				if nl.exclusive {
-					err = errors.New("Someone is already listening")
-				} else {
-					listeners := val.([]chan int)
-					newListeners := append(listeners, c)
-					ah.listeners.Set(nl.id, newListeners, ah.lTimeout)
-				}
+	c = make(chan int, 1)
+
+	withLocking(ah.stateLock, func() {
+		status, found := ah.recent.Get(id)
+		if found {
+			c <- status.(int)
+		} else {
+			if _, found := ah.listeners.Get(id); found {
+				c = nil
+				ar = nil
+				err = errors.New("Someone is already listening")
 			} else {
-				ah.listeners.Set(nl.id, []chan int{c}, ah.lTimeout)
-				go func() {
-					time.Sleep(ah.lTimeout)
-					ah.timedOut <- nl.id
-				}()
+				ah.listeners.Set(id, []chan int{c}, ah.lTimeout)
 			}
-			nl.out <- newListenerResponse{err, c}
-		default:
-			// No message! Do nothing
 		}
+	})
+
+	if err != nil {
+		go func() {
+			time.Sleep(ah.lTimeout)
+			withLocking(ah.stateLock, func() {
+				if _, found := ah.recent.Get(id); !found {
+					ar, _ := ah.GetRequest(id)
+					ah.recent.Set(id, http.StatusRequestTimeout, ah.rcTimeout)
+					ah.listeners.Delete(id)
+					ah.s.disperser.addEvent(authentication, time.Now(),
+						ar.AppID, "timeout", ar.UserID, ar.OriginalIP, "")
+				}
+			})
+		}()
 	}
+
+	return
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
@@ -359,14 +325,25 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Notify request listeners
-	ah.completed <- requestID.(string)
+	withLocking(ah.stateLock, func() {
+		defer func() {
+			if r := recover(); r != nil {
+				ah.recent.Delete(requestID.(string))
+			}
+		}()
 
-	// If there was an error, remove the request from the "ok" cache
-	defer func() {
-		if r := recover(); r != nil {
-			ah.recent.Delete(requestID.(string))
+		ah.recent.Set(requestID.(string), http.StatusOK, ah.rcTimeout)
+		if cached, found := ah.listeners.Get(requestID.(string)); found {
+			listeners := cached.([]chan int)
+			for _, listener := range listeners {
+				select {
+				case listener <- http.StatusOK:
+				default:
+				}
+			}
+			ah.listeners.Delete(requestID.(string))
 		}
-	}()
+	})
 
 	if err != nil {
 		tx.Rollback()

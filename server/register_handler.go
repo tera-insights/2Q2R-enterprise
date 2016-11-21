@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"time"
 
+	"sync"
+
 	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	cache "github.com/patrickmn/go-cache"
@@ -19,15 +21,10 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-type newListener struct {
-	id        string
-	out       chan newListenerResponse
-	exclusive bool
-}
-
-type newListenerResponse struct {
-	err error
-	out chan int
+func withLocking(l *sync.RWMutex, f func()) {
+	defer l.Unlock()
+	l.Lock()
+	f()
 }
 
 type registerHandler struct {
@@ -46,9 +43,7 @@ type registerHandler struct {
 	lTimeout   time.Duration
 	lInterval  time.Duration
 
-	newListeners chan newListener
-	completed    chan string
-	timedOut     chan string
+	stateLock *sync.RWMutex
 }
 
 type registerData struct {
@@ -76,7 +71,7 @@ func newRegisterHandler(s *Server) *registerHandler {
 	rcet := s.Config.RecentlyCompletedExpirationTime
 	ct := s.Config.CleanTime
 
-	r := registerHandler{
+	return &registerHandler{
 		s,
 		cache.New(rcet, ct),
 		cache.New(rcet, ct),
@@ -87,13 +82,8 @@ func newRegisterHandler(s *Server) *registerHandler {
 		cache.New(s.Config.ListenerExpirationTime, ct),
 		s.Config.ListenerExpirationTime,
 		ct,
-		make(chan newListener),
-		make(chan string),
-		make(chan string),
+		&sync.RWMutex{},
 	}
-
-	go r.receive()
-	return &r
 }
 
 // GetRequest returns the request for a particular request ID.
@@ -315,14 +305,35 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 		optionalInternalPanic(err, "Could not save key to database")
 	}
 
-	rh.completed <- requestID
+	// Mark the request as completed
+	withLocking(rh.stateLock, func() {
+		defer func() {
+			if r := recover(); r != nil {
+				rh.recent.Delete(requestID)
+			}
+		}()
 
-	// If there was an error, remove the request from the "ok" cache
-	defer func() {
-		if r := recover(); r != nil {
-			rh.recent.Delete(requestID)
+		if _, found = rh.recent.Get(requestID); found {
+			writeJSON(w, http.StatusUnauthorized, "Request timed out")
+			tx.Rollback()
+			return
 		}
-	}()
+		rh.recent.Set(requestID, http.StatusOK, rh.rcTimeout)
+	})
+
+	// Tell all the listeners that we finished
+	withLocking(rh.stateLock, func() {
+		if cached, found := rh.listeners.Get(requestID); found {
+			listeners := cached.([]chan int)
+			for _, listener := range listeners {
+				select {
+				case listener <- http.StatusOK:
+				default:
+				}
+			}
+			rh.listeners.Delete(requestID)
+		}
+	})
 
 	if err != nil {
 		tx.Rollback()
@@ -343,66 +354,41 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Wait allows the requester to check the result of the registration. It blocks
 // until the registration is complete.
 // GET /v1/register/{requestID}/wait
-func (rh registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["requestID"]
-	c := make(chan newListenerResponse)
-	rh.newListeners <- newListener{id, c, false}
-	response := <-c
-	if response.err != nil { // Should never happen
-		w.WriteHeader(http.StatusInternalServerError)
+	c := make(chan int, 1)
+
+	rh.stateLock.RLock()
+	status, found := rh.recent.Get(id)
+	rh.stateLock.RUnlock()
+
+	if found {
+		c <- status.(int)
 	} else {
-		w.WriteHeader(<-response.out)
-	}
-
-}
-
-func (rh *registerHandler) receive() {
-	for {
-		select {
-		case id := <-rh.completed:
-			rh.recent.Set(id, http.StatusOK, rh.rcTimeout)
-			if cached, found := rh.listeners.Get(id); found {
-				listeners := cached.([]chan int)
-				for _, listener := range listeners {
-					select {
-					case listener <- http.StatusOK:
-					default:
-					}
-				}
-				rh.listeners.Delete(id)
-			}
-		case id := <-rh.timedOut:
-			if _, found := rh.recent.Get(id); !found {
-				rr, _ := rh.GetRequest(id)
-				rh.recent.Set(id, http.StatusRequestTimeout, rh.rcTimeout)
-				rh.listeners.Delete(id)
-				rh.s.disperser.addEvent(registration, time.Now(), rr.AppID,
-					"timeout", rr.UserID, rr.OriginalIP, "")
-			}
-		case nl := <-rh.newListeners:
-			var err error
-			c := make(chan int, 1)
-			if status, found := rh.recent.Get(nl.id); found {
-				select {
-				case c <- status.(int):
-				default:
-				}
-				nl.out <- newListenerResponse{err, c}
-			}
-			if val, found := rh.listeners.Get(nl.id); found {
+		withLocking(rh.stateLock, func() {
+			if val, found := rh.listeners.Get(id); found {
 				listeners := val.([]chan int)
 				newListeners := append(listeners, c)
-				rh.listeners.Set(nl.id, newListeners, rh.lTimeout)
+				rh.listeners.Set(id, newListeners, rh.lTimeout)
 			} else {
-				rh.listeners.Set(nl.id, []chan int{c}, rh.lTimeout)
-				go func() {
-					time.Sleep(rh.lTimeout)
-					rh.timedOut <- nl.id
-				}()
+				rh.listeners.Set(id, []chan int{c}, rh.lTimeout)
 			}
-			nl.out <- newListenerResponse{err, c}
-		default:
-			// No message! Do nothing
-		}
+		})
+
+		go func() {
+			time.Sleep(rh.lTimeout)
+			withLocking(rh.stateLock, func() {
+				// Only time the request out if it did not complete
+				if _, found := rh.recent.Get(id); !found {
+					rr, _ := rh.GetRequest(id)
+					rh.recent.Set(id, http.StatusRequestTimeout,
+						rh.rcTimeout)
+					rh.listeners.Delete(id)
+					rh.s.disperser.addEvent(registration, time.Now(),
+						rr.AppID, "timeout", rr.UserID, rr.OriginalIP, "")
+				}
+			})
+		}()
 	}
+	w.WriteHeader(<-c)
 }
