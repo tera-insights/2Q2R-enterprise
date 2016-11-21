@@ -30,16 +30,6 @@ type newListenerResponse struct {
 	out chan int
 }
 
-// non-blocking send.
-func signal(c chan int, code int) {
-	select {
-	case c <- code:
-		return
-	default:
-		return
-	}
-}
-
 type registerHandler struct {
 	s *Server
 
@@ -374,7 +364,10 @@ func (rh *registerHandler) receive() {
 			if cached, found := rh.listeners.Get(id); found {
 				listeners := cached.([]chan int)
 				for _, listener := range listeners {
-					signal(listener, http.StatusOK)
+					select {
+					case listener <- http.StatusOK:
+					default:
+					}
 				}
 				rh.listeners.Delete(id)
 			}
@@ -390,7 +383,10 @@ func (rh *registerHandler) receive() {
 			var err error
 			c := make(chan int, 1)
 			if status, found := rh.recent.Get(nl.id); found {
-				signal(c, status.(int))
+				select {
+				case c <- status.(int):
+				default:
+				}
 				nl.out <- newListenerResponse{err, c}
 			}
 			if val, found := rh.listeners.Get(nl.id); found {

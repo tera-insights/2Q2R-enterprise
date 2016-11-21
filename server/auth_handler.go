@@ -134,7 +134,10 @@ func (ah *authHandler) receive() {
 			if cached, found := ah.listeners.Get(id); found {
 				listeners := cached.([]chan int)
 				for _, listener := range listeners {
-					signal(listener, http.StatusOK)
+					select {
+					case listener <- http.StatusOK:
+					default:
+					}
 				}
 				ah.listeners.Delete(id)
 			}
@@ -150,7 +153,10 @@ func (ah *authHandler) receive() {
 			var err error
 			c := make(chan int, 1)
 			if status, found := ah.recent.Get(nl.id); found {
-				signal(c, status.(int))
+				select {
+				case c <- status.(int):
+				default:
+				}
 				nl.out <- newListenerResponse{err, c}
 			}
 			if val, found := ah.listeners.Get(nl.id); found {
