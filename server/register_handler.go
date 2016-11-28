@@ -309,6 +309,7 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 	withLocking(rh.stateLock, func() {
 		defer func() {
 			if r := recover(); r != nil {
+				tx.Rollback()
 				rh.recent.Delete(requestID)
 			}
 		}()

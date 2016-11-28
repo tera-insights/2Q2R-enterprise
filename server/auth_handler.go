@@ -328,6 +328,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	withLocking(ah.stateLock, func() {
 		defer func() {
 			if r := recover(); r != nil {
+				tx.Rollback()
 				ah.recent.Delete(requestID.(string))
 			}
 		}()
