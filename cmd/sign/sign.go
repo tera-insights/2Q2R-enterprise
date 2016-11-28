@@ -74,7 +74,7 @@ func main() {
 	var info map[string]string
 	err = json.Unmarshal(raw, &info)
 	if err != nil {
-		panic(errors.Wrapf(err, "Could not unmarshal JSON file at path %s", infoPath))
+		panic(errors.Wrapf(err, "Couldn't unmarshal JSON file at path %s", infoPath))
 	}
 
 	pub, found := info["publicKey"]
@@ -82,9 +82,9 @@ func main() {
 		panic(errors.New("No public key at key \"publicKey\""))
 	}
 
-	ownerID, found := info["ownerID"]
-	if !found {
-		panic(errors.New("No owner ID at key \"ownerID\""))
+	ownerID, err := server.RandString(32)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't generate admin ID"))
 	}
 
 	h := crypto.SHA256.New()
@@ -93,13 +93,15 @@ func main() {
 	io.WriteString(h, ownerID)
 	signature, err := rsa.SignPSS(rand.Reader, priv, crypto.SHA256, h.Sum(nil), nil)
 	if err != nil {
-		panic(errors.Wrap(err, "Could not sign admin's public key"))
+		panic(errors.Wrap(err, "Couldn't sign admin's public key"))
 	}
 
 	info["signature"] = server.EncodeBase64(signature)
 	bytes, _ := json.Marshal(info)
 	err = ioutil.WriteFile(infoPath, bytes, os.ModePerm)
 	if err != nil {
-		panic(errors.Wrap(err, "Could not save file with signature"))
+		panic(errors.Wrap(err, "Couldn't save file with signature"))
 	}
+
+	fmt.Println("Output written to " + infoPath)
 }

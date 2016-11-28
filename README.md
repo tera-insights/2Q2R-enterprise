@@ -11,8 +11,13 @@ either set in the `config.yaml` or is the default `./db.mmdb`.
 4. Bootstrap the database with `go run cmd/bootstrap/bootstrap.go`. This script
 requires a `bootstrap.json` config file that is a `server.NewAdminRequest`.
 
+## Signing
+The first admin's public key must be signed by Tera Insights by
+`go run cmd/sign/sign.go`. This script takes an info file that has the admin's 
+public key and generates a file with the admin ID and signature.  
+
 ## Running
-1. `go run cmd/server/server.go` 
+`go run cmd/server/server.go` 
 
 ## Documentation
 
