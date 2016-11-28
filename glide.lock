@@ -1,5 +1,5 @@
-hash: c3bd60f6f27afe140c931740425003bb409d00e61a4aa9cfbc621aa3526a7b0f
-updated: 2016-11-21T07:58:47.39879712-05:00
+hash: 373a6b736ca13e967ca011a71df5936af51f3d87032e8f000decad5046a4cbfc
+updated: 2016-11-28T13:31:47.586205885-05:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -85,11 +85,8 @@ imports:
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
-  - nacl/box
-  - nacl/secretbox
-  - poly1305
-  - salsa20
   - ssh
+  - ssh/terminal
 - name: golang.org/x/sys
   version: c200b10b5d5e122be351b67af224adc6128af5bf
   subpackages:
