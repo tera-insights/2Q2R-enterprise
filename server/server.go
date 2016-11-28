@@ -84,7 +84,7 @@ type Server struct {
 	Config    *Config
 	DB        *gorm.DB
 	disperser *disperser
-	pub       *rsa.PublicKey
+	Pub       *rsa.PublicKey
 	priv      *ecdsa.PrivateKey
 	sc        *securecookie.SecureCookie
 	kc        *security.KeyCache

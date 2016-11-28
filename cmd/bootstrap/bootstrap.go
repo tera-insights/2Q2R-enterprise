@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"2q2r/security"
+
 	"github.com/pkg/errors"
 )
 
@@ -48,20 +50,23 @@ func main() {
 	}
 
 	s := server.NewServer(r, configType)
+	kc := security.NewKeyCache(s.Config.ExpirationTime, s.Config.CleanTime,
+		s.Pub, s.DB)
 
 	// Verify the passed signature
 	adminID, err := server.RandString(32)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not generate random ID for admin"))
 	}
-	signature := server.KeySignature{
+
+	signature := security.KeySignature{
 		SigningPublicKey: req.SigningPublicKey,
 		SignedPublicKey:  req.PublicKey,
 		Type:             "signing",
 		OwnerID:          adminID,
 		Signature:        req.Signature,
 	}
-	err = s.VerifySignature(signature)
+	err = kc.VerifySignature(signature)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not verify signature"))
 	}

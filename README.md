@@ -1,5 +1,4 @@
 # 2Q2R-enterprise
-Enterprise of the 2Q2R server
 
 ## Setup
 
@@ -9,8 +8,8 @@ you've either set your `$GOBIN` or your `$PATH` includes `$GOPATH/bin`.
 3. Install a MaxMind City database. The free tier, GeoLite2, is available 
 [here](http://dev.maxmind.com/geoip/geoip2/geolite2/). Make sure its path is
 either set in the `config.yaml` or is the default `./db.mmdb`.
-4. If not already done, bootstrap the database with `go run
-cmd/bootstrap/bootstrap.go`.
+4. Bootstrap the database with `go run cmd/bootstrap/bootstrap.go`. This script
+requires a `bootstrap.json` config file that is a `server.NewAdminRequest`.
 
 ## Running
 1. `go run cmd/server/server.go` 
