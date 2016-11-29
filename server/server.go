@@ -473,12 +473,10 @@ func (s *Server) GetHandler() http.Handler {
 	rh := newRegisterHandler(s)
 	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler,
 		"GET")
-	forMethod(router, "/v1/register/{requestID}/wait", rh.Wait, "GET")
+	forMethod(router, "/v1/register/wait", rh.Wait, "POST")
+	forMethod(router, "/v1/register/challenge", rh.GetChallenge, "POST")
+	forMethod(router, "/v1/register/iframe", rh.RegisterIFrameHandler, "POST")
 	forMethod(router, "/v1/register", rh.Register, "POST")
-	forMethod(router, "/v1/register/{requestID}", rh.RegisterIFrameHandler,
-		"GET")
-	forMethod(router, "/v1/register/{requestID}/challenge", rh.GetChallenge,
-		"POST")
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())

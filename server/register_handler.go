@@ -162,14 +162,18 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 
 	writeJSON(w, http.StatusOK, registrationSetupReply{
 		requestID,
-		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/" + requestID,
+		rh.s.Config.getBaseURLWithProtocol() + "/v1/register/iframe",
 	})
 }
 
 // RegisterIFrameHandler returns the iFrame that is used to perform registration.
-// GET /v1/register/:id
+// POST /v1/register/iframe
 func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
+	var req requestIDWrapper
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	util.OptionalBadRequestPanic(err, "Could not decode request body")
+
 	templateBox, err := rice.FindBox("assets")
 	util.OptionalInternalPanic(err, "Failed to load assets")
 
@@ -179,7 +183,7 @@ func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 	t, err := template.New("register").Parse(templateString)
 	util.OptionalInternalPanic(err, "Failed to generate registration iFrame")
 
-	cachedRequest, err := rh.GetRequest(requestID)
+	cachedRequest, err := rh.GetRequest(req.RequestID)
 	util.OptionalBadRequestPanic(err, "Failed to get registration request")
 
 	var appInfo AppInfo
@@ -189,7 +193,7 @@ func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 
 	base := rh.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(registerData{
-		RequestID:   requestID,
+		RequestID:   req.RequestID,
 		KeyTypes:    []string{"2q2r", "u2f"},
 		Challenge:   util.EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:      cachedRequest.UserID,
@@ -198,7 +202,7 @@ func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.
 		AppURL:      base,
 		InfoURL:     base + "/v1/info/" + cachedRequest.AppID,
 		RegisterURL: base + "/v1/register",
-		WaitURL:     base + "/v1/register/" + requestID + "/wait",
+		WaitURL:     base + "/v1/register/wait",
 	})
 	util.OptionalInternalPanic(err, "Failed to generate template")
 
@@ -355,25 +359,29 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 // Wait allows the requester to check the result of the registration. It blocks
 // until the registration is complete.
-// GET /v1/register/{requestID}/wait
+// POST /v1/register/wait
 func (rh *registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["requestID"]
+	var req requestIDWrapper
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	util.OptionalBadRequestPanic(err, "Could not decode request body")
+
 	c := make(chan int, 1)
 
 	rh.stateLock.RLock()
-	status, found := rh.recent.Get(id)
+	status, found := rh.recent.Get(req.RequestID)
 	rh.stateLock.RUnlock()
 
 	if found {
 		c <- status.(int)
 	} else {
 		withLocking(rh.stateLock, func() {
-			if val, found := rh.listeners.Get(id); found {
+			if val, found := rh.listeners.Get(req.RequestID); found {
 				listeners := val.([]chan int)
 				newListeners := append(listeners, c)
-				rh.listeners.Set(id, newListeners, rh.lTimeout)
+				rh.listeners.Set(req.RequestID, newListeners, rh.lTimeout)
 			} else {
-				rh.listeners.Set(id, []chan int{c}, rh.lTimeout)
+				rh.listeners.Set(req.RequestID, []chan int{c}, rh.lTimeout)
 			}
 		})
 
@@ -381,11 +389,11 @@ func (rh *registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(rh.lTimeout)
 			withLocking(rh.stateLock, func() {
 				// Only time the request out if it did not complete
-				if _, found := rh.recent.Get(id); !found {
-					rr, _ := rh.GetRequest(id)
-					rh.recent.Set(id, http.StatusRequestTimeout,
+				if _, found := rh.recent.Get(req.RequestID); !found {
+					rr, _ := rh.GetRequest(req.RequestID)
+					rh.recent.Set(req.RequestID, http.StatusRequestTimeout,
 						rh.rcTimeout)
-					rh.listeners.Delete(id)
+					rh.listeners.Delete(req.RequestID)
 					rh.s.disperser.addEvent(registration, time.Now(),
 						rr.AppID, "timeout", rr.UserID, rr.OriginalIP, "")
 				}
@@ -396,7 +404,7 @@ func (rh *registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetChallenge returns the challenge for a particular request.
-// POST /v1/register/{requestID}/challenge
+// POST /v1/register/challenge
 func (rh *registerHandler) GetChallenge(w http.ResponseWriter,
 	r *http.Request) {
 	var req requestIDWrapper
