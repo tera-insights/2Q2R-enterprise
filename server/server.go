@@ -477,6 +477,8 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/v1/register", rh.Register, "POST")
 	forMethod(router, "/v1/register/{requestID}", rh.RegisterIFrameHandler,
 		"GET")
+	forMethod(router, "/v1/register/{requestID}/challenge", rh.GetChallenge,
+		"POST")
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())

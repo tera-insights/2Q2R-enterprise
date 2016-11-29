@@ -193,7 +193,8 @@ type newLTRRequest struct {
 }
 
 // Reply to POST /admin/ltr
-type newLTRResponse struct {
+// Request to POST /v1/register/{requestID}/challenge
+type requestIDWrapper struct {
 	RequestID string `json:"requestID"`
 }
 
