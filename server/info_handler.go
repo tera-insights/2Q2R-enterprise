@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/util"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -16,13 +17,13 @@ type infoHandler struct {
 // GET /v1/info/:appID
 func (ih *infoHandler) AppinfoHandler(w http.ResponseWriter, r *http.Request) {
 	appID := mux.Vars(r)["appID"]
-	err := CheckBase64(appID)
-	optionalBadRequestPanic(err, "App ID was not a valid base-64 string")
+	err := util.CheckBase64(appID)
+	util.OptionalBadRequestPanic(err, "App ID was not a valid base-64 string")
 
 	query := AppInfo{ID: appID}
 	count := 0
 	err = ih.s.DB.Model(&AppInfo{}).Where(&query).Count(&count).Error
-	optionalInternalPanic(err, "Failed to count apps inside database")
+	util.OptionalInternalPanic(err, "Failed to count apps inside database")
 
 	if count > 0 {
 		var info AppInfo

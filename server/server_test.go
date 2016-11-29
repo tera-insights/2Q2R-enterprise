@@ -25,7 +25,7 @@ var s = NewServer(Config{
 
 var ts = httptest.NewUnstartedServer(s.GetHandler())
 var goodAppName = "bar"
-var badAppID = EncodeBase64([]byte("321saWQgc3RyaW5nCg=="))
+var badAppID = util.EncodeBase64([]byte("321saWQgc3RyaW5nCg=="))
 var goodBaseURL = "2q2r.org"
 var goodKeyType = "P256"
 var goodPublicKey = "notHidden!"

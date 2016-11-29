@@ -3,7 +3,7 @@
 package main
 
 import (
-	"2q2r/server"
+	"2q2r/util"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -82,7 +82,7 @@ func main() {
 		panic(errors.New("No public key at key \"publicKey\""))
 	}
 
-	ownerID, err := server.RandString(32)
+	ownerID, err := util.RandString(32)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't generate admin ID"))
 	}
@@ -96,7 +96,7 @@ func main() {
 		panic(errors.Wrap(err, "Couldn't sign admin's public key"))
 	}
 
-	info["signature"] = server.EncodeBase64(signature)
+	info["signature"] = util.EncodeBase64(signature)
 	bytes, _ := json.Marshal(info)
 	err = ioutil.WriteFile(infoPath, bytes, os.ModePerm)
 	if err != nil {

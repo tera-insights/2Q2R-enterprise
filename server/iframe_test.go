@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/util"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -45,7 +46,7 @@ func TestRegisterIFrameGeneration(t *testing.T) {
 	correctData := registerData{
 		RequestID: setupInfo.RequestID,
 		KeyTypes:  []string{"2q2r", "u2f"},
-		Challenge: EncodeBase64(cachedRequest.Challenge.Challenge),
+		Challenge: util.EncodeBase64(cachedRequest.Challenge.Challenge),
 		UserID:    "bar",
 		AppID:     goodAppID,
 		InfoURL:   appInfo.BaseURL + "/v1/info/" + goodAppID,
@@ -129,7 +130,7 @@ func TestAuthenticateIFrameGeneration(t *testing.T) {
 		RequestID:    setupInfo.RequestID,
 		Counter:      1,
 		Keys:         keys,
-		Challenge:    EncodeBase64(authenticationRequest.Challenge.Challenge),
+		Challenge:    util.EncodeBase64(authenticationRequest.Challenge.Challenge),
 		UserID:       asr.UserID,
 		AppID:        asr.AppID,
 		InfoURL:      appInfo.BaseURL + "/v1/info/" + asr.AppID,

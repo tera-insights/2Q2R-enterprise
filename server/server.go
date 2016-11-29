@@ -4,6 +4,7 @@ package server
 
 import (
 	"2q2r/security"
+	"2q2r/util"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/hmac"
@@ -19,6 +20,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/GeertJohan/go.rice"
@@ -259,7 +261,7 @@ func recoverWrap(h http.Handler) http.Handler {
 			if err := recover(); err != nil {
 				var statusCode int
 				var response errorResponse
-				if be, ok := err.(bubbledError); ok {
+				if be, ok := err.(util.BubbledError); ok {
 					statusCode = be.StatusCode
 					response = errorResponse{
 						Message: be.Message,
@@ -282,34 +284,43 @@ func recoverWrap(h http.Handler) http.Handler {
 	})
 }
 
+// Returns error, ID, messageMAC
+func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
+	parts := strings.Split(r.Header.Get("X-Authentication"), ":")
+	if len(parts) != 2 {
+		return "", "", errors.Errorf("Found %d parts, expected 2", len(parts))
+	}
+	return parts[0], parts[1], nil
+}
+
 // For requests coming from an app sever or the admin frontend
 func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	id, received, err := getAuthDataFromHeaders(r)
-	optionalBadRequestPanic(err, "Invalid X-Authentication header")
+	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
 
-	hmacBytes, err := decodeBase64(received)
-	optionalInternalPanic(err, "Failed to decode MAC")
+	hmacBytes, err := util.DecodeBase64(received)
+	util.OptionalInternalPanic(err, "Failed to decode MAC")
 
 	var key []byte
 	var x, y *big.Int
 	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
 		var a Admin
 		err = s.DB.Find(&a, Admin{ID: id}).Error
-		optionalBadRequestPanic(err, "Could not find admin with ID "+id)
+		util.OptionalBadRequestPanic(err, "Could not find admin with ID "+id)
 
 		var sk SigningKey
 		err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
-		optionalInternalPanic(err, "Could not find admin's signing key")
+		util.OptionalInternalPanic(err, "Could not find admin's signing key")
 
-		skBytes, err := decodeBase64(sk.PublicKey)
-		optionalInternalPanic(err, "Could not decode admin's signing key")
+		skBytes, err := util.DecodeBase64(sk.PublicKey)
+		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
 
 		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
 		key = s.kg.GetShared(x, y, nil)
 	} else {
 		var app AppServerInfo
 		err := s.DB.Find(&app, AppServerInfo{ID: id}).Error
-		optionalBadRequestPanic(err, "Could not find app server")
+		util.OptionalBadRequestPanic(err, "Could not find app server")
 
 		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
 		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
@@ -319,7 +330,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	if r.ContentLength > 0 {
 		_, err := r.Body.Read(body)
-		optionalInternalPanic(err, "Failed to read request body")
+		util.OptionalInternalPanic(err, "Failed to read request body")
 	}
 
 	hash := hmac.New(sha256.New, key)
@@ -329,7 +340,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
-	panicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
+	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
 	s.kg.PutShared(x, y, key)
 }
@@ -349,25 +360,25 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 
 		if glob.Glob("/admin/*", r.URL.Path) {
 			cookie, err := r.Cookie("admin-session")
-			optionalPanic(err, http.StatusUnauthorized, "No session cookie")
+			util.OptionalPanic(err, http.StatusUnauthorized, "No session cookie")
 
 			var m map[string]interface{}
 			err = s.sc.Decode("admin-session", cookie.Value, &m)
-			optionalPanic(err, http.StatusUnauthorized, "Invalid session "+
+			util.OptionalPanic(err, http.StatusUnauthorized, "Invalid session "+
 				"cookie")
 
 			var expires time.Time
 			val, found := m["set"]
-			panicIfFalse(found, http.StatusBadRequest, "Invalid cookie")
+			util.PanicIfFalse(found, http.StatusBadRequest, "Invalid cookie")
 
 			expires = val.(time.Time)
 
 			distance := time.Now().Sub(expires).Nanoseconds()
 			valid := distance < s.Config.AdminSessionLength.Nanoseconds()
-			panicIfFalse(valid, http.StatusUnauthorized, "Session expired")
+			util.PanicIfFalse(valid, http.StatusUnauthorized, "Session expired")
 
 			encoded, err := s.sc.Encode("admin-session", time.Now())
-			optionalInternalPanic(err, "Could not update session cookie")
+			util.OptionalInternalPanic(err, "Could not update session cookie")
 
 			http.SetCookie(w, &http.Cookie{
 				Name:  "admin-session",
@@ -428,10 +439,10 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/public", func(w http.ResponseWriter,
 		r *http.Request) {
 		priv, exp, err := s.kg.GetAdminPriv()
-		optionalInternalPanic(err, "Could not get keys for admin frontend")
+		util.OptionalInternalPanic(err, "Could not get keys for admin frontend")
 
 		x, y := elliptic.P256().ScalarBaseMult(priv)
-		encoded := EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y))
+		encoded := util.EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y))
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"public":  encoded,
 			"expires": exp.Seconds(),

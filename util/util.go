@@ -1,20 +1,18 @@
 // Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
-package server
+package util
 
 import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // CheckBase64 returns any errors encountered when deserializing a
 // (supposedly) base-64 encoded string.
 func CheckBase64(s string) error {
-	_, err := decodeBase64(s)
+	_, err := DecodeBase64(s)
 	return err
 }
 
@@ -26,7 +24,7 @@ func EncodeBase64(b []byte) string {
 }
 
 // Copied from go-u2f
-func decodeBase64(s string) ([]byte, error) {
+func DecodeBase64(s string) ([]byte, error) {
 	for i := 0; i < len(s)%4; i++ {
 		s += "="
 	}
@@ -44,41 +42,32 @@ func RandString(n int) (string, error) {
 	return EncodeBase64(bytes), nil
 }
 
-// Returns error, ID, messageMAC
-func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
-	parts := strings.Split(r.Header.Get("X-Authentication"), ":")
-	if len(parts) != 2 {
-		return "", "", errors.Errorf("Found %d parts, expected 2", len(parts))
-	}
-	return parts[0], parts[1], nil
-}
-
-type bubbledError struct {
+type BubbledError struct {
 	StatusCode int
 	Message    string
 	Info       interface{}
 }
 
-func optionalPanic(err error, code int, message string) {
+func OptionalPanic(err error, code int, message string) {
 	if err != nil {
-		panic(bubbledError{
+		panic(BubbledError{
 			StatusCode: code,
 			Message:    message,
 		})
 	}
 }
 
-func optionalInternalPanic(err error, message string) {
-	optionalPanic(err, http.StatusInternalServerError, message)
+func OptionalInternalPanic(err error, message string) {
+	OptionalPanic(err, http.StatusInternalServerError, message)
 }
 
-func optionalBadRequestPanic(err error, message string) {
-	optionalPanic(err, http.StatusBadRequest, message)
+func OptionalBadRequestPanic(err error, message string) {
+	OptionalPanic(err, http.StatusBadRequest, message)
 }
 
-func panicIfFalse(b bool, c int, m string) {
+func PanicIfFalse(b bool, c int, m string) {
 	if !b {
-		panic(bubbledError{
+		panic(BubbledError{
 			StatusCode: c,
 			Message:    m,
 		})

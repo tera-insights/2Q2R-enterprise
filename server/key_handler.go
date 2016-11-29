@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/util"
 	"net"
 	"net/http"
 	"time"
@@ -18,17 +19,17 @@ type keyHandler struct {
 // GET /v1/users/{userID}
 func (kh *keyHandler) UserExists(w http.ResponseWriter, r *http.Request) {
 	serverID, _, err := getAuthDataFromHeaders(r)
-	optionalInternalPanic(err, "Could not decode authentication headers")
+	util.OptionalInternalPanic(err, "Could not decode authentication headers")
 
 	var asi AppServerInfo
 	err = kh.s.DB.Model(AppServerInfo{}).Where(AppServerInfo{ID: serverID}).
 		First(&asi).Error
-	optionalBadRequestPanic(err, "Could not find server")
+	util.OptionalBadRequestPanic(err, "Could not find server")
 
 	query := Key{AppID: asi.AppID, UserID: mux.Vars(r)["userID"]}
 	count := 0
 	err = kh.s.DB.Model(Key{}).Where(query).Count(&count).Error
-	optionalInternalPanic(err, "Could not find key")
+	util.OptionalInternalPanic(err, "Could not find key")
 
 	writeJSON(w, http.StatusOK, userExistsReply{count > 0})
 }
@@ -37,12 +38,12 @@ func (kh *keyHandler) UserExists(w http.ResponseWriter, r *http.Request) {
 // DELETE /v1/users/{userID}
 func (kh *keyHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
-	panicIfFalse(userID != "", http.StatusBadRequest, "User ID cannot be \"\"")
+	util.PanicIfFalse(userID != "", http.StatusBadRequest, "User ID cannot be \"\"")
 
 	query := kh.s.DB.Delete(Key{}, &Key{
 		UserID: userID,
 	})
-	optionalInternalPanic(query.Error, "Could not delete keys from database")
+	util.OptionalInternalPanic(query.Error, "Could not delete keys from database")
 
 	writeJSON(w, http.StatusOK, modificationReply{
 		NumAffected: query.RowsAffected,
@@ -54,7 +55,7 @@ func (kh *keyHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 func (kh *keyHandler) GetKeys(w http.ResponseWriter, r *http.Request) {
 	var result []Key
 	query := kh.s.DB.Model(&Key{}).Find(&result)
-	optionalInternalPanic(query.Error, "Could not read keys from database")
+	util.OptionalInternalPanic(query.Error, "Could not read keys from database")
 
 	writeJSON(w, http.StatusOK, result)
 }
@@ -63,10 +64,10 @@ func (kh *keyHandler) GetKeys(w http.ResponseWriter, r *http.Request) {
 // DELETE /v1/keys/{userID}/{keyHandle}
 func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
-	panicIfFalse(userID != "", http.StatusBadRequest, "User ID cannot be \"\"")
+	util.PanicIfFalse(userID != "", http.StatusBadRequest, "User ID cannot be \"\"")
 
 	keyHandle := mux.Vars(r)["keyHandle"]
-	panicIfFalse(keyHandle != "", http.StatusBadRequest, "Key handle cannot be \"\"")
+	util.PanicIfFalse(keyHandle != "", http.StatusBadRequest, "Key handle cannot be \"\"")
 
 	var k Key
 	query := kh.s.DB.First(&k, Key{
@@ -77,7 +78,7 @@ func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 		ID:     keyHandle,
 	})
 
-	optionalInternalPanic(query.Error, "Could not delete key")
+	util.OptionalInternalPanic(query.Error, "Could not delete key")
 
 	// If the key deletion was for an admin, then look up the admin's app ID
 	// and log the event under that key
@@ -87,7 +88,7 @@ func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 		err := kh.s.DB.First(&a, Admin{
 			ID: k.UserID,
 		}).Error
-		optionalBadRequestPanic(err, "Could not find admin")
+		util.OptionalBadRequestPanic(err, "Could not find admin")
 
 		appID = a.AdminFor
 	} else {
