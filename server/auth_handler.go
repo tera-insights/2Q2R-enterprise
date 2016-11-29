@@ -179,7 +179,7 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 
 	writeJSON(w, http.StatusOK, authenticationSetupReply{
 		requestID,
-		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/" + requestID,
+		ah.s.Config.getBaseURLWithProtocol() + "/v1/auth/iframe",
 	})
 }
 
@@ -237,8 +237,8 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
 		AppURL:       base,
 		AuthURL:      base + "/v1/auth/",
 		InfoURL:      base + "/v1/info/" + cached.AppID,
-		WaitURL:      base + "/v1/auth/" + cached.RequestID + "/wait",
-		ChallengeURL: base + "/v1/auth/" + cached.RequestID + "/challenge",
+		WaitURL:      base + "/v1/auth/wait",
+		ChallengeURL: base + "/v1/auth/challenge",
 	})
 	util.OptionalInternalPanic(err, "Failed to render template")
 
