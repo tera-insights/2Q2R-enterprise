@@ -424,5 +424,8 @@ func (rh *registerHandler) GetChallenge(w http.ResponseWriter,
 
 	writeJSON(w, http.StatusOK, map[string]string{
 		"challenge": util.EncodeBase64(rr.Challenge.Challenge),
+		"userID":    rr.UserID,
+		"appID":     rr.AppID,
+		"baseUrl":   rh.s.Config.getBaseURLWithProtocol(),
 	})
 }
