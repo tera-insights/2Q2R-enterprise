@@ -351,7 +351,7 @@ func (ah *adminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	util.OptionalInternalPanic(query.Error,
 		"Could not save long-term request to the database")
 
-	writeJSON(w, http.StatusOK, newLTRResponse{
+	writeJSON(w, http.StatusOK, requestIDWrapper{
 		RequestID: id,
 	})
 }

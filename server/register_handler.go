@@ -394,3 +394,27 @@ func (rh *registerHandler) Wait(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(<-c)
 }
+
+// GetChallenge returns the challenge for a particular request.
+// POST /v1/register/{requestID}/challenge
+func (rh *registerHandler) GetChallenge(w http.ResponseWriter,
+	r *http.Request) {
+	var req requestIDWrapper
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	util.OptionalBadRequestPanic(err, "Could not decode request body")
+
+	var rr registrationReq
+	withLocking(rh.stateLock, func() {
+		val, ok := rh.registrationReqs.Get(req.RequestID)
+		util.PanicIfFalse(ok, http.StatusNotFound, "No request found")
+
+		rr, ok = val.(registrationReq)
+		util.PanicIfFalse(ok, http.StatusInternalServerError, "Invalid "+
+			"cached data")
+	})
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"challenge": util.EncodeBase64(rr.Challenge.Challenge),
+	})
+}
