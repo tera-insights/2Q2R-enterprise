@@ -464,10 +464,10 @@ func (s *Server) GetHandler() http.Handler {
 	th := newAuthHandler(s)
 	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
 		"GET")
-	forMethod(router, "/v1/auth/{requestID}/wait", th.Wait, "GET")
-	forMethod(router, "/v1/auth/{requestID}/challenge", th.SetKey, "POST")
+	forMethod(router, "/v1/auth/wait", th.Wait, "POST")
+	forMethod(router, "/v1/auth/challenge", th.SetKey, "POST")
+	forMethod(router, "/v1/auth/iframe", th.AuthIFrameHandler, "POST")
 	forMethod(router, "/v1/auth", th.Authenticate, "POST")
-	forMethod(router, "/v1/auth/{requestID}", th.AuthIFrameHandler, "GET")
 
 	// Register routes
 	rh := newRegisterHandler(s)

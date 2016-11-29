@@ -184,10 +184,14 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 }
 
 // AuthIFrameHandler returns the iFrame that is used to perform authentication.
-// GET /v1/auth/:id
+// POST /v1/auth/iframe
 func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
 	r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
+	var req requestIDWrapper
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	util.OptionalBadRequestPanic(err, "Could not decode request body")
+
 	templateBox, err := rice.FindBox("assets")
 	util.OptionalInternalPanic(err, "Failed to load assets")
 
@@ -197,7 +201,7 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
 	t, err := template.New("auth").Parse(templateString)
 	util.OptionalInternalPanic(err, "Failed to generate authentication iFrame")
 
-	cached, err := ah.GetRequest(requestID)
+	cached, err := ah.GetRequest(req.RequestID)
 	util.OptionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
 	query := Key{AppID: cached.AppID, UserID: cached.UserID}
@@ -223,7 +227,7 @@ func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
 	}
 	base := ah.s.Config.getBaseURLWithProtocol()
 	data, err := json.Marshal(authenticateData{
-		RequestID:    requestID,
+		RequestID:    req.RequestID,
 		Counter:      1,
 		Keys:         keys,
 		Challenge:    util.EncodeBase64(cached.Challenge.Challenge),
@@ -378,10 +382,14 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 // Wait allows the requester to check the result of the authentication. It
 // blocks until the authentication is complete.
-// GET /v1/auth/{requestID}/wait
+// POST /v1/auth/wait
 func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["requestID"]
-	c, ar, err := ah.Listen(id)
+	var req requestIDWrapper
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	util.OptionalBadRequestPanic(err, "Could not decode request body")
+
+	c, ar, err := ah.Listen(req.RequestID)
 	util.OptionalBadRequestPanic(err, "Could not listen for unknown request")
 
 	status := <-c
@@ -410,23 +418,22 @@ func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetKey sets the key for a given authentication request.
-// POST /v1/auth/{requestID}/challenge
+// POST /v1/auth/challenge
 func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
-	requestID := mux.Vars(r)["requestID"]
 	req := setKeyRequest{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	util.OptionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	val, found := ah.authReqs.Get(requestID)
-	util.PanicIfFalse(found, http.StatusBadRequest, "Could not find auth request "+
-		"with id "+requestID)
+	val, found := ah.authReqs.Get(req.RequestID)
+	util.PanicIfFalse(found, http.StatusBadRequest, "Could not find auth "+
+		"request with id "+req.RequestID)
 
 	ar, ok := val.(authReq)
 	util.PanicIfFalse(ok, http.StatusInternalServerError, "Invalid cached request")
 
 	ar.KeyHandle = req.KeyHandle
-	ah.authReqs.Set(requestID, ar, ah.expiration)
+	ah.authReqs.Set(req.RequestID, ar, ah.expiration)
 
 	var stored Key
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
