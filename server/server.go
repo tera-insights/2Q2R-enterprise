@@ -255,7 +255,7 @@ type errorResponse struct {
 	Info    interface{} `json:",omitempty"`
 }
 
-func recoverWrap(h http.Handler) http.Handler {
+func (s *Server) recoverWrap(handle http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -280,74 +280,7 @@ func recoverWrap(h http.Handler) http.Handler {
 				}
 			}
 		}()
-		h.ServeHTTP(w, r)
-	})
-}
 
-// Returns error, ID, messageMAC
-func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
-	parts := strings.Split(r.Header.Get("X-Authentication"), ":")
-	if len(parts) != 2 {
-		return "", "", errors.Errorf("Found %d parts, expected 2", len(parts))
-	}
-	return parts[0], parts[1], nil
-}
-
-// For requests coming from an app sever or the admin frontend
-func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
-	id, received, err := getAuthDataFromHeaders(r)
-	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
-
-	hmacBytes, err := util.DecodeBase64(received)
-	util.OptionalInternalPanic(err, "Failed to decode MAC")
-
-	var key []byte
-	var x, y *big.Int
-	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
-		var a Admin
-		err = s.DB.Find(&a, Admin{ID: id}).Error
-		util.OptionalBadRequestPanic(err, "Could not find admin with ID "+id)
-
-		var sk SigningKey
-		err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
-		util.OptionalInternalPanic(err, "Could not find admin's signing key")
-
-		skBytes, err := util.DecodeBase64(sk.PublicKey)
-		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
-
-		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
-		key = s.kg.GetShared(x, y, nil)
-	} else {
-		var app AppServerInfo
-		err := s.DB.Find(&app, AppServerInfo{ID: id}).Error
-		util.OptionalBadRequestPanic(err, "Could not find app server")
-
-		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
-		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
-	}
-
-	route := []byte(r.URL.Path)
-	var body []byte
-	if r.ContentLength > 0 {
-		_, err := r.Body.Read(body)
-		util.OptionalInternalPanic(err, "Failed to read request body")
-	}
-
-	hash := hmac.New(sha256.New, key)
-	hash.Write(route)
-	if len(body) > 0 {
-		hash.Write(body)
-	}
-
-	match := hmac.Equal(hmacBytes, hash.Sum(nil))
-	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
-
-	s.kg.PutShared(x, y, key)
-}
-
-// See the wiki for documentation on header authentication
-func (s *Server) middleware(handle http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headerAuthPatterns := []string{
 			"/*/register/request/*",
 		}
@@ -390,6 +323,68 @@ func (s *Server) middleware(handle http.Handler) http.Handler {
 		// If none of the middleware panicked, serve the main route
 		handle.ServeHTTP(w, r)
 	})
+}
+
+// Returns error, ID, messageMAC
+func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
+	parts := strings.Split(r.Header.Get("X-Authentication"), ":")
+	if len(parts) != 2 {
+		return "", "", errors.Errorf("Found %d parts, expected 2", len(parts))
+	}
+	return parts[0], parts[1], nil
+}
+
+// For requests coming from an app sever or the admin frontend
+func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
+	id, received, err := getAuthDataFromHeaders(r)
+	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
+
+	hmacBytes, err := util.DecodeBase64(received)
+	util.OptionalInternalPanic(err, "Failed to decode MAC")
+
+	var key []byte
+	var x, y *big.Int
+	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+		var a Admin
+		err = s.DB.Find(&a, Admin{ID: id}).Error
+		util.OptionalBadRequestPanic(err, "Could not find admin with ID "+id)
+
+		var sk SigningKey
+		err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
+		util.OptionalInternalPanic(err, "Could not find admin's signing key")
+
+		skBytes, err := util.DecodeBase64(sk.PublicKey)
+		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
+
+		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
+		key = s.kg.GetShared(x, y, nil)
+	} else {
+		var app AppServerInfo
+		err := s.DB.First(&app, AppServerInfo{ID: id}).Error
+		util.OptionalBadRequestPanic(err, "Could not find app server")
+
+		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
+		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
+		// key = app.PublicKey
+	}
+
+	route := []byte(r.URL.Path)
+	var body []byte
+	if r.ContentLength > 0 {
+		_, err := r.Body.Read(body)
+		util.OptionalInternalPanic(err, "Failed to read request body")
+	}
+
+	hash := hmac.New(sha256.New, key)
+	hash.Write(route)
+	if len(body) > 0 {
+		hash.Write(body)
+	}
+
+	match := hmac.Equal(hmacBytes, hash.Sum(nil))
+	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
+
+	s.kg.PutShared(x, y, key)
 }
 
 // GetHandler returns the routes used by the 2Q2R server.
@@ -481,7 +476,7 @@ func (s *Server) GetHandler() http.Handler {
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
 	router.PathPrefix("/").Handler(fileServer)
-	h := recoverWrap(s.middleware(router))
+	h := s.recoverWrap(router)
 	if s.Config.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, h)
 	}
