@@ -365,7 +365,6 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 
 		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
 		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
-		// key = app.PublicKey
 	}
 
 	route := []byte(r.URL.Path)

@@ -18,7 +18,6 @@ import (
 // receive events when other admins start listening to apps that are not A. C
 // does not receive events when superadmins start listening.
 
-// Receiver keeps track of events (receives them from the outside world)
 type disperser struct {
 	listenersLock sync.RWMutex
 	listeners     map[string]listener
