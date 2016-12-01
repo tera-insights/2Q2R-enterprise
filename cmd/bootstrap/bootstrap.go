@@ -4,9 +4,12 @@ package main
 
 import (
 	"2q2r/server"
+	"2q2r/util"
+	"crypto"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -54,7 +57,7 @@ func main() {
 		s.Pub, s.DB)
 
 	// Verify the passed signature
-	adminID, err := server.RandString(32)
+	adminID, err := util.RandString(32)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not generate random ID for admin"))
 	}
@@ -74,7 +77,7 @@ func main() {
 	// Transactionally add the signing key, admin, and key signature to the DB
 	tx := s.DB.Begin()
 
-	keyID, err := server.RandString(32)
+	keyID, err := util.RandString(32)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not generate random ID for key"))
 	}
@@ -113,10 +116,28 @@ func main() {
 		panic(errors.Wrap(err, "Could not save key signature to the database"))
 	}
 
+	ltrID, err := util.RandString(32)
+	if err != nil {
+		tx.Rollback()
+		panic(errors.Wrap(err, "Could not generate long-term request ID"))
+	}
+
+	h := crypto.SHA256.New()
+	io.WriteString(h, ltrID)
+	ltr := server.LongTermRequest{
+		ID:    string(h.Sum(nil)),
+		AppID: "1",
+	}
+	if err = tx.Create(&ltr).Error; err != nil {
+		tx.Rollback()
+		panic(errors.Wrap(err, "Could not save long-term request"))
+	}
+
 	if err = tx.Commit().Error; err != nil {
 		panic(errors.Wrap(err, "Could not commit changes to database"))
 	}
 
 	fmt.Println("Successfully added admin, signing key, and key signature " +
 		"to database")
+	fmt.Printf("Long-term request ID is %s\n", ltrID)
 }
