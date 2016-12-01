@@ -130,9 +130,9 @@ func (rh *registerHandler) GetRequest(id string) (*registrationReq, error) {
 	return nil, errors.Errorf("Could not find request with id %s", id)
 }
 
-// RegisterSetupHandler sets up the registration of a new two-factor device.
-// GET /v1/register/request/:userID
-func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.Request) {
+// Setup sets up the registration of a new two-factor device.
+// GET /v1/register/request/{userID}
+func (rh *registerHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	serverID, _, err := getAuthDataFromHeaders(r)
 	util.OptionalInternalPanic(err, "Could not decode authentication headers")
 
@@ -166,9 +166,9 @@ func (rh *registerHandler) RegisterSetupHandler(w http.ResponseWriter, r *http.R
 	})
 }
 
-// RegisterIFrameHandler returns the iFrame that is used to perform registration.
+// IFrame returns the iFrame that is used to perform registration.
 // POST /v1/register/iframe
-func (rh *registerHandler) RegisterIFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (rh *registerHandler) IFrame(w http.ResponseWriter, r *http.Request) {
 	var req requestIDWrapper
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)

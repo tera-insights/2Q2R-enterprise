@@ -456,20 +456,18 @@ func (s *Server) GetHandler() http.Handler {
 
 	// Auth routes
 	th := newAuthHandler(s)
-	forMethod(router, "/v1/auth/request/{userID}", th.AuthRequestSetupHandler,
-		"GET")
+	forMethod(router, "/v1/auth/request/{userID}", th.Setup, "GET")
 	forMethod(router, "/v1/auth/wait", th.Wait, "POST")
 	forMethod(router, "/v1/auth/challenge", th.SetKey, "POST")
-	forMethod(router, "/v1/auth/iframe", th.AuthIFrameHandler, "POST")
+	forMethod(router, "/v1/auth/iframe", th.IFrame, "POST")
 	forMethod(router, "/v1/auth", th.Authenticate, "POST")
 
 	// Register routes
 	rh := newRegisterHandler(s)
-	forMethod(router, "/v1/register/request/{userID}", rh.RegisterSetupHandler,
-		"GET")
+	forMethod(router, "/v1/register/request/{userID}", rh.Setup, "GET")
 	forMethod(router, "/v1/register/wait", rh.Wait, "POST")
 	forMethod(router, "/v1/register/challenge", rh.GetChallenge, "POST")
-	forMethod(router, "/v1/register/iframe", rh.RegisterIFrameHandler, "POST")
+	forMethod(router, "/v1/register/iframe", rh.IFrame, "POST")
 	forMethod(router, "/v1/register", rh.Register, "POST")
 
 	// Static files

@@ -150,7 +150,7 @@ func (ah *authHandler) Listen(id string) (c chan int, ar *authReq, err error) {
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
 // GET /v1/auth/request/{userID}
-func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	key := Key{}
 	err := ah.s.DB.Model(&key).First(&key, &Key{
@@ -183,10 +183,9 @@ func (ah *authHandler) AuthRequestSetupHandler(w http.ResponseWriter, r *http.Re
 	})
 }
 
-// AuthIFrameHandler returns the iFrame that is used to perform authentication.
+// IFrame returns the iFrame that is used to perform authentication.
 // POST /v1/auth/iframe
-func (ah *authHandler) AuthIFrameHandler(w http.ResponseWriter,
-	r *http.Request) {
+func (ah *authHandler) IFrame(w http.ResponseWriter, r *http.Request) {
 	var req requestIDWrapper
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
