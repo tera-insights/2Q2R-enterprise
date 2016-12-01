@@ -456,7 +456,7 @@ func (s *Server) GetHandler() http.Handler {
 
 	// Auth routes
 	th := newAuthHandler(s)
-	forMethod(router, "/v1/auth/request/{userID}", th.Setup, "GET")
+	forMethod(router, "/v1/auth/request/{userID}/{nonce}", th.Setup, "GET")
 	forMethod(router, "/v1/auth/wait", th.Wait, "POST")
 	forMethod(router, "/v1/auth/challenge", th.SetKey, "POST")
 	forMethod(router, "/v1/auth/iframe", th.IFrame, "POST")

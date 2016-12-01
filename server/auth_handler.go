@@ -92,6 +92,7 @@ type authReq struct {
 	AppID      string
 	UserID     string
 	OriginalIP string
+	Nonce      string
 }
 
 // GetRequest returns the request for a particular request ID.
@@ -149,7 +150,7 @@ func (ah *authHandler) Listen(id string) (c chan int, ar *authReq, err error) {
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
-// GET /v1/auth/request/{userID}
+// GET /v1/auth/request/{userID}/{nonce}
 func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	key := Key{}
@@ -172,6 +173,7 @@ func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		AppID:      key.AppID,
 		UserID:     userID,
 		OriginalIP: host,
+		Nonce:      mux.Vars(r)["nonce"],
 	}
 	ah.authReqs.Set(requestID, ar, ah.expiration)
 	s := util.EncodeBase64(ar.Challenge.Challenge)
@@ -413,7 +415,7 @@ func (ah *authHandler) Wait(w http.ResponseWriter, r *http.Request) {
 			Path:  "/",
 		})
 	}
-	w.WriteHeader(status)
+	writeJSON(w, status, ar.Nonce)
 }
 
 // SetKey sets the key for a given authentication request.
