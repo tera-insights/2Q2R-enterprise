@@ -374,7 +374,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 		util.OptionalInternalPanic(err, "Failed to read request body")
 	}
 
-	hash := hmac.New(sha256.New, key)
+	hash := hmac.New(sha256.New, []byte(util.EncodeBase64(key)))
 	hash.Write(route)
 	if len(body) > 0 {
 		hash.Write(body)
