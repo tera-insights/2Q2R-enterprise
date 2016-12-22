@@ -339,7 +339,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	id, received, err := getAuthDataFromHeaders(r)
 	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
 
-	hmacBytes, err := base64.StdEncoding.DecodeString(received)
+	hmacBytes, err := util.DecodeBase64(received)
 	util.OptionalInternalPanic(err, "Failed to decode MAC")
 
 	var key []byte
