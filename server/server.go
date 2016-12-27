@@ -200,6 +200,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	}
 
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
+	db.DB().SetMaxOpenConns(1)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not open database"))
 	}
