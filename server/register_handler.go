@@ -296,7 +296,7 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 	tx := rh.s.DB.Begin()
 
 	// Save key
-	err = rh.s.DB.Model(&Key{}).Create(&Key{
+	err = tx.Model(&Key{}).Create(&Key{
 		ID:     util.EncodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
 		Name:   successData.DeviceName,
