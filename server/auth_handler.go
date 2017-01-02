@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"time"
 
@@ -29,16 +30,13 @@ type authenticationData struct {
 type authHandler struct {
 	s *Server
 
-	// Migrated from authenticator
-	authReqs             *cache.Cache
+	requests             *cache.Cache // Request ID to *authReq
 	challengeToRequestID *cache.Cache
 	expiration           time.Duration
 
 	// Migrated from queue
-	recent     *cache.Cache // Maps request ID to status code
 	rcTimeout  time.Duration
 	rcInterval time.Duration
-	listeners  *cache.Cache
 	lTimeout   time.Duration
 	lInterval  time.Duration
 
@@ -75,10 +73,8 @@ func newAuthHandler(s *Server) *authHandler {
 		cache.New(rcet, ct),
 		cache.New(rcet, ct),
 		s.Config.ExpirationTime,
-		cache.New(rcet, ct),
 		rcet,
 		ct,
-		cache.New(s.Config.ListenerExpirationTime, ct),
 		s.Config.ListenerExpirationTime,
 		ct,
 		&sync.RWMutex{},
@@ -86,20 +82,23 @@ func newAuthHandler(s *Server) *authHandler {
 }
 
 type authReq struct {
-	RequestID  string
-	Challenge  *u2f.Challenge
-	KeyHandle  string
-	AppID      string
-	UserID     string
-	OriginalIP string
-	Nonce      string
+	RequestID     string
+	Challenge     *u2f.Challenge
+	KeyHandle     string
+	AppID         string
+	UserID        string
+	OriginalIP    string
+	Nonce         string
+	Closed        chan struct{}
+	Status        int
+	NumListeners  int32 // Used atomically
+	SettingResult int32 // Used atomically
 }
 
 // GetRequest returns the request for a particular request ID.
 func (ah *authHandler) GetRequest(id string) (*authReq, error) {
-	if val, found := ah.authReqs.Get(id); found {
-		ar := val.(authReq)
-		ptr := &ar
+	if val, found := ah.requests.Get(id); found {
+		ptr := val.(*authReq)
 		return ptr, nil
 	}
 	return nil, errors.Errorf("Could not find auth request with id %s", id)
@@ -108,45 +107,35 @@ func (ah *authHandler) GetRequest(id string) (*authReq, error) {
 // Listen returns a chan that emits an HTTP status code corresponding to the
 // authentication request. It also returns a pointer to the request so that, if
 // appropriate, handlers can attach cookies.
-func (ah *authHandler) Listen(id string) (c chan int, ar *authReq, err error) {
-	ar, err = ah.GetRequest(id)
+func (ah *authHandler) Listen(id string) (chan int, *authReq, error) {
+	ar, err := ah.GetRequest(id)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Could not listen to unknown request")
 	}
 
-	c = make(chan int, 1)
-
-	withLocking(ah.stateLock, func() {
-		status, found := ah.recent.Get(id)
-		if found {
-			c <- status.(int)
-		} else {
-			if _, found := ah.listeners.Get(id); found {
-				c = nil
-				ar = nil
-				err = errors.New("Someone is already listening")
-			} else {
-				ah.listeners.Set(id, []chan int{c}, ah.lTimeout)
-			}
-		}
-	})
-
-	if err != nil {
-		go func() {
-			time.Sleep(ah.lTimeout)
-			withLocking(ah.stateLock, func() {
-				if _, found := ah.recent.Get(id); !found {
-					ar, _ := ah.GetRequest(id)
-					ah.recent.Set(id, http.StatusRequestTimeout, ah.rcTimeout)
-					ah.listeners.Delete(id)
-					ah.s.disperser.addEvent(authentication, time.Now(),
-						ar.AppID, "timeout", ar.UserID, ar.OriginalIP, "")
-				}
-			})
-		}()
+	if atomic.AddInt32(&ar.NumListeners, 1) != 1 {
+		return nil, nil, errors.New("Someone is already listening")
 	}
 
-	return
+	c := make(chan int)
+	go func() {
+		<-ar.Closed
+		c <- ar.Status
+	}()
+
+	go func() {
+		time.Sleep(ah.lTimeout)
+		// If no one set result
+		if atomic.CompareAndSwapInt32(&ar.SettingResult, 0, 1) {
+			ar.Status = http.StatusRequestTimeout
+			ah.requests.Set(id, ar, ah.rcTimeout)
+			ah.s.disperser.addEvent(authentication, time.Now(),
+				ar.AppID, "timeout", ar.UserID, ar.OriginalIP, "")
+			close(ar.Closed)
+		}
+	}()
+
+	return c, ar, nil
 }
 
 // AuthRequestSetupHandler sets up a two-factor authentication request.
@@ -174,8 +163,9 @@ func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		UserID:     userID,
 		OriginalIP: host,
 		Nonce:      mux.Vars(r)["nonce"],
+		Closed:     make(chan struct{}),
 	}
-	ah.authReqs.Set(requestID, ar, ah.expiration)
+	ah.requests.Set(requestID, &ar, ah.expiration)
 	s := util.EncodeBase64(ar.Challenge.Challenge)
 	ah.challengeToRequestID.Set(s, requestID, ah.expiration)
 
@@ -331,31 +321,19 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Notify request listeners
-	withLocking(ah.stateLock, func() {
-		defer func() {
-			if r := recover(); r != nil {
-				tx.Rollback()
-				ah.recent.Delete(requestID.(string))
-			}
-		}()
-
-		ah.recent.Set(requestID.(string), http.StatusOK, ah.rcTimeout)
-		if cached, found := ah.listeners.Get(requestID.(string)); found {
-			listeners := cached.([]chan int)
-			for _, listener := range listeners {
-				select {
-				case listener <- http.StatusOK:
-				default:
-				}
-			}
-			ah.listeners.Delete(requestID.(string))
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			ah.requests.Delete(requestID.(string))
 		}
-	})
+	}()
 
-	if err != nil {
-		tx.Rollback()
-		util.OptionalInternalPanic(err, "Could not notify request listeners")
-	}
+	util.PanicIfFalse(atomic.CompareAndSwapInt32(&ar.SettingResult, 0, 1),
+		http.StatusConflict, "Request already timed out")
+
+	ar.Status = http.StatusOK
+	ah.requests.Set(requestID.(string), ar, ah.rcTimeout)
+	close(ar.Closed)
 
 	err = tx.Commit().Error
 	util.OptionalInternalPanic(err, "Could not commit transaction to database")
@@ -426,15 +404,12 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&req)
 	util.OptionalPanic(err, http.StatusBadRequest, "Could not decode request body")
 
-	val, found := ah.authReqs.Get(req.RequestID)
-	util.PanicIfFalse(found, http.StatusBadRequest, "Could not find auth "+
+	ar, err := ah.GetRequest(req.RequestID)
+	util.OptionalBadRequestPanic(err, "Could not find auth "+
 		"request with id "+req.RequestID)
 
-	ar, ok := val.(authReq)
-	util.PanicIfFalse(ok, http.StatusInternalServerError, "Invalid cached request")
-
 	ar.KeyHandle = req.KeyHandle
-	ah.authReqs.Set(req.RequestID, ar, ah.expiration)
+	ah.requests.Set(req.RequestID, ar, ah.expiration)
 
 	var stored Key
 	err = ah.s.DB.Model(&Key{}).Where(&Key{
