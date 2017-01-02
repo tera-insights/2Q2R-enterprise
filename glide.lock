@@ -1,5 +1,5 @@
-hash: 373a6b736ca13e967ca011a71df5936af51f3d87032e8f000decad5046a4cbfc
-updated: 2016-11-28T13:31:47.586205885-05:00
+hash: 990f130374fb858695642a41e50e7a9478ded29ba83b5f2c1af29a5d28e7b6a2
+updated: 2016-12-30T17:38:00.603069542-05:00
 imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
@@ -33,6 +33,7 @@ imports:
 - name: github.com/jinzhu/gorm
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
   subpackages:
+  - dialects/postgres
   - dialects/sqlite
 - name: github.com/jinzhu/inflection
   version: 74387dc39a75e970e7a3ae6a3386b5bd2e5c5cff
@@ -40,6 +41,11 @@ imports:
   version: c2c54e542fb797ad986b31721e1baedf214ca413
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/lib/pq
+  version: 5bf161122cd640c2a5a2c1d7fa49ea9befff31dd
+  subpackages:
+  - hstore
+  - oid
 - name: github.com/magiconair/properties
   version: 0723e352fa358f9322c938cc2dadda874e9151a9
 - name: github.com/mattn/go-sqlite3

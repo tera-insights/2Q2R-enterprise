@@ -28,7 +28,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite" // Needed for Gorm
+	_ "github.com/jinzhu/gorm/dialects/postgres" // Needed for Gorm
+	_ "github.com/jinzhu/gorm/dialects/sqlite"   // Needed for Gorm
 	"github.com/pkg/errors"
 	glob "github.com/ryanuber/go-glob"
 	"github.com/spf13/viper"
@@ -200,9 +201,11 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	}
 
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)
-	db.DB().SetMaxOpenConns(1)
 	if err != nil {
 		panic(errors.Wrap(err, "Could not open database"))
+	}
+	if c.DatabaseType == "sqlite3" {
+		db.DB().SetMaxOpenConns(1)
 	}
 
 	err = db.AutoMigrate(&AppInfo{}).
