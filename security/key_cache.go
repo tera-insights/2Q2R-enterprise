@@ -16,6 +16,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Key is the Gorm model for a user's stored public key.
+type Key struct {
+	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
+	ID     string `json:"keyID"`
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	UserID string `json:"userID"`
+	AppID  string `json:"appID"`
+
+	// unmarshalled by go-u2f
+	MarshalledRegistration []byte `json:"marshalledRegistration"`
+	Counter                uint32 `json:"counter"`
+}
+
 // KeySignature is the Gorm model for signatures of both signing and
 // second-factor keys.
 type KeySignature struct {
@@ -33,8 +47,8 @@ type KeySignature struct {
 
 // KeyCache stores and checks the validity of signing keys.
 type KeyCache struct {
-	// Stores valid public signing keys
-	validPublic *cache.Cache
+	validPublic      *cache.Cache // Stores valid public signing keys
+	secondFactorKeys *cache.Cache // Stores valid second-factor keys
 
 	serverPub *rsa.PublicKey
 
@@ -45,9 +59,38 @@ type KeyCache struct {
 func NewKeyCache(et, ct time.Duration, p *rsa.PublicKey, db *gorm.DB) *KeyCache {
 	return &KeyCache{
 		cache.New(et, ct),
+		cache.New(et, ct),
 		p,
 		db,
 	}
+}
+
+// Add2FAKey adds a second-factor key to the cache
+func (kc *KeyCache) Add2FAKey(k Key) {
+	kc.secondFactorKeys.Add(k.ID, k, cache.NoExpiration)
+}
+
+// Get2FAKey looks up a second-factor key based on its ID. If the key is not
+// in the cache, then Get2FAKey checks the database. If the key is in the DB,
+// then it is added to the cache.
+func (kc *KeyCache) Get2FAKey(id string) (Key, error) {
+	if val, ok := kc.secondFactorKeys.Get(id); ok {
+		return val.(Key), nil
+	}
+
+	k := Key{}
+	err := kc.db.First(&k, &Key{
+		ID: id,
+	}).Error
+	if err == nil {
+		kc.secondFactorKeys.Add(id, k, cache.NoExpiration)
+	}
+	return k, err
+}
+
+// Remove2FAKey a second-factor key from the cache
+func (kc *KeyCache) Remove2FAKey(id string) {
+	kc.secondFactorKeys.Delete(id)
 }
 
 // VerifySignature validates the passed key signature using ECDSA. It uses the

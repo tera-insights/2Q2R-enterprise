@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/security"
 	"2q2r/util"
 	"net"
 	"net/http"
@@ -26,21 +27,33 @@ func (kh *keyHandler) UserExists(w http.ResponseWriter, r *http.Request) {
 		First(&asi).Error
 	util.OptionalBadRequestPanic(err, "Could not find server")
 
-	query := Key{AppID: asi.AppID, UserID: mux.Vars(r)["userID"]}
+	query := security.Key{AppID: asi.AppID, UserID: mux.Vars(r)["userID"]}
 	count := 0
-	err = kh.s.DB.Model(Key{}).Where(query).Count(&count).Error
+	err = kh.s.DB.Model(security.Key{}).Where(query).Count(&count).Error
 	util.OptionalInternalPanic(err, "Could not find key")
 
 	writeJSON(w, http.StatusOK, userExistsReply{count > 0})
 }
 
-// DeleteUser deletes all the keys for a particular user ID.
+// DeleteUser deletes all the keys for a particular user ID. Note that first it
+// removes them from the cache.
 // DELETE /v1/users/{userID}
 func (kh *keyHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	util.PanicIfFalse(userID != "", http.StatusBadRequest, "User ID cannot be \"\"")
 
-	query := kh.s.DB.Delete(Key{}, &Key{
+	// kh.s.kc.Remove2FAKey()
+	var keys []security.Key
+	err := kh.s.DB.Find(&keys, &security.Key{
+		UserID: userID,
+	}).Error
+	util.OptionalInternalPanic(err, "Could not lookup keys to delete")
+
+	for _, key := range keys {
+		kh.s.kc.Remove2FAKey(key.ID)
+	}
+
+	query := kh.s.DB.Delete(security.Key{}, &security.Key{
 		UserID: userID,
 	})
 	util.OptionalInternalPanic(query.Error, "Could not delete keys from database")
@@ -53,8 +66,8 @@ func (kh *keyHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 // GetKeys lists all the keys in the database.
 // GET /v1/keys/get
 func (kh *keyHandler) GetKeys(w http.ResponseWriter, r *http.Request) {
-	var result []Key
-	query := kh.s.DB.Model(&Key{}).Find(&result)
+	var result []security.Key
+	query := kh.s.DB.Model(&security.Key{}).Find(&result)
 	util.OptionalInternalPanic(query.Error, "Could not read keys from database")
 
 	writeJSON(w, http.StatusOK, result)
@@ -69,11 +82,13 @@ func (kh *keyHandler) DeleteKey(w http.ResponseWriter, r *http.Request) {
 	keyHandle := mux.Vars(r)["keyHandle"]
 	util.PanicIfFalse(keyHandle != "", http.StatusBadRequest, "Key handle cannot be \"\"")
 
-	var k Key
-	query := kh.s.DB.First(&k, Key{
+	kh.s.kc.Remove2FAKey(keyHandle)
+
+	var k security.Key
+	query := kh.s.DB.First(&k, security.Key{
 		UserID: userID,
 		ID:     keyHandle,
-	}).Delete(Key{}, &Key{
+	}).Delete(security.Key{}, &security.Key{
 		UserID: userID,
 		ID:     keyHandle,
 	})

@@ -210,7 +210,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 
 	err = db.AutoMigrate(&AppInfo{}).
 		AutoMigrate(&AppServerInfo{}).
-		AutoMigrate(&Key{}).
+		AutoMigrate(&security.Key{}).
 		AutoMigrate(&Admin{}).
 		AutoMigrate(&security.KeySignature{}).
 		AutoMigrate(&SigningKey{}).

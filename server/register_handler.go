@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/security"
 	"2q2r/util"
 	"bytes"
 	"crypto"
@@ -296,7 +297,7 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 	tx := rh.s.DB.Begin()
 
 	// Save key
-	err = tx.Model(&Key{}).Create(&Key{
+	err = tx.Model(&security.Key{}).Create(&security.Key{
 		ID:     util.EncodeBase64(reg.KeyHandle),
 		Type:   successData.Type,
 		Name:   successData.DeviceName,
