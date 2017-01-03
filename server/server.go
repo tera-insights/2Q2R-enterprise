@@ -476,7 +476,10 @@ func (s *Server) GetHandler() http.Handler {
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
-	router.PathPrefix("/").Handler(fileServer)
+	router.PathPrefix("/static").HandlerFunc(func (w http.ResponseWriter, r *http.Request)  {
+		r.URL.Path = strings.Replace(r.URL.Path, "/static/", "", 1)
+		fileServer.ServeHTTP(w, r)
+	})
 	h := s.recoverWrap(router)
 	if s.Config.LogRequests {
 		return handlers.LoggingHandler(os.Stdout, h)
