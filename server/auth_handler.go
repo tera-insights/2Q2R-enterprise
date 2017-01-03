@@ -290,10 +290,10 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	util.OptionalInternalPanic(err, "Failed to look up data for valid challenge")
 
 	storedKey := Key{}
-	err = ah.s.DB.Model(&Key{}).Where(&Key{
+	err = ah.s.DB.First(&storedKey, &Key{
 		UserID: ar.UserID,
 		ID:     ar.KeyHandle,
-	}).First(&storedKey).Error
+	}).Error
 	util.OptionalInternalPanic(err, "Failed to look up stored key")
 
 	var reg u2f.Registration
