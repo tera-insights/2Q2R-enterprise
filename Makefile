@@ -11,3 +11,7 @@ assets:
 test_server:
 	go test -v 2q2r/server
 	rm server/test.db
+
+run: 
+	go run cmd/server/server.go --config-path=config.example.yaml
+	

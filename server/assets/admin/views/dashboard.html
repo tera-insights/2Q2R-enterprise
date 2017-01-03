@@ -1,0 +1,55 @@
+<md-content layout="column" layout-align="start center" layout-padding>
+	<p><b>{{ ctrl2.appCount }} applications</b> across <b>{{ ctrl2.serverCount }} servers</b> with <b>{{ ctrl2.adminCount }} administrators</b>		and <b>{{ ctrl2.userCountInThousands + 'K' }} users</b>.</p>
+	<div id="map" class="zero-z" md-whiteframe="4" />
+	<div id="activityTable" class="table-wrapper basic-card">
+		<md-toolbar class="md-table-toolbar md-default" style="z-index: 0;">
+			<div class="md-toolbar-tools">
+				<h2 ng-if="!ctrl2.filterOpen">Authentication Log</h2>
+				<div class="md-toolbar-item docs-tools layout-row" layout="row" ng-if="ctrl2.filterOpen">
+					<md-select ng-model="ctrl2.selectedFilter" placeholder="Filter">
+						<md-option ng-repeat="filter in ctrl2.filters" ng-value="filter">{{ filter.charAt(0).toUpperCase() + filter.slice(1) }}</md-option>
+					</md-select>
+					<md-icon md-svg-icon="img/icons/chevron-right.svg" ng-if="ctrl2.selectedFilter" />
+				</div>
+				<div class="md-toolbar-item docs-tools layout-row" layout="row" layout-align="start center" ng-if="ctrl2.selectedFilter">
+					<md-input-container md-no-float>
+						<input type="text" placeholder="Value" ng-model="ctrl2.filterValue">
+					</md-input-container>
+				</div>
+				<span flex/>
+				<md-button class="md-icon-button" aria-label="Show Filter" ng-click="ctrl2.filterOpen = !ctrl2.filterOpen" ng-if="!ctrl2.filterOpen">
+					<md-icon md-svg-icon="img/icons/filter.svg" />
+				</md-button>
+				<md-button class="md-icon-button" aria-label="Hide Filter" ng-click="ctrl2.filterOpen = !ctrl2.filterOpen" ng-if="ctrl2.filterOpen">
+					<md-icon md-svg-icon="img/icons/close.svg" />
+				</md-button>
+				<md-button class="md-icon-button" aria-label="Delete" ng-click="ctrl2.deleteSelected()" ng-if="ctrl2.selectedAdmins.length">
+					<md-icon md-svg-icon="img.icons/delete.svg" />
+				</md-button>
+			</div>
+		</md-toolbar>
+		<md-table-container>
+			<table md-table md-row-select multiple ng-model="ctrl2.selectedAdmins">
+				<thead md-head md-order="ctrl2.orderBy">
+					<tr md-row>
+						<th md-column md-order-by="name"><span>Time</span></th>
+						<th md-column md-order-by="status"><span>Type</span></th>
+						<th md-column md-order-by="email"><span>User</span></th>
+						<th md-column md-order-by="role"><span>Method</span></th>
+						<th md-column md-order-by="permissions"><span>Country</span></th>
+					</tr>
+				</thead>
+				<tbody md-body>
+					<tr md-row md-select="admin" md-auto-select ng-repeat="auth in ctrl2.filteredAuthentications | orderBy: ctrl2.orderBy | limitTo: ctrl2.pagination.pageLimit : (ctrl2.pagination.page - 1) * ctrl2.pagination.pageLimit">
+						<td md-cell>{{ auth.timestamp }}</td>
+						<td md-cell>{{ auth.type }}</td>
+						<td md-cell>{{ auth.userRealName }}</td>
+						<td md-cell>{{ auth.method }}</td>
+						<td md-cell>{{ auth.country }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</md-table-container>
+		<md-table-pagination md-limit="ctrl2.pagination.pageLimit" md-page="ctrl2.pagination.page" md-total="{{ctrl2.filteredAuthentications.length}}"></md-table-pagination>
+	</div>
+</md-content>

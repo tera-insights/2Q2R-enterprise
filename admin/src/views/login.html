@@ -1,0 +1,29 @@
+<md-content layout-padding>
+    <div>
+        <p>Login to an existing administrator account.</p>
+        <form name="loginForm" novalidate ng-model="loginForm">
+            <md-input-container class="md-block" flex-gt-sm>
+                <label>Username</label>
+                <input type="text" ng-model="username" id="username" name="username" required>
+            </md-input-container>
+            <md-input-container class="md-block" flex-gt-sm>
+                <label>Password</label>
+                <input type="password" ng-model="password" id="password" name="password" required ng-maxlength="16">
+            </md-input-container>
+            <div layout-gt-sm="row">
+                <md-button ng-disabled="loginForm.$invalid" class="md-raised md-primary" ng-click="ctrl.login(username, password)" >Login</md-button>
+                <md-button class="md-raised">Cancel</md-button>
+            </div>
+        </form>
+        <!-- ngMessages form validation -->
+        <div class="row">
+            <ng-messages class="error-message" for="loginForm.username.$error">
+                <ng-message when="required">Please specify a username.</ng-message>
+            </ng-messages>
+            <ng-messages class="error-message" for="loginForm.password.$error">
+                <ng-message when="required">Please specify a password.</ng-message>
+                <ng-message when="maxlength">Password is longer than maximum.</ng-message>
+            </ng-messages>
+        </div>
+    </div>
+</md-content>

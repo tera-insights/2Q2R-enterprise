@@ -1,0 +1,15 @@
+<md-dialog class="semester-create-modal" aria-label="About" ng-cloak>
+	<md-toolbar>
+		<div class="md-toolbar-tools" layout="row">
+			<h2>Delete {{ctrl2.selectedServers.length}}?</h2>
+		</div>
+	</md-toolbar>
+	<md-content layout-padding>
+		<p>Deleting servers is a permanent action and cannot be undone. Are you sure you wish to continue?</p>
+		<div layout="row">
+			<span flex></span>
+			<md-button class="md-raised md-warn" ng-click="cMod.accept()">Yes, I'm sure</md-button>
+			<md-button ng-click="cMod.cancel()">Cancel</md-button>
+		</div>
+	</md-content>
+</md-dialog>
