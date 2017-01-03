@@ -1,7 +1,7 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import { Apps, IAppItem, IAppResource } from '../services/Apps';
 import { AddAppCtrl } from '../controllers/modals/AddAppCtrl';
+import 'angular-resource';
+import 'angular-material';
 
 /**
  * Controller for listing and manipulating apps the apps 

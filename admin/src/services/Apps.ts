@@ -1,4 +1,5 @@
-/// <reference path="../../typings/index.d.ts" />
+import angular = require('angular');
+import 'angular-resouce';
 
 /**
   * Interface for todo items
@@ -34,8 +35,8 @@ export class Apps {
 
     constructor(
         private $resource: ng.resource.IResourceService,
-        private $q: angular.IQService,
-        private $http: angular.IHttpService
+        private $q: ng.IQService,
+        private $http: ng.IHttpService
     ) {
         this.resource = Apps.Resource($resource);
     }

@@ -1,9 +1,7 @@
-/// <reference path="../../../typings/index.d.ts" />
-/// <reference path="../../definitions/prob.d.ts" />
-
-
 import { Apps, IAppItem, IAppResource } from '../../services/Apps';
 import { Servers, IServerItem, IServerResource } from '../../services/Servers';
+import 'angular-resource';
+import 'angular-material';
 
 export class GenerateCtrl {
     private App: IAppResource;

@@ -1,5 +1,3 @@
-/// <reference path="../../../typings/index.d.ts" />
-
 import { Apps, IAppItem, IAppResource } from '../../services/Apps';
 import { Servers, IServerItem, IServerResource } from '../../services/Servers';
 

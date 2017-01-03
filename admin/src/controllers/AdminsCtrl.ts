@@ -1,5 +1,3 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import { Admins, IAdminItem, IAdminResource } from '../services/Admins';
 
 export class AdminsCtrl {

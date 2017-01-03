@@ -1,5 +1,3 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import * as _ from 'lodash';
 import { Servers, IServerItem, IServerResource } from '../services/Servers';
 import { Apps, IAppItem, IAppResource } from '../services/Apps';
@@ -81,7 +79,7 @@ export class ServersCtrl {
             switch (filterObj.type) {
                 case "string":
                     filterFct = (server: IServerExtendedItem): boolean => {
-                        var serverProperty = server[this.filterProperty];
+                        var serverProperty = server[this.filterProperty] as string;
                         serverProperty = serverProperty ? serverProperty : ""; // TODO: every server should have every required property
                         return (this.caseSensitive ? serverProperty : serverProperty.toLowerCase()).includes(this.caseSensitive ? this.filterString : this.filterString.toLowerCase());
                     };

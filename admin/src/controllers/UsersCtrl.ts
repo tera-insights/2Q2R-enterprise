@@ -1,6 +1,5 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import { Users, IUserItem, IUserResource } from "../services/Users";
+import 'angular-resource';
 
 export class UsersCtrl {
 

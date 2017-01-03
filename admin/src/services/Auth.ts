@@ -1,5 +1,3 @@
-/// <reference path="../../typings/index.d.ts" />
-
 /**
  * Service responsible for logging in and out and maintaining sessions. 
  * 

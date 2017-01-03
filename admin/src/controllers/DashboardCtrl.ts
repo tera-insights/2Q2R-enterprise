@@ -1,12 +1,12 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import { Communicator } from '../services/Communicator';
+import L = require('leaflet');
 
 export class DashboardCtrl {
 
-    private authentications: IAuthenticationItem[];
-    private filteredAuthentications: IAuthenticationItem[];
-    private selectedAuthentications: IAuthenticationItem[];
+    // TODO: add authentication socket to listen for new logins
+    // private authentications: IAuthenticationItem[];
+    // private filteredAuthentications: IAuthenticationItem[];
+    // private selectedAuthentications: IAuthenticationItem[];
 
     private appCount: number = Math.floor(Math.random() * 100);
     private serverCount: number = Math.floor(Math.random() * 2000);

@@ -1,5 +1,3 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import { Auth } from '../services/Auth';
 
 export class LoginCtrl {

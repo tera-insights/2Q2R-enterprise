@@ -1,7 +1,6 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import { Auth } from '../services/Auth';
 import { GenerateCtrl } from './modals/GenerateCtrl';
+import 'angular-ui-router';
 
 interface IMenuItem {
     state: string; // State corresponding to the menu item

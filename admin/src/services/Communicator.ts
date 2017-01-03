@@ -1,5 +1,3 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import * as _ from 'lodash';
 
 export type MessageHandler = (msgs: any[]) => void;

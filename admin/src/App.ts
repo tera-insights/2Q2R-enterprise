@@ -1,5 +1,3 @@
-/// <reference path="../typings/index.d.ts" />
-
 import { Auth } from './services/Auth';
 import { Communicator } from './services/Communicator';
 import { Apps } from './services/Apps';
@@ -13,7 +11,9 @@ import { AppsCtrl } from './controllers/AppsCtrl';
 import { AddAppCtrl } from './controllers/modals/AddAppCtrl';
 import { ServersCtrl } from './controllers/ServersCtrl';
 import { AddServerCtrl } from './controllers/modals/AddServerCtrl';
-
+import angular = require('angular');
+import 'angular-ui-router';
+import 'ui-router-extras';
 
 angular.module('2Q2R', [
     'ngAria', 'ngMaterial', 'ngResource', 'ngMessages',
