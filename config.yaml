@@ -7,5 +7,6 @@ BaseURL:                         "127.0.0.1"
 ListenerExpirationTime:          3m
 RecentlyCompletedExpirationTime: 1m
 HTTPS: false
-LogRequests: true
+LogRequests: false
 Token: "748312907487203129347q97"
+MaxOpenDBConnections: 32

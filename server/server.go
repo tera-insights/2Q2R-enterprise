@@ -73,6 +73,8 @@ type Config struct {
 
 	AdminSessionLength time.Duration
 	MaxMindPath        string
+
+	MaxOpenDBConnections int
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -121,6 +123,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	viper.SetDefault("PrivateKeyEncrypted", false)
 	viper.SetDefault("AdminSessionLength", 15*time.Minute)
 	viper.SetDefault("MaxMindPath", "db.mmdb")
+	viper.SetDefault("MaxOpenDBConnections", 1)
 
 	err := viper.ReadConfig(r)
 	if err != nil {
@@ -147,6 +150,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		PrivateKeyPassword:     viper.GetString("PrivateKeyPassword"),
 		AdminSessionLength:     viper.GetDuration("AdminSessionLength"),
 		MaxMindPath:            viper.GetString("MaxMindPath"),
+		MaxOpenDBConnections:   viper.GetInt("MaxOpenDBConnections"),
 	}
 
 	// Load the Tera Insights RSA public key
@@ -204,9 +208,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	if err != nil {
 		panic(errors.Wrap(err, "Could not open database"))
 	}
-	if c.DatabaseType == "sqlite3" {
-		db.DB().SetMaxOpenConns(1)
-	}
+	db.DB().SetMaxOpenConns(c.MaxOpenDBConnections)
 
 	err = db.AutoMigrate(&AppInfo{}).
 		AutoMigrate(&AppServerInfo{}).
