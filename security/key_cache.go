@@ -49,6 +49,7 @@ type KeySignature struct {
 type KeyCache struct {
 	validPublic      *cache.Cache // Stores valid public signing keys
 	secondFactorKeys *cache.Cache // Stores valid second-factor keys
+	userToAppID      *cache.Cache // User ID to app ID
 
 	serverPub *rsa.PublicKey
 
@@ -58,6 +59,7 @@ type KeyCache struct {
 // NewKeyCache uses the config to create a new KeyCache.
 func NewKeyCache(et, ct time.Duration, p *rsa.PublicKey, db *gorm.DB) *KeyCache {
 	return &KeyCache{
+		cache.New(et, ct),
 		cache.New(et, ct),
 		cache.New(et, ct),
 		p,
@@ -84,12 +86,34 @@ func (kc *KeyCache) Get2FAKey(id string) (Key, error) {
 	}).Error
 	if err == nil {
 		kc.secondFactorKeys.Add(id, k, cache.NoExpiration)
+		kc.userToAppID.Add(k.UserID, k.AppID, cache.NoExpiration)
 	}
 	return k, err
 }
 
+// GetAppID returns the app ID for a particular user ID. If the user ID is not
+// in the userToAppID cache, then GetAppID checks the database. If the user is
+// in the DB, then it is added to the cache.
+func (kc *KeyCache) GetAppID(userID string) (string, error) {
+	if val, ok := kc.userToAppID.Get(userID); ok {
+		return val.(string), nil
+	}
+
+	k := Key{}
+	err := kc.db.First(&k, &Key{
+		UserID: userID,
+	}).Error
+	if err == nil {
+		kc.userToAppID.Add(k.UserID, k.AppID, cache.NoExpiration)
+	}
+	return k.AppID, err
+}
+
 // Remove2FAKey a second-factor key from the cache
 func (kc *KeyCache) Remove2FAKey(id string) {
+	if key, ok := kc.secondFactorKeys.Get(id); ok {
+		kc.userToAppID.Delete(key.(Key).UserID)
+	}
 	kc.secondFactorKeys.Delete(id)
 }
 

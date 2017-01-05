@@ -143,10 +143,7 @@ func (ah *authHandler) Listen(id string) (chan int, *authReq, error) {
 // GET /v1/auth/request/{userID}/{nonce}
 func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
-	key := security.Key{}
-	err := ah.s.DB.Model(&key).First(&key, &security.Key{
-		UserID: userID,
-	}).Error
+	appID, err := ah.s.kc.GetAppID(userID)
 	util.OptionalInternalPanic(err, "Failed to load key")
 
 	challenge, err := u2f.NewChallenge(ah.s.Config.getBaseURLWithProtocol(),
@@ -160,7 +157,7 @@ func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	ar := authReq{
 		RequestID:  requestID,
 		Challenge:  challenge,
-		AppID:      key.AppID,
+		AppID:      appID,
 		UserID:     userID,
 		OriginalIP: host,
 		Nonce:      mux.Vars(r)["nonce"],
@@ -408,10 +405,7 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	ar.KeyHandle = req.KeyHandle
 	ah.requests.Set(req.RequestID, ar, ah.expiration)
 
-	var stored security.Key
-	err = ah.s.DB.Model(&security.Key{}).Where(&security.Key{
-		ID: req.KeyHandle,
-	}).First(&stored).Error
+	stored, err := ah.s.kc.Get2FAKey(req.KeyHandle)
 	util.OptionalBadRequestPanic(err, "Failed to get stored key")
 
 	writeJSON(w, http.StatusOK, setKeyReply{
