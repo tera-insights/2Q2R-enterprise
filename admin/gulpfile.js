@@ -24,8 +24,7 @@ var libJsFiles = [
     'node_modules/angular-messages/angular-messages.min.js',
     'node_modules/angular-ui-router/release/angular-ui-router.min.js',
     'node_modules/ui-router-extras/release/ct-ui-router-extras.min.js',
-    //npm: 'node_modules/lodash/dist/lodash.min.js',
-    'node_modules/random/lib/random.min.js',
+    'node_modules/random-js/lib/random.min.js',
     'node_modules/prob.js/dist/prob-min.js',
     'node_modules/angular-material-data-table/dist/md-data-table.min.js',
     'node_modules/leaflet/dist/leaflet.js',
@@ -62,7 +61,7 @@ gulp.task("typescript", function () {
         .plugin(tsify, tsProject);
     return bundler.bundle()
         .on("error", function (error) {
-            console.log(error.toString());
+            console.log(error.message, error.fileName, error.lineNumber);
         })
         .pipe(source('app.min.js'))
         .pipe(gulp.dest(path.join(destDir,"js")));

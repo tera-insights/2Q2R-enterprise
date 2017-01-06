@@ -12,7 +12,6 @@ import { AddAppCtrl } from './controllers/modals/AddAppCtrl';
 import { ServersCtrl } from './controllers/ServersCtrl';
 import { AddServerCtrl } from './controllers/modals/AddServerCtrl';
 import angular = require('angular');
-import 'angular-ui-router';
 import 'ui-router-extras';
 
 angular.module('2Q2R', [

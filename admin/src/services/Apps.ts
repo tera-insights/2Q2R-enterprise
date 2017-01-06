@@ -1,5 +1,4 @@
 import angular = require('angular');
-import 'angular-resouce';
 
 /**
   * Interface for todo items
