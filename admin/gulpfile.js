@@ -8,7 +8,6 @@ var tsify = require("tsify");
 var path = require("path");
 var print = require('gulp-print');
 var source = require("vinyl-source-stream");
-//var destDir = '../server/assets/admin/';
 var destDir = path.join(__dirname, "..", "server", "assets", "admin");
 
 /**
@@ -16,34 +15,34 @@ var destDir = path.join(__dirname, "..", "server", "assets", "admin");
  * into the assets directory. When this is changed, restart gulp
  */
 var libJsFiles = [
-    'libs/jquery/dist/jquery.min.js',
-    'libs/angular/angular.min.js',
-    'libs/angular-animate/angular-animate.min.js',
-    'libs/angular-material/angular-material.min.js',
-    'libs/angular-aria/angular-aria.min.js',
-    'libs/angular-resource/angular-resource.min.js',
-    'libs/angular-messages/angular-messages.min.js',
-    'libs/angular-ui-router/release/angular-ui-router.min.js',
-    'libs/ui-router-extras/release/ct-ui-router-extras.min.js',
-    //npm: 'libs/lodash/dist/lodash.min.js',
-    'libs/random/lib/random.min.js',
-    'libs/prob.js/dist/prob-min.js',
-    'libs/angular-material-data-table/dist/md-data-table.min.js',
-    'libs/leaflet/dist/leaflet.js',
-    'libs/chart.js/dist/Chart.bundle.min.js'
+    'node_modules/jquery/dist/jquery.min.js',
+    'node_modules/angular/angular.min.js',
+    'node_modules/angular-animate/angular-animate.min.js',
+    'node_modules/angular-material/angular-material.min.js',
+    'node_modules/angular-aria/angular-aria.min.js',
+    'node_modules/angular-resource/angular-resource.min.js',
+    'node_modules/angular-messages/angular-messages.min.js',
+    'node_modules/angular-ui-router/release/angular-ui-router.min.js',
+    'node_modules/ui-router-extras/release/ct-ui-router-extras.min.js',
+    //npm: 'node_modules/lodash/dist/lodash.min.js',
+    'node_modules/random/lib/random.min.js',
+    'node_modules/prob.js/dist/prob-min.js',
+    'node_modules/angular-material-data-table/dist/md-data-table.min.js',
+    'node_modules/leaflet/dist/leaflet.js',
+    'node_modules/chart.js/dist/Chart.bundle.min.js'
 ];
 
 var libCssFiles = [
-    'libs/material-design-icons/iconfont/material-icons.css',
-    'libs/angular-material/angular-material.min.css',
-    'libs/angular-material-data-table/dist/md-data-table.min.css',
-    'libs/leaflet/dist/leaflet.css'
+    'node_modules/material-design-icons/iconfont/material-icons.css',
+    'node_modules/angular-material/angular-material.min.css',
+    'node_modules/angular-material-data-table/dist/md-data-table.min.css',
+    'node_modules/leaflet/dist/leaflet.css'
 ];
 
 var libFontFiles = [
-    'libs/material-design-icons/iconfont/MaterialIcons-Regular.woff2',
-    'libs/material-design-icons/iconfont/MaterialIcons-Regular.woff',
-    'libs/material-design-icons/iconfont/MaterialIcons-Regular.ttf'
+    'node_modules/material-design-icons/iconfont/MaterialIcons-Regular.woff2',
+    'node_modules/material-design-icons/iconfont/MaterialIcons-Regular.woff',
+    'node_modules/material-design-icons/iconfont/MaterialIcons-Regular.ttf'
 ];
 
 

@@ -2,6 +2,8 @@ import * as _ from 'lodash';
 import { Servers, IServerItem, IServerResource } from '../services/Servers';
 import { Apps, IAppItem, IAppResource } from '../services/Apps';
 import { DeleteServersCtrl } from './modals/DeleteServersCtrl';
+import 'angular-resource';
+import 'angular-material';
 
 interface IServerExtendedItem extends IServerItem {
     appName?: string;
