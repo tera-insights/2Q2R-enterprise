@@ -1,0 +1,43 @@
+<md-dialog class="semester-create-modal" aria-label="Create account" ng-cloak>
+    <md-toolbar>
+        <div class="md-toolbar-tools">
+            <h2>Register a new account</h2>
+            <span flex></span>
+            <md-button class="md-icon-button" ng-click="cMod.cancel()">
+                <md-icon aria-label="Close dialog">
+                    <i class="fa fa-times fa-2x"></i>
+                </md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
+
+    <md-dialog-content class="md-padding">
+        <form name="registerForm" class="ui form">
+            <div class="field">
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Name</label>
+                    <input type="text" ng-model="cMod.registration.name" id="serverName" name="serverName" required>
+                </md-input-container>
+            </div>
+            <div class="field">
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Email</label>
+                    <input type="text" ng-model="cMod.registration.email" id="baseURL" name="baseURL" required>
+                </md-input-container>
+            </div>
+            <div class="field">
+                <md-input-container>
+                    <label>Permissions</label>
+                    <md-select ng-model="cMod.registration.permissions" multiple required flex-gt-sm>
+                        <md-option ng-repeat="perm in cMod.availablePermissions" value="{{ perm }}">{{ perm.charAt(0).toUpperCase() + perm.slice(1) }}</md-option>
+                    </md-select>
+                </md-input-container>
+            </div>
+        </form>
+    </md-dialog-content>
+    <md-dialog-actions class="order-fix" layout="row">
+        <span flex></span>
+        <md-button md-autofocus ng-disabled="serverForm.$invalid" ng-click="cMod.accept()">Accept</md-button>
+        <md-button ng-click="cMod.cancel()">Cancel</md-button>
+    </md-dialog-actions>
+</md-dialog>

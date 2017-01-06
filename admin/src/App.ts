@@ -6,6 +6,7 @@ import { Admins } from './services/Admins';
 import { MainCtrl } from './controllers/MainCtrl';
 import { DashboardCtrl } from './controllers/DashboardCtrl';
 import { AdminsCtrl } from './controllers/AdminsCtrl';
+import { RegisterCtrl } from './controllers/modals/RegisterCtrl';
 import { LoginCtrl } from './controllers/LoginCtrl';
 import { AppsCtrl } from './controllers/AppsCtrl';
 import { AddAppCtrl } from './controllers/modals/AddAppCtrl';
@@ -15,7 +16,7 @@ import angular = require('angular');
 import 'ui-router-extras';
 
 angular.module('2Q2R', [
-    'ngAria', 'ngMaterial', 'ngResource', 'ngMessages',
+    'ngAria', 'ngMaterial', 'ngResource', 'ngMessages', 'angular-secure-password',
     'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table'
 ])
     .service('Auth', Auth)
@@ -27,6 +28,7 @@ angular.module('2Q2R', [
     .controller('DashboardCtrl', DashboardCtrl)
     .controller('AdminsCtrl', AdminsCtrl)
     .controller('LoginCtrl', LoginCtrl)
+    .controller('RegisterCtrl', RegisterCtrl)
     .controller('AppsCtrl', AppsCtrl)
     .controller('AddAppCtrl', AddAppCtrl)
     .controller('ServersCtrl', ServersCtrl)
@@ -35,30 +37,8 @@ angular.module('2Q2R', [
         $stateProvider: angular.ui.IStateProvider,
         $urlRouterProvider: angular.ui.IUrlRouterProvider
     ) => {
-        $urlRouterProvider.otherwise("/main");
+        $urlRouterProvider.otherwise("/login");
         $stateProvider
-            // REGISTRATION
-            .state('register', {
-                url: "/register",
-                template: "<ui-view />",
-                controller: 'RegisterCtrl',
-                controllerAs: "ctrl",
-                deepStateRedirect: {
-                    default: { state: 'register.main' }
-                }
-            })
-            .state('register.main', {
-                url: '',
-                templateUrl: "views/register.html",
-            })
-            .state('register.2q2r', {
-                url: "/2q2r",
-                templateUrl: "views/iframe.html"
-            })
-            .state('register.return', {
-                url: "/return",
-                templateUrl: "views/register.return.html"
-            })
             // LOGIN
             .state('login', {
                 url: "/login",

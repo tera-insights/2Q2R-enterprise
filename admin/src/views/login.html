@@ -12,7 +12,7 @@
             </md-input-container>
             <div layout-gt-sm="row">
                 <md-button ng-disabled="loginForm.$invalid" class="md-raised md-primary" ng-click="ctrl.login(username, password)" >Login</md-button>
-                <md-button class="md-raised">Cancel</md-button>
+                <md-button class="md-raised" ng-click="ctrl.register()">Register</md-button>
             </div>
         </form>
         <!-- ngMessages form validation -->
