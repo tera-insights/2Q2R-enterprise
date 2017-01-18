@@ -261,40 +261,40 @@ func (kc *KeyCache) PutShared(x, y *big.Int, shared []byte) {
 }
 
 // VerifyEphemeralKey verifies the ephemeral public key proposed by an admin.
-func (kc *KeyCache) VerifyEphemeralKey(ephemeralPublic, sig string, sk SigningKey) error {
+func (kc *KeyCache) VerifyEphemeralKey(ephemeralPublic, sig string, sk SigningKey) ([]byte, error) {
 	// Look up signature of signing key
 	var signatureOfAdminsPublic KeySignature
 	if err := kc.db.First(&signatureOfAdminsPublic, KeySignature{
 		SignedPublicKey: sk.PublicKey,
 	}).Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	// Assert that admin's public key has been verified
 	if err := kc.VerifySignature(signatureOfAdminsPublic); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Assert that the signature of the ephemeral key is valid
 	marshalled, err := decodeBase64(ephemeralPublic)
 	if err != nil {
-		return errors.Wrap(err, "Could not unmarshal signing "+
+		return nil, errors.Wrap(err, "Could not unmarshal signing "+
 			"public key")
 	}
 	x, y := elliptic.Unmarshal(elliptic.P256(), marshalled)
 	if x == nil {
-		return errors.New("Signing public key was not on the " +
+		return nil, errors.New("Signing public key was not on the " +
 			"elliptic curve")
 	}
 
 	decoded, err := decodeBase64(sig)
 	if err != nil {
-		return errors.Wrap(err, "Could not decode signature as "+
+		return nil, errors.Wrap(err, "Could not decode signature as "+
 			"web-encoded base-64 with no padding")
 	}
 	r, s := elliptic.Unmarshal(elliptic.P256(), decoded)
 	if r == nil {
-		return errors.New("Signed public key was not on the " +
+		return nil, errors.New("Signed public key was not on the " +
 			"elliptic curve")
 	}
 
@@ -307,9 +307,9 @@ func (kc *KeyCache) VerifyEphemeralKey(ephemeralPublic, sig string, sk SigningKe
 	}, h.Sum(nil), r, s)
 
 	if !verified {
-		return errors.Errorf("Could not verify signature of ephemeral key")
+		return nil, errors.Errorf("Could not verify signature of ephemeral key")
 	}
-	return nil
+	return kc.GetShared(x, y), nil
 }
 
 // Copied from go-u2f and 2q2r/server

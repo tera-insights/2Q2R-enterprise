@@ -365,18 +365,18 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
 		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
 
-		// Verify ephemeral signature
-		pub := r.Header.Get("X-Public-Key")
-		sig := r.Header.Get("X-Public-Signature")
-		err = s.kc.VerifyEphemeralKey(pub, sig, sk)
-		util.OptionalBadRequestPanic(err, "Could not "+
-			"verify ephemeral key signature")
-
 		// Verify nonce
 		nonce, err := s.ng.GetNonce(id)
 		util.OptionalBadRequestPanic(err, "No nonce for admin")
 		util.PanicIfFalse(nonce == r.Header.Get("X-Nonce"),
 			http.StatusBadRequest, "Nonces do not match")
+
+		// Verify ephemeral signature
+		pub := r.Header.Get("X-Public-Key")
+		sig := r.Header.Get("X-Public-Signature")
+		key, err = s.kc.VerifyEphemeralKey(pub, sig, sk)
+		util.OptionalBadRequestPanic(err, "Could not "+
+			"verify ephemeral key signature")
 	} else {
 		var app AppServerInfo
 		err := s.DB.First(&app, AppServerInfo{ID: id}).Error
