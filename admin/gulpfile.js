@@ -15,8 +15,10 @@ var destDir = path.join(__dirname, "..", "server", "assets", "admin");
  * into the assets directory. When this is changed, restart gulp
  */
 var libJsFiles = [
-    'src/js/AngularSecurePassword.js',
     'node_modules/jquery/dist/jquery.min.js',
+    'node_modules/random-js/lib/random.min.js',
+    'node_modules/prob.js/dist/prob-min.js',
+    'node_modules/angular/angular.min.js',
     'node_modules/angular-animate/angular-animate.min.js',
     'node_modules/angular-material/angular-material.min.js',
     'node_modules/angular-aria/angular-aria.min.js',
@@ -24,18 +26,18 @@ var libJsFiles = [
     'node_modules/angular-messages/angular-messages.min.js',
     'node_modules/angular-ui-router/release/angular-ui-router.min.js',
     'node_modules/ui-router-extras/release/ct-ui-router-extras.min.js',
-    'node_modules/random-js/lib/random.min.js',
-    'node_modules/prob.js/dist/prob-min.js',
     'node_modules/angular-material-data-table/dist/md-data-table.min.js',
     'node_modules/leaflet/dist/leaflet.js',
-    'node_modules/chart.js/dist/Chart.bundle.min.js'
+    'node_modules/chart.js/dist/Chart.bundle.min.js',
+    'node_modules/angular-secure-password/dist/angular-secure-password.js'
 ];
 
 var libCssFiles = [
     'node_modules/material-design-icons/iconfont/material-icons.css',
     'node_modules/angular-material/angular-material.min.css',
     'node_modules/angular-material-data-table/dist/md-data-table.min.css',
-    'node_modules/leaflet/dist/leaflet.css'
+    'node_modules/leaflet/dist/leaflet.css',
+    'node_modules/angular-secure-password/dist/angular-secure-password.css'
 ];
 
 var libFontFiles = [
@@ -50,7 +52,10 @@ var tsProject = ts.createProject({
     target: "es5",
     removeComments: true,
     preserveConstEnums: true,
-    sourceMap: true
+    sourceMap: true,
+    lib: [
+        "ES2015.Promise"
+    ]
 });
 
 

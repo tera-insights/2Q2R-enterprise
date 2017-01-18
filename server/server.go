@@ -7,9 +7,7 @@ import (
 	"2q2r/util"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/hmac"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -17,7 +15,6 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -340,7 +337,7 @@ func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
 
 // For requests coming from an app sever or the admin frontend
 func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
-	id, received, err := getAuthDataFromHeaders(r)
+	/*id, received, err := getAuthDataFromHeaders(r)
 	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
 
 	hmacBytes, err := util.DecodeBase64(received)
@@ -387,7 +384,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
 	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
-	s.kg.PutShared(x, y, key)
+	s.kg.PutShared(x, y, key)*/
 }
 
 // GetHandler returns the routes used by the 2Q2R server.

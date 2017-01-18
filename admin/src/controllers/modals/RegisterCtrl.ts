@@ -1,15 +1,7 @@
-import { Apps, IAppItem, IAppResource } from '../../services/Apps';
+import { INewAdminRequest } from '../../interfaces/rest';
 import { createAuthenticator } from 'p256-auth';
-import 'file-saver';
-
-interface NewAdminRequest {
-    name: string;
-    email: string;
-    adminFor: string; // appID
-    iv: string;
-    salt: string;
-    publicKey: string;
-}
+import 'angular-material';
+import FileSaver = require('file-saver');
 
 /**
  * Controller for the registration modal. 
@@ -24,14 +16,16 @@ export class RegisterCtrl {
         'Analytics'
     ];
 
-    private registration: NewAdminRequest = {
+    private registration: INewAdminRequest = {
         name: '',
         email: '',
-        adminFor: undefined,
+        adminFor: '',
         iv: undefined,
         salt: undefined,
         publicKey: undefined
     };
+
+    private password: Uint8Array = new Uint8Array(50);
 
     /**
      * Finishes off the registration by generating and saving
@@ -40,12 +34,21 @@ export class RegisterCtrl {
      */
     accept() {
         let authenticator = createAuthenticator();
-        authenticator.generateKeyPair();
-        let extKeyPair = authenticator.exportKey(new Uint8Array(16));
+        
+        authenticator.generateKeyPair().then(() => {
+            Promise.all([authenticator.exportKey(this.password), authenticator.getPublic()]).then(([extKey, pubKey]) => {
+                this.registration.iv = extKey.iv;
+                this.registration.salt = extKey.salt;
+                this.registration.publicKey = pubKey;
 
-        let file = new Blob([this.registration], { type: 'application/json;charset=utf-8' });
-        saveAs(file, 'NewRegistration.json');
-        this.$mdDialog.hide();
+                let keyFile = new Blob([JSON.stringify(extKey, null, 2)], { type: 'text/json;charset=utf-8' });
+                let regFile = new Blob([JSON.stringify(this.registration, null, 2)], { type: 'text/json;charset=utf-8' });
+
+                FileSaver.saveAs(keyFile, 'Key.1fa');
+                FileSaver.saveAs(regFile, this.registration.name.replace(' ', '_') + '.arr');
+                this.$mdDialog.hide();
+            });
+        });
     }
 
     /**
@@ -56,11 +59,11 @@ export class RegisterCtrl {
     }
 
     static $inject = [
-        '$mdDialog',
-        'Apps'
+        '$mdDialog'
     ];
     constructor(
         private $mdDialog: ng.material.IDialogService
     ) {
+        console.log(this.password[0]);
     }
 }

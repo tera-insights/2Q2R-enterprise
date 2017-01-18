@@ -17,7 +17,7 @@ export interface IUserResource extends ng.resource.IResourceClass<IUserItem> {
  * @export
  * @class Users
  */
-export class Users {
+export class UserSrvc {
     public resource: IUserResource; // the resource to access backend
 
     static Resource($resource: ng.resource.IResourceService): IUserResource {

@@ -1,5 +1,5 @@
-import { Apps, IAppItem, IAppResource } from '../../services/Apps';
-import { Servers, IServerItem, IServerResource } from '../../services/Servers';
+import { AppSrvc, IAppItem, IAppResource } from '../../services/AppSrvc';
+import { ServerSrvc, IServerItem, IServerResource } from '../../services/ServerSrvc';
 
 /**
  * Controller of add server modal. 
@@ -35,11 +35,11 @@ export class AddServerCtrl {
 
     static $inject = [
         '$mdDialog',
-        'Servers'
+        'ServerSrvc'
     ];
     constructor(
         private $mdDialog: ng.material.IDialogService,
-        ServersSrvc: Servers
+        private ServersSrvc: ServerSrvc
     ) {
             var Server = ServersSrvc.resource;
             this.server = new Server({

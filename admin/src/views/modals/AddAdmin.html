@@ -1,0 +1,57 @@
+<md-dialog class="semester-create-modal" aria-label="About" ng-cloak>
+    <md-toolbar>
+        <div class="md-toolbar-tools">
+            <h2>Refer a new administrator</h2>
+            <span flex></span>
+            <md-button class="md-icon-button" ng-click="cMod.cancel()">
+                <md-icon aria-label="Close dialog">
+                    <i class="fa fa-times fa-2x"></i>
+                </md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
+
+    <md-dialog-content class="md-padding">
+        <div layout="row">
+            <div layout="column">
+                <span>Registration Partial</span>
+                <div ngf-select="cMod.uploadRegistration($file)">
+                    <p ng-if="!cMod.registration">Click or drop to upload the admin's registration request.</p>
+                    <span>{{ cMod.registration.name }}</span>
+                    <span>{{ cMod.registration.email }}</span>
+                </div>
+            </div>
+            <div layout="column">
+                <span>Your Key</span>
+                <div ngf-select="cMod.uploadRegistration($file)">
+                    <span ng-if="!cMod.adminKey">Click or drop to upload your key to sign the new admin's request.</span>
+                    <span ng-if="cMod.adminKey">Key uploaded.</span>
+                </div>
+            </div>
+        </div>
+        <form name="adminForm" class="ui form" ng-if="cMod.registration">
+            <div class="field">
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Jurisdiction</label>
+                    <md-select ng-model="cMod.registration.adminFor">
+                        <md-option><b>2Q2R (superadmin)</b></md-option>
+                        <md-option ng-repeat="app in cMod.apps" ng-value="app.appID">{{ app.appName }}</md-option>
+                    </md-select>
+                </md-input-container>
+            </div>
+            <div class="field">
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Permissions</label>
+                    <md-select ng-model="cMod.registration.permissions" multiple>
+                        <md-option ng-repeat="perm in cMod.availablePermissions" ng-value="perm">{{ perm }}</md-option>
+                    </md-select>
+                </md-input-container>
+            </div>
+        </form>
+    </md-dialog-content>
+    <md-dialog-actions class="order-fix" layout="row">
+        <span flex></span>
+        <md-button md-autofocus ng-disabled="serverForm.$invalid" ng-click="cMod.accept()">Accept</md-button>
+        <md-button ng-click="cMod.cancel()">Cancel</md-button>
+    </md-dialog-actions>
+</md-dialog>

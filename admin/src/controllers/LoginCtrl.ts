@@ -1,4 +1,4 @@
-import { Auth } from '../services/Auth';
+import { AuthSrvc } from '../services/AuthSrvc';
 import { RegisterCtrl } from './modals/RegisterCtrl'
 
 export class LoginCtrl {
@@ -15,16 +15,18 @@ export class LoginCtrl {
             clickOutsideToClose: true
         }).then(() => {
             this.$mdToast.showSimple('Registration request saved. Email it to your superadmin to get approved.');
+        }, () => {
+            this.$mdToast.showSimple('Registration canceled.');
         });
     }
 
     static $inject = [
-        'Auth',
+        'AuthSrvc',
         '$mdDialog',
         '$mdToast'
     ];
     constructor(
-        private Auth: Auth,
+        private AuthSrvc: AuthSrvc,
         private $mdDialog: angular.material.IDialogService,
         private $mdToast: angular.material.IToastService
     ) {

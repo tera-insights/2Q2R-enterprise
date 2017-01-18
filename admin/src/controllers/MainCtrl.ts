@@ -1,4 +1,4 @@
-import { Auth } from '../services/Auth';
+import { AuthSrvc } from '../services/AuthSrvc';
 import { GenerateCtrl } from './modals/GenerateCtrl';
 
 interface IMenuItem {
@@ -96,13 +96,13 @@ export class MainCtrl {
         '$mdSidenav',
         '$state',
         '$mdDialog',
-        'Auth'
+        'AuthSrvc'
     ];
     constructor(
         private $mdSidenav: ng.material.ISidenavService,
         private $state: angular.ui.IStateService,
         private $mdDialog: ng.material.IDialogService,
-        private Auth: Auth
+        private AuthSrvc: AuthSrvc
     ) {
         this.toggleLeft();
         this.select("main.dashboard", "Dashboard");

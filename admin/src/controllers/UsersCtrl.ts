@@ -1,4 +1,4 @@
-import { Users, IUserItem, IUserResource } from "../services/Users";
+import { UserSrvc, IUserItem, IUserResource } from "../services/UserSrvc";
 import 'angular-resource';
 
 export class UsersCtrl {
@@ -10,7 +10,7 @@ export class UsersCtrl {
         'Users'
     ];
     constructor(
-        UsersSrvc: Users
+        UsersSrvc: UserSrvc
     ) {
         this.User = UsersSrvc.resource;
         this.users = this.User.query();

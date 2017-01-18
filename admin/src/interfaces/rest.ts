@@ -3,156 +3,171 @@
  * io_interfaces.go
  */
 
-module admin {
+// Request to `POST /admin/new`
+export interface INewAdminRequest {
+    name: string;
+    email: string;
+    permissions?: string[];
+    adminFor: string; // appID
+    iv: string;
+    salt: string;
+    publicKey: string;
+    signingPublicKey?: string;
+    signature?: string;
+}
 
-    // NewAppRequest is the request to `POST /v1/app/new`.
-    export interface INewAppRequest {
-        appName: string;
-    }
+// Response to `POST /admin/new`
+export interface INewAdminReply {
+	requestID: String;
+}
 
-    // NewAppReply is the response to `POST /v1/app/new`.
-    export interface INewAppReply {
-        appID: string;
-    }
+// Request to `POST /v1/app/new`.
+export interface INewAppRequest {
+    appName: string;
+}
 
-    // AppIDInfoReply is the reply to `GET /v1/info/:appID`.
-    export interface IAppIDInfoReply {
-        // string specifying displayable app name
-        appName: string;
+// Response to `POST /v1/app/new`.
+export interface INewAppReply {
+    appID: string;
+}
 
-        // string specifying the prefix of all routes
-        baseURL: string;
+// Response to `GET /v1/info/:appID`.
+export interface IAppIDInfoReply {
+    // string specifying displayable app name
+    appName: string;
 
-        appURL: string;
+    // string specifying the prefix of all routes
+    baseURL: string;
 
-        appID: string;
+    appURL: string;
 
-        // base 64 encoded public key of the 2Q2R server
-        serverPubKey: string;
+    appID: string;
 
-        // Only P256 supported for now
-        serverKeyType: string;
-    }
+    // base 64 encoded public key of the 2Q2R server
+    serverPubKey: string;
 
-    // NewServerRequest is the request to `POST /v1/admin/server/new`.
-    export interface INewServerRequest {
-        serverName: string;
-        appID: string;
-        baseURL: string;
-        keyType: string;
-        publicKey: string; // base-64 encoded byte array
-        permissions: string;
-    }
+    // Only P256 supported for now
+    serverKeyType: string;
+}
 
-    // NewServerReply is the response to `POST `/v1/admin/server/new`.
-    export interface INewServerReply {
-        serverName: string;
-        serverID: string;
-    }
+// Request to `POST /v1/admin/server/new`.
+export interface INewServerRequest {
+    serverName: string;
+    appID: string;
+    baseURL: string;
+    keyType: string;
+    publicKey: string; // base-64 encoded byte array
+    permissions: string;
+}
 
-    // DeleteServerRequest is the request to `POST /v1/admin/server/delete`.
-    export interface IDeleteServerRequest {
-        serverID: string;
-    }
+// Response to `POST `/v1/admin/server/new`.
+export interface INewServerReply {
+    serverName: string;
+    serverID: string;
+}
 
-    // AppServerInfoRequest is the request to `POST /v1/admin/server/info`.
-    export interface IAppServerInfoRequest {
-        serverID: string;
-    }
+// Request to `POST /v1/admin/server/delete`.
+export interface IDeleteServerRequest {
+    serverID: string;
+}
 
-    // RegistrationSetupReply is the reply to `GET /v1/register/request/:userID`.
-    export interface RegistrationSetupReply {
-        // base64Web encoded random reply id
-        id: string;
+// Request to `POST /v1/admin/server/info`.
+export interface IAppServerInfoRequest {
+    serverID: string;
+}
 
-        // Url at which the registration iframe can be found. Pass to frontend.
-        registerUrl: string;
-    }
+// Response to `GET /v1/register/request/:userID`.
+export interface IRegistrationSetupReply {
+    // base64Web encoded random reply id
+    id: string;
 
-    // RegisterRequest is the request to `POST /v1/register`.
-    export interface IRegisterRequest {
-        successful: boolean;
-        // Either a successfulRegistrationData or a failedRegistrationData
-        data: ISuccessfulRegistrationData | IFailedRegistrationData;
-    }
+    // Url at which the registration iframe can be found. Pass to frontend.
+    registerUrl: string;
+}
 
-    // RegisterResponse is the response to `POST /v1/register`.
-    export interface IRegisterResponse {
-        successful: boolean;
-        message: string;
-    }
+// Request to `POST /v1/register`.
+export interface IRegisterRequest {
+    successful: boolean;
+    // Either a successfulRegistrationData or a failedRegistrationData
+    data: ISuccessfulRegistrationData | IFailedRegistrationData;
+}
 
-    export interface ISuccessfulRegistrationData {
-        clientData: string;     // base64 serialized client data
-        registrationData: string; // base64 binary registration data
-        deviceName: string;
-        type: string;     // device export interface and key type
-        fcmToken: string; // Firebase Communicator Device token
-    }
+// Response to `POST /v1/register`.
+export interface IRegisterResponse {
+    successful: boolean;
+    message: string;
+}
 
-    export interface IFailedRegistrationData {
-        errorMessage: string;
-        errorStatus: number;
-    }
+export interface ISuccessfulRegistrationData {
+    clientData: string;     // base64 serialized client data
+    registrationData: string; // base64 binary registration data
+    deviceName: string;
+    type: string;     // device export interface and key type
+    fcmToken: string; // Firebase Communicator Device token
+}
 
-    // NewUserRequest is the request to `POST /v1/admin/user/new`.
-    export interface NewUserRequest {
-    }
+export interface IFailedRegistrationData {
+    errorMessage: string;
+    errorStatus: number;
+}
 
-    // NewUserReply is the reply to `POST /v1/admin/user/new`.
-    export interface INewUserReply {
-        userID: string;
-    }
+// Request to `POST /v1/admin/user/new`.
+export interface NewUserRequest {
+}
 
-    // AuthenticationSetupRequest is the request to `POST /v1/auth/request`.
-    export interface IAuthenticationSetupRequest {
-        appID: string;
-        timestamp: Date;
-        userID: string;
-        keyID: string;
-        authentication: any; // TODO: was AuthenticationData
-    }
+// Response to `POST /v1/admin/user/new`.
+export interface INewUserReply {
+    userID: string;
+}
 
-    // AuthenticationSetupReply is the response to `POST /v1/auth/request`.
-    export interface IAuthenticationSetupReply {
-        // base64Web encoded random reply id
-        id: string;
+// Request to `POST /v1/auth/request`.
+export interface IAuthenticationSetupRequest {
+    appID: string;
+    timestamp: Date;
+    userID: string;
+    keyID: string;
+    authentication: any; // TODO: was AuthenticationData
+}
 
-        // Url at which the registration iframe can be found. Pass to frontend.
-        authUrl: string;
-    }
+// Response to `POST /v1/auth/request`.
+export interface IAuthenticationSetupReply {
+    // base64Web encoded random reply id
+    id: string;
 
-    export interface IAuthenticateRequest {
-        successful: boolean;
-        data: ISuccessfulAuthenticationData | IFailedAuthenticationData;
-    }
+    // Url at which the registration iframe can be found. Pass to frontend.
+    authUrl: string;
+}
 
-    // Request to `POST /v1/auth/{requestID}/challenge`
-    export interface ISetKeyRequest {
-        keyID: string;
-    }
+export interface IAuthenticateRequest {
+    successful: boolean;
+    data: ISuccessfulAuthenticationData | IFailedAuthenticationData;
+}
 
-    // Response to `POST /v1/auth/{requestID}/challenge`
-    export interface ISetKeyReply {
-        keyID: string;
-        challenge: string;
-        counter: number;
-        appID: string;
-    }
+// Request to `POST /v1/auth/{requestID}/challenge`
+export interface ISetKeyRequest {
+    keyID: string;
+}
 
-    // Reply to `GET /v1/users/:userID`
-    export interface IUserExistsReply {
-        exists: boolean;
-    }
+// Response to `POST /v1/auth/{requestID}/challenge`
+export interface ISetKeyReply {
+    keyID: string;
+    challenge: string;
+    counter: number;
+    appID: string;
+}
 
-    export interface ISuccessfulAuthenticationData {
-        clientData: string;
-        signatureData: string;
-    }
+// Response to `GET /v1/users/:userID`
+export interface IUserExistsReply {
+    exists: boolean;
+}
 
-    export interface IFailedAuthenticationData {
-        challenge: string;
-        errorMessage: string;
-        errorStatus: number;
-    }
+export interface ISuccessfulAuthenticationData {
+    clientData: string;
+    signatureData: string;
+}
+
+export interface IFailedAuthenticationData {
+    challenge: string;
+    errorMessage: string;
+    errorStatus: number;
 }

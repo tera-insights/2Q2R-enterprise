@@ -4,7 +4,7 @@
  * @export
  * @class Auth
  */
-export class Auth {
+export class AuthSrvc {
     private userid: string; // our user id
     private userName: string; // our name
 

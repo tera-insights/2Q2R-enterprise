@@ -1,4 +1,4 @@
-import { Apps, IAppItem, IAppResource } from '../services/Apps';
+import { AppSrvc, IAppItem, IAppResource } from '../services/AppSrvc';
 import { AddAppCtrl } from '../controllers/modals/AddAppCtrl';
 import 'angular-resource';
 import 'angular-material';
@@ -63,14 +63,14 @@ export class AppsCtrl {
 
     static $inject = [
         '$mdDialog',
-        'Apps'
+        'AppSrvc'
     ];
 
     constructor(
         private $mdDialog: ng.material.IDialogService,
-        AppsSrvc: Apps
+        private AppSrvc: AppSrvc
     ) {
-        this.App = AppsSrvc.resource;
+        this.App = AppSrvc.resource;
 
         this.apps = this.App.query();
 

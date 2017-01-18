@@ -27,17 +27,14 @@
             </div>
             <div class="field">
                 <md-input-container>
-                    <label>Permissions</label>
-                    <md-select ng-model="cMod.registration.permissions" multiple required flex-gt-sm>
-                        <md-option ng-repeat="perm in cMod.availablePermissions" value="{{ perm }}">{{ perm.charAt(0).toUpperCase() + perm.slice(1) }}</md-option>
-                    </md-select>
+                    <secure-password array="cMod.password" idlesec="30">
                 </md-input-container>
             </div>
         </form>
     </md-dialog-content>
     <md-dialog-actions class="order-fix" layout="row">
         <span flex></span>
-        <md-button md-autofocus ng-disabled="serverForm.$invalid" ng-click="cMod.accept()">Accept</md-button>
-        <md-button ng-click="cMod.cancel()">Cancel</md-button>
+        <md-button md-autofocus ng-disabled="registerForm.$invalid || cMod.password[0] === 0" ng-click="cMod.accept()">Register</md-button>
+        <md-button class="md-warn" ng-click="cMod.cancel()">Cancel</md-button>
     </md-dialog-actions>
 </md-dialog>

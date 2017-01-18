@@ -1,5 +1,5 @@
-import { Apps, IAppItem, IAppResource } from '../../services/Apps';
-import { Servers, IServerItem, IServerResource } from '../../services/Servers';
+import { AppSrvc, IAppItem, IAppResource } from '../../services/AppSrvc';
+import { ServerSrvc, IServerItem, IServerResource } from '../../services/ServerSrvc';
 import 'angular-resource';
 import 'angular-material';
 
@@ -43,13 +43,13 @@ export class GenerateCtrl {
 
     static $inject = [
         '$mdDialog',
-        'Apps',
-        'Servers'
+        'AppSrvc',
+        'ServerSrvc'
     ];
     constructor(
         private $mdDialog: ng.material.IDialogService,
-        AppsSrvc: Apps,
-        ServersSrvc: Servers,
+        private AppsSrvc: AppSrvc,
+        private ServersSrvc: ServerSrvc,
     ) {
         this.App = AppsSrvc.resource;
         this.Server = ServersSrvc.resource;

@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
-import { Servers, IServerItem, IServerResource } from '../services/Servers';
-import { Apps, IAppItem, IAppResource } from '../services/Apps';
+import { ServerSrvc, IServerItem, IServerResource } from '../services/ServerSrvc';
+import { AppSrvc, IAppItem, IAppResource } from '../services/AppSrvc';
 import { DeleteServersCtrl } from './modals/DeleteServersCtrl';
 import 'angular-resource';
 import 'angular-material';
@@ -136,19 +136,19 @@ export class ServersCtrl {
         '$q',
         '$mdDialog',
         '$mdToast',
-        'Apps',
-        'Servers'
+        'AppSrvc',
+        'ServerSrvc'
     ];
     
     constructor(
         private $q: ng.IQService,
         private $mdDialog: ng.material.IDialogService,
         private $mdToast: ng.material.IToastService,
-        private Apps: Apps,
-        private Servers: Servers
+        private AppSrvc: AppSrvc,
+        private ServerSrvc: ServerSrvc
     ) {
-        this.App = Apps.resource;
-        this.Server = Servers.resource;
+        this.App = AppSrvc.resource;
+        this.Server = ServerSrvc.resource;
         this.refresh();
     }
 

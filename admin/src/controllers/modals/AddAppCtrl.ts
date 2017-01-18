@@ -1,4 +1,4 @@
-import { Apps, IAppItem } from '../../services/Apps';
+import { AppSrvc, IAppItem } from '../../services/AppSrvc';
 
 /**
  * Controller of add app modal. 
@@ -26,11 +26,11 @@ export class AddAppCtrl {
 
     static $inject = [
         '$mdDialog',
-        'Apps'
+        'AppSrvc'
     ];
     constructor(
         private $mdDialog: ng.material.IDialogService,
-        AppsSrvc: Apps
+        AppsSrvc: AppSrvc
     ) {
         var App = AppsSrvc.resource;
         this.app = new App({

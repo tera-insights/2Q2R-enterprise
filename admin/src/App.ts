@@ -1,8 +1,9 @@
-import { Auth } from './services/Auth';
+import { AuthSrvc } from './services/AuthSrvc';
 import { Communicator } from './services/Communicator';
-import { Apps } from './services/Apps';
-import { Servers } from './services/Servers';
-import { Admins } from './services/Admins';
+import { AppSrvc } from './services/AppSrvc';
+import { ServerSrvc } from './services/ServerSrvc';
+import { AdminSrvc } from './services/AdminSrvc';
+import { UserSrvc } from './services/UserSrvc'
 import { MainCtrl } from './controllers/MainCtrl';
 import { DashboardCtrl } from './controllers/DashboardCtrl';
 import { AdminsCtrl } from './controllers/AdminsCtrl';
@@ -17,13 +18,14 @@ import 'ui-router-extras';
 
 angular.module('2Q2R', [
     'ngAria', 'ngMaterial', 'ngResource', 'ngMessages', 'angular-secure-password',
-    'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table'
+    'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table', 'ngFileUpload'
 ])
-    .service('Auth', Auth)
+    .service('AuthSrvc', AuthSrvc)
     .service('Communicator', Communicator)
-    .service('Apps', Apps)
-    .service('Servers', Servers)
-    .service('Admins', Admins)
+    .service('AppSrvc', AppSrvc)
+    .service('ServerSrvc', ServerSrvc)
+    .service('AdminSrvc', AdminSrvc)
+    .service('UserSrvc', UserSrvc)
     .controller('MainCtrl', MainCtrl)
     .controller('DashboardCtrl', DashboardCtrl)
     .controller('AdminsCtrl', AdminsCtrl)
@@ -106,8 +108,5 @@ angular.module('2Q2R', [
             .state('main.settings', {
                 url: "/settings",
                 templateUrl: "views/settings.html"
-            })
-            ;
-
-    })
-    ;
+            });
+    });
