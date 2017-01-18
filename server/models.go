@@ -63,11 +63,3 @@ type Permission struct {
 	// Must be inside the valid list of permissions
 	Permission string `gorm:"primary_key" json:"permission"`
 }
-
-// SigningKey is the Gorm model for keys that the admin uses to sign things.
-type SigningKey struct {
-	ID        string `json:"signingKeyID"`
-	IV        string `json:"iv"`        // encoded using encodeBase64
-	Salt      string `json:"salt"`      // same encoding
-	PublicKey string `json:"publicKey"` // same encoding
-}

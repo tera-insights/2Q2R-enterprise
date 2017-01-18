@@ -9,11 +9,13 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"io"
+	"math/big"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
+	"github.com/telehash/gogotelehash/e3x/cipherset/cs1a/ecdh"
 )
 
 // Key is the Gorm model for a user's stored public key.
@@ -50,18 +52,30 @@ type KeyCache struct {
 	validPublic      *cache.Cache // Stores valid public signing keys
 	secondFactorKeys *cache.Cache // Stores valid second-factor keys
 	userToAppID      *cache.Cache // User ID to app ID
+	shared           *cache.Cache // marshalled public x, y -> shared
+	priv             []byte
 
 	serverPub *rsa.PublicKey
 
 	db *gorm.DB
 }
 
+// SigningKey is the Gorm model for keys that the admin uses to sign things.
+type SigningKey struct {
+	ID        string `json:"signingKeyID"`
+	IV        string `json:"iv"`        // encoded using encodeBase64
+	Salt      string `json:"salt"`      // same encoding
+	PublicKey string `json:"publicKey"` // same encoding
+}
+
 // NewKeyCache uses the config to create a new KeyCache.
-func NewKeyCache(et, ct time.Duration, p *rsa.PublicKey, db *gorm.DB) *KeyCache {
+func NewKeyCache(et, ct time.Duration, p *rsa.PublicKey, db *gorm.DB, priv []byte) *KeyCache {
 	return &KeyCache{
 		cache.New(et, ct),
 		cache.New(et, ct),
 		cache.New(et, ct),
+		cache.New(et, ct),
+		priv,
 		p,
 		db,
 	}
@@ -222,6 +236,79 @@ func (kc *KeyCache) VerifySignature(sig KeySignature) error {
 		}
 	}
 
+	return nil
+}
+
+// GetShared returns the shared key between x, y and `priv`.
+// If the key has not yet been generated, it is computed using ECDH and stored
+// in the cache.
+func (kc *KeyCache) GetShared(x, y *big.Int) []byte {
+	index := string(elliptic.Marshal(elliptic.P256(), x, y))
+	if val, found := kc.shared.Get(index); found {
+		return val.([]byte)
+	}
+
+	s := ecdh.ComputeShared(elliptic.P256(), x, y, kc.priv)
+	kc.shared.Add(index, s, cache.NoExpiration)
+	return s
+}
+
+// PutShared stores `shared` in the cache at the index determined by x, y,
+// and the elliptic curve.
+func (kc *KeyCache) PutShared(x, y *big.Int, shared []byte) {
+	index := string(elliptic.Marshal(elliptic.P256(), x, y))
+	kc.shared.Add(index, shared, cache.NoExpiration)
+}
+
+// VerifyEphemeralKey verifies the ephemeral public key proposed by an admin.
+func (kc *KeyCache) VerifyEphemeralKey(ephemeralPublic, sig string, sk SigningKey) error {
+	// Look up signature of signing key
+	var signatureOfAdminsPublic KeySignature
+	if err := kc.db.First(&signatureOfAdminsPublic, KeySignature{
+		SignedPublicKey: sk.PublicKey,
+	}).Error; err != nil {
+		return err
+	}
+
+	// Assert that admin's public key has been verified
+	if err := kc.VerifySignature(signatureOfAdminsPublic); err != nil {
+		return err
+	}
+
+	// Assert that the signature of the ephemeral key is valid
+	marshalled, err := decodeBase64(ephemeralPublic)
+	if err != nil {
+		return errors.Wrap(err, "Could not unmarshal signing "+
+			"public key")
+	}
+	x, y := elliptic.Unmarshal(elliptic.P256(), marshalled)
+	if x == nil {
+		return errors.New("Signing public key was not on the " +
+			"elliptic curve")
+	}
+
+	decoded, err := decodeBase64(sig)
+	if err != nil {
+		return errors.Wrap(err, "Could not decode signature as "+
+			"web-encoded base-64 with no padding")
+	}
+	r, s := elliptic.Unmarshal(elliptic.P256(), decoded)
+	if r == nil {
+		return errors.New("Signed public key was not on the " +
+			"elliptic curve")
+	}
+
+	h := crypto.SHA256.New()
+	io.WriteString(h, ephemeralPublic)
+	verified := ecdsa.Verify(&ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     x,
+		Y:     y,
+	}, h.Sum(nil), r, s)
+
+	if !verified {
+		return errors.Errorf("Could not verify signature of ephemeral key")
+	}
 	return nil
 }
 

@@ -75,6 +75,8 @@ type Config struct {
 	MaxMindPath        string
 
 	MaxOpenDBConnections int
+
+	NonceTime time.Duration
 }
 
 func (c *Config) getBaseURLWithProtocol() string {
@@ -93,7 +95,7 @@ type Server struct {
 	priv      *ecdsa.PrivateKey
 	sc        *securecookie.SecureCookie
 	kc        *security.KeyCache
-	kg        *security.KeyGen
+	ng        *security.NonceGen
 }
 
 // Used in registration and authentication templates
@@ -215,7 +217,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		AutoMigrate(&security.Key{}).
 		AutoMigrate(&Admin{}).
 		AutoMigrate(&security.KeySignature{}).
-		AutoMigrate(&SigningKey{}).
+		AutoMigrate(&security.SigningKey{}).
 		AutoMigrate(&Permission{}).Error
 	if err != nil {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
@@ -238,8 +240,9 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		rsa,
 		priv,
 		securecookie.New(securecookie.GenerateRandomKey(64), nil),
-		security.NewKeyCache(c.ExpirationTime, c.CleanTime, rsa, db),
-		security.NewKeyGen(),
+		security.NewKeyCache(c.ExpirationTime, c.CleanTime, rsa, db,
+			priv.D.Bytes()),
+		security.NewNonceGen(c.NonceTime),
 	}
 	return s
 }
@@ -351,26 +354,36 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	var key []byte
 	var x, y *big.Int
 	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+		// Look up admin's signing key
 		var a Admin
 		err = s.DB.Find(&a, Admin{ID: id}).Error
 		util.OptionalBadRequestPanic(err, "Could not find admin with ID "+id)
-
-		var sk SigningKey
-		err = s.DB.Find(&sk, SigningKey{ID: a.PrimarySigningKeyID}).Error
+		var sk security.SigningKey
+		err = s.DB.Find(&sk, security.SigningKey{ID: a.PrimarySigningKeyID}).Error
 		util.OptionalInternalPanic(err, "Could not find admin's signing key")
-
 		skBytes, err := util.DecodeBase64(sk.PublicKey)
 		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
-
 		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
-		key = s.kg.GetShared(x, y, nil)
+
+		// Verify ephemeral signature
+		pub := r.Header.Get("X-Public-Key")
+		sig := r.Header.Get("X-Public-Signature")
+		err = s.kc.VerifyEphemeralKey(pub, sig, sk)
+		util.OptionalBadRequestPanic(err, "Could not "+
+			"verify ephemeral key signature")
+
+		// Verify nonce
+		nonce, err := s.ng.GetNonce(id)
+		util.OptionalBadRequestPanic(err, "No nonce for admin")
+		util.PanicIfFalse(nonce == r.Header.Get("X-Nonce"),
+			http.StatusBadRequest, "Nonces do not match")
 	} else {
 		var app AppServerInfo
 		err := s.DB.First(&app, AppServerInfo{ID: id}).Error
 		util.OptionalBadRequestPanic(err, "Could not find app server")
 
 		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
-		key = s.kg.GetShared(x, y, s.priv.D.Bytes())
+		key = s.kc.GetShared(x, y)
 	}
 
 	route := []byte(r.URL.Path)
@@ -385,11 +398,14 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	if len(body) > 0 {
 		hash.Write(body)
 	}
+	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+		hash.Write([]byte(r.Header.Get("X-Nonce")))
+	}
 
 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
 	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
-	s.kg.PutShared(x, y, key)
+	s.kc.PutShared(x, y, key)
 }
 
 // GetHandler returns the routes used by the 2Q2R server.
@@ -436,15 +452,13 @@ func (s *Server) GetHandler() http.Handler {
 	forMethod(router, "/admin/stats/listen", ah.RegisterListener, "GET")
 	forMethod(router, "/admin/stats/recent", ah.GetMostRecent, "GET")
 
-	forMethod(router, "/admin/public", func(w http.ResponseWriter,
+	forMethod(router, "/admin/nonce/{adminID}", func(w http.ResponseWriter,
 		r *http.Request) {
-		priv, exp, err := s.kg.GetAdminPriv()
-		util.OptionalInternalPanic(err, "Could not get keys for admin frontend")
+		nonce, exp, err := s.ng.GenerateNonce(mux.Vars(r)["adminID"])
+		util.OptionalInternalPanic(err, "Could not generate nonce")
 
-		x, y := elliptic.P256().ScalarBaseMult(priv)
-		encoded := util.EncodeBase64(elliptic.Marshal(elliptic.P256(), x, y))
 		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"public":  encoded,
+			"nonce":   nonce,
 			"expires": exp.Seconds(),
 		})
 	}, "GET")
