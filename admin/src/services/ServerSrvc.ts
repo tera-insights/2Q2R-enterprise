@@ -1,3 +1,5 @@
+import 'angular-resource';
+
 /**************
  * Interfaces *
  **************/
@@ -35,9 +37,10 @@ export interface IServerInfo {
  * @copyright Tera Insights, LLC
  */
 export class ServerSrvc {
-    private resource: any = this.$resource("/admin/servers/:id", {}, {
+    
+    private resource: any = this.$resource('', {}, {
         'query':  { method: 'GET',    url: '/admin/server', isArray: true },
-        'create': { method: 'POST',   url: '/admin/server' },
+        'create': { method: 'POST',   url: '/admin/server', },
         'update': { method: 'PUT',    url: '/admin/server/:id' },
         'delete': { method: 'DELETE', url: '/admin/server/:id' }
     });
@@ -46,12 +49,12 @@ export class ServerSrvc {
         return this.resource.query().$promise;
     }
 
-    public create(server: INewServerRequest): ng.IPromise<IServerInfo> {
-        return this.resource.create({}, server).$promise;
+    public create(req: INewServerRequest): ng.IPromise<IServerInfo> {
+        return this.resource.create({}, req).$promise;
     }
 
-    public update(server: IServerUpdateRequest): ng.IPromise<IServerInfo> {
-        return this.resource.update({ id: '@serverID' }, server).$promise;
+    public update(req: IServerUpdateRequest): ng.IPromise<IServerInfo> {
+        return this.resource.update({ id: '@serverID' }, req).$promise;
     }
 
     public delete(serverID: string): ng.IPromise<string> {

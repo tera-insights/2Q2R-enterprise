@@ -1,38 +1,33 @@
-/**
- * Interface for user collection items
- */
-export interface IUserItem extends ng.resource.IResource<IUserItem> {
-    appName: string; // displayable name
-    id: string; // the item ID
-    $update?: Function; // just so the compiler leaves us alone 
-}
+import 'angular-resource';
 
-export interface IUserResource extends ng.resource.IResourceClass<IUserItem> {
-    update(params: Object, data: IUserItem, success?: Function, error?: Function): IUserItem;
-}
+/**************
+ * Interfaces *
+ **************/
+
+
 
 /**
- * This service manages the users across all applications
+ * This service manages 2FA users across all
+ * the application servers.
  * 
- * @export
- * @class Users
+ * @author Sam Claus
+ * @version 1/18/17
+ * @copyright Tera Insights, LLC
  */
 export class UserSrvc {
-    public resource: IUserResource; // the resource to access backend
 
-    static Resource($resource: ng.resource.IResourceService): IUserResource {
-        var resource = $resource("/admin/app/:id", { id: '@id' }, {
-            'update': { method: 'PUT', params: { id: '@id' } }
-        });
-        return <IUserResource>resource;
-    }
+    private resource: any = this.$resource('', {}, {
+        
+    });
 
-    static $inject = ['$resource', '$q', '$http'];
+    static $inject = [
+        '$resource',
+        '$q'
+    ];
 
-    constructor($resource: ng.resource.IResourceService,
-        private $q: angular.IQService,
-        private $http: angular.IHttpService) {
-        this.resource = Users.Resource($resource);
-    }
+    constructor(
+        private $resource: ng.resource.IResourceService,
+        private $q: ng.IQService
+    ) {}
 
 }
