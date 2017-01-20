@@ -3,6 +3,7 @@
 package server
 
 import (
+	"2q2r/security"
 	"2q2r/util"
 	"bytes"
 	"encoding/json"
@@ -142,10 +143,7 @@ func (ah *authHandler) Listen(id string) (chan int, *authReq, error) {
 // GET /v1/auth/request/{userID}/{nonce}
 func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
-	key := Key{}
-	err := ah.s.DB.Model(&key).First(&key, &Key{
-		UserID: userID,
-	}).Error
+	appID, err := ah.s.kc.GetAppID(userID)
 	util.OptionalInternalPanic(err, "Failed to load key")
 
 	challenge, err := u2f.NewChallenge(ah.s.Config.getBaseURLWithProtocol(),
@@ -159,7 +157,7 @@ func (ah *authHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	ar := authReq{
 		RequestID:  requestID,
 		Challenge:  challenge,
-		AppID:      key.AppID,
+		AppID:      appID,
 		UserID:     userID,
 		OriginalIP: host,
 		Nonce:      mux.Vars(r)["nonce"],
@@ -195,8 +193,8 @@ func (ah *authHandler) IFrame(w http.ResponseWriter, r *http.Request) {
 	cached, err := ah.GetRequest(req.RequestID)
 	util.OptionalPanic(err, http.StatusBadRequest, "Failed to load cached request")
 
-	query := Key{AppID: cached.AppID, UserID: cached.UserID}
-	rows, err := ah.s.DB.Model(&Key{}).Where(query).Select([]string{
+	query := security.Key{AppID: cached.AppID, UserID: cached.UserID}
+	rows, err := ah.s.DB.Model(&security.Key{}).Where(query).Select([]string{
 		"key_id", "type", "name",
 	}).Rows()
 	util.OptionalInternalPanic(err, "Could not load keys")
@@ -289,11 +287,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	ar, err := ah.GetRequest(requestID.(string))
 	util.OptionalInternalPanic(err, "Failed to look up data for valid challenge")
 
-	storedKey := Key{}
-	err = ah.s.DB.Model(&Key{}).Where(&Key{
-		UserID: ar.UserID,
-		ID:     ar.KeyHandle,
-	}).First(&storedKey).Error
+	storedKey, err := ah.s.kc.Get2FAKey(ar.KeyHandle)
 	util.OptionalInternalPanic(err, "Failed to look up stored key")
 
 	var reg u2f.Registration
@@ -311,7 +305,7 @@ func (ah *authHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 	tx := ah.s.DB.Begin()
 
 	// Store updated counter in the database.
-	err = tx.Model(&Key{}).Where(&Key{
+	err = tx.Model(&security.Key{}).Where(&security.Key{
 		UserID: ar.UserID,
 		ID:     ar.KeyHandle,
 	}).Update("counter", newCounter).Error
@@ -411,10 +405,7 @@ func (ah *authHandler) SetKey(w http.ResponseWriter, r *http.Request) {
 	ar.KeyHandle = req.KeyHandle
 	ah.requests.Set(req.RequestID, ar, ah.expiration)
 
-	var stored Key
-	err = ah.s.DB.Model(&Key{}).Where(&Key{
-		ID: req.KeyHandle,
-	}).First(&stored).Error
+	stored, err := ah.s.kc.Get2FAKey(req.KeyHandle)
 	util.OptionalBadRequestPanic(err, "Failed to get stored key")
 
 	writeJSON(w, http.StatusOK, setKeyReply{

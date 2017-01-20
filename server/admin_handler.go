@@ -61,7 +61,7 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	}).Error
 	util.OptionalInternalPanic(err, "Could not save admin")
 
-	err = ah.s.DB.Create(&SigningKey{
+	err = ah.s.DB.Create(&security.SigningKey{
 		ID:        keyID,
 		IV:        req.IV,
 		Salt:      req.Salt,
@@ -377,8 +377,8 @@ func (ah *adminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 // GetSigningKeys returns all signing keys in the database.
 // GET /admin/signing-key
 func (ah *adminHandler) GetSigningKeys(w http.ResponseWriter, r *http.Request) {
-	var result []SigningKey
-	err := ah.s.DB.Model(&SigningKey{}).Find(&result).Error
+	var result []security.SigningKey
+	err := ah.s.DB.Model(&security.SigningKey{}).Find(&result).Error
 	util.OptionalInternalPanic(err, "Could not read signing keys")
 
 	writeJSON(w, http.StatusOK, result)

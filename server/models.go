@@ -35,20 +35,6 @@ type LongTermRequest struct {
 	AppID string `json:"appID"`
 }
 
-// Key is the Gorm model for a user's stored public key.
-type Key struct {
-	// base-64 web encoded version of the KeyHandle in MarshalledRegistration
-	ID     string `json:"keyID"`
-	Type   string `json:"type"`
-	Name   string `json:"name"`
-	UserID string `json:"userID"`
-	AppID  string `json:"appID"`
-
-	// unmarshalled by go-u2f
-	MarshalledRegistration []byte `json:"marshalledRegistration"`
-	Counter                uint32 `json:"counter"`
-}
-
 // Admin is the Gorm model for a (super-) admin.
 type Admin struct {
 	ID          string `json:"activeID"` // can be joined with Key.UserID
@@ -76,12 +62,4 @@ type Permission struct {
 
 	// Must be inside the valid list of permissions
 	Permission string `gorm:"primary_key" json:"permission"`
-}
-
-// SigningKey is the Gorm model for keys that the admin uses to sign things.
-type SigningKey struct {
-	ID        string `json:"signingKeyID"`
-	IV        string `json:"iv"`        // encoded using encodeBase64
-	Salt      string `json:"salt"`      // same encoding
-	PublicKey string `json:"publicKey"` // same encoding
 }

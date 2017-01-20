@@ -1,6 +1,7 @@
 package server
 
 import (
+	"container/ring"
 	"net"
 	"time"
 
@@ -23,7 +24,7 @@ type disperser struct {
 	listeners     map[string]listener
 
 	events     map[string][]event // keys are app IDs
-	recent     []event
+	recent     *ring.Ring
 	eventsLock sync.RWMutex
 
 	mmdb *maxminddb.Reader
@@ -82,7 +83,7 @@ func newDisperser(f string) (*disperser, error) {
 		sync.RWMutex{},
 		make(map[string]listener),
 		make(eventsMap),
-		make([]event, 0, 10000),
+		ring.New(10000),
 		sync.RWMutex{},
 		mmdb,
 	}
@@ -174,11 +175,8 @@ func (d *disperser) addEvent(n eventName, t time.Time, aID, s, uID,
 		}
 
 		// If the recent list is full, overwrite the oldest event
-		if len(d.recent) == cap(d.recent) {
-			copy(d.recent, append(d.recent[1:], e))
-		} else {
-			d.recent = append(d.recent, e)
-		}
+		d.recent.Value = e
+		d.recent = d.recent.Next()
 		d.eventsLock.Unlock()
 	}()
 
@@ -227,7 +225,14 @@ func (d *disperser) getMessages() {
 func (d *disperser) getRecent() []event {
 	var out []event
 	d.eventsLock.RLock()
-	copy(out, d.recent)
+	curr := d.recent.Prev()
+	for curr.Value != nil {
+		out = append(out, curr.Value.(event))
+		if curr == d.recent {
+			break
+		}
+		curr = curr.Prev()
+	}
 	d.eventsLock.RUnlock()
 	return out
 }
