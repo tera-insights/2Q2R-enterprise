@@ -2,7 +2,7 @@
 
 ## Setup
 
-0. Goto $GOPATH/src and then git clone  git@github.com:alinVD/2Q2R-enterprise.git 2q2r`
+0. Goto $GOPATH/src and then `git clone  git@github.com:alinVD/2Q2R-enterprise.git 2q2r`
 1. Install [Glide](https://github.com/Masterminds/glide#install). Make sure
 you've either set your `$GOBIN` or your `$PATH` includes `$GOPATH/bin`. 
 2. `make install_dependencies` will install dependencies inside `vendor/`. 
