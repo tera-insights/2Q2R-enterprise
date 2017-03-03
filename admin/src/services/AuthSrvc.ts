@@ -48,9 +48,9 @@ export class AuthSrvc {
      *         is corrupted or incorrect altogether. The error message will
      *         explain which error occurred and should be displayed in a toast.
      */
-    public prepareFirstFactor(key: ExternalKeyPair, password: Uint8Array): ng.IPromise<void> {
+    public prepareFirstFactor(key: ExternalKeyPair, id: string, password: Uint8Array): ng.IPromise<void> {
         let deferred = this.$q.defer<void>();
-        this.adminID = ''; // TODO: what is an adminID?
+        this.adminID = id; // TODO: what is an adminID?
 
         this.$q.all([
             this.getServerPublic(),
@@ -81,7 +81,8 @@ export class AuthSrvc {
      * Because an HMAC signature must be computed for every message,
      * the authentication headers will change with every request to the
      * server. This method modifies the headers each time based upon the
-     * given message.
+     * given message. Call this method only once `prepareFirstFactor()`
+     * has been called.
      * @param {any} message Request needing authentication.
      * @returns A promise fulfilling with a headers object.
      */

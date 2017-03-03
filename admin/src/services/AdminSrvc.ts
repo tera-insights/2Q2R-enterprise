@@ -70,7 +70,7 @@ export class AdminSrvc {
         'delete': { method: 'DELETE', url: '/admin/admin/:id' }
     });
 
-    public query(): ng.IPromise<IAdminInfo> {
+    public query(): ng.IPromise<IAdminInfo[]> {
         return this.resource.query().$promise;
     }
 

@@ -66,15 +66,12 @@ class SubscriptionManager {
 
 }
 
-export class Communicator {
+export class StatsSrvc {
 
     private resource: ng.resource.IResourceClass<Message>;
     private subMngr: SubscriptionManager = new SubscriptionManager();
 
-    static Resource($resource: ng.resource.IResourceService): ng.resource.IResourceClass<Message> {
-        var resource = $resource("/admin/stats/recent");
-        return resource as ng.resource.IResourceClass<Message>;
-    }
+    public resource = this.$resource("/admin/stats/recent");
 
     subscribe(types: string[], handler: MessageHandler) {
         handler(this.resource.query()); // TODO: only give the recent messages for particular types
@@ -92,8 +89,6 @@ export class Communicator {
     constructor(
         private $resource: ng.resource.IResourceService
     ) {
-        this.resource = Communicator.Resource($resource);
-
         var ws = new WebSocket('ws://' + window.location.host + '/admin/stats/listen');
         ws.onmessage = (msg) => {
             console.log(msg);

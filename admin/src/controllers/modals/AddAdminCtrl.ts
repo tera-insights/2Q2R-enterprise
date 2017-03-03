@@ -1,5 +1,5 @@
 import { AdminSrvc } from '../../services/AdminSrvc';
-import { INewAdminRequest } from '../../interfaces/rest';
+import { INewAdminRequest } from '../../services/AdminSrvc';
 import { ExternalKeyPair, createAuthenticator } from 'p256-auth';
 import 'angular-material';
 

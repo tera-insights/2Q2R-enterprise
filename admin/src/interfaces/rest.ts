@@ -103,7 +103,7 @@ export interface ISuccessfulRegistrationData {
     registrationData: string; // base64 binary registration data
     deviceName: string;
     type: string;     // device export interface and key type
-    fcmToken: string; // Firebase Communicator Device token
+    fcmToken: string; // Firebase StatsSrvc Device token
 }
 
 export interface IFailedRegistrationData {

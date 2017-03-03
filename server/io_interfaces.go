@@ -127,7 +127,7 @@ type successfulRegistrationData struct {
 	RegistrationData string `json:"registrationData"` // base64 binary registration data
 	DeviceName       string `json:"deviceName"`
 	Type             string `json:"type"`     // device type and key type
-	FCMToken         string `json:"fcmToken"` // Firebase Communicator Device token
+	FCMToken         string `json:"fcmToken"` // Firebase StatsSrvc Device token
 }
 
 type failedRegistrationData struct {

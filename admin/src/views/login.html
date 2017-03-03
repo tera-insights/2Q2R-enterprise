@@ -6,12 +6,10 @@
                 <label>Username</label>
                 <input type="text" ng-model="username" id="username" name="username" required>
             </md-input-container>
-            <md-input-container class="md-block" flex-gt-sm>
-                <label>Password</label>
-                <input type="password" ng-model="password" id="password" name="password" required ng-maxlength="16">
-            </md-input-container>
+            <secure-password array="ctrl.password"></secure-password>
+            <md-button class="md-primary" ngf-select="cMod.uploadSigningKey($file)">Upload signing key</md-button>
             <div layout-gt-sm="row">
-                <md-button ng-disabled="loginForm.$invalid" class="md-raised md-primary" ng-click="ctrl.login(username, password)" >Login</md-button>
+                <md-button ng-disabled="loginForm.$invalid || ctrl.password[0] != 0 || !ctrl.signingKey" class="md-raised md-primary" ng-click="ctrl.login(username)" >Login</md-button>
                 <md-button class="md-raised" ng-click="ctrl.register()">Register</md-button>
             </div>
         </form>

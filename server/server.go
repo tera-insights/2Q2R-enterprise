@@ -7,7 +7,9 @@ import (
 	"2q2r/util"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/hmac"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -15,6 +17,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -342,7 +345,7 @@ func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
 
 // For requests coming from an app sever or the admin frontend
 func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
-	/*id, received, err := getAuthDataFromHeaders(r)
+	id, received, err := getAuthDataFromHeaders(r)
 	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
 
 	hmacBytes, err := util.DecodeBase64(received)
@@ -403,7 +406,7 @@ func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
 	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
 	s.kc.PutShared(x, y, key)
-}*/
+}
 
 // GetHandler returns the routes used by the 2Q2R server.
 func (s *Server) GetHandler() http.Handler {
@@ -489,7 +492,7 @@ func (s *Server) GetHandler() http.Handler {
 
 	// Static files
 	fileServer := http.FileServer(rice.MustFindBox("assets").HTTPBox())
-	router.PathPrefix("/static").HandlerFunc(func (w http.ResponseWriter, r *http.Request)  {
+	router.PathPrefix("/static").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = strings.Replace(r.URL.Path, "/static/", "", 1)
 		fileServer.ServeHTTP(w, r)
 	})

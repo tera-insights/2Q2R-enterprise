@@ -1,12 +1,37 @@
 import { AuthSrvc } from '../services/AuthSrvc';
-import { RegisterCtrl } from './modals/RegisterCtrl'
+import { RegisterCtrl } from './modals/RegisterCtrl';
+import { ExternalKeyPair } from 'p256-auth';
 
 export class LoginCtrl {
 
-    login(userid: string, password: string) {
+    private signingKey: ExternalKeyPair;
+    private password: Uint8Array = new Uint8Array(50);
 
+    /**
+     * Upload the admin's signing key for primary authentication.
+     * @param {File} file The signing key file (JSON).
+     */
+    uploadSigningKey(file: File) {
+        let fileReader = new FileReader();
+        fileReader.onload = (event) => {
+            this.signingKey = JSON.parse((event.target as any).result);
+        };
+        fileReader.readAsText(file);
     }
 
+    /**
+     * Makes a call to the authentication service with the user's input
+     * credentials, resulting in the creation of first-factor headers if
+     * a valid key file is uploaded and the password is correct.
+     * @param {string} userID The input username.
+     */
+    login(userID: string) {
+        this.AuthSrvc.prepareFirstFactor(this.signingKey, userID, this.password);
+    }
+
+    /**
+     * Opens a prompt for the first half of a new admin registration.
+     */
     register() {
         this.$mdDialog.show({
             controller: RegisterCtrl,
@@ -25,12 +50,11 @@ export class LoginCtrl {
         '$mdDialog',
         '$mdToast'
     ];
+
     constructor(
         private AuthSrvc: AuthSrvc,
         private $mdDialog: angular.material.IDialogService,
         private $mdToast: angular.material.IToastService
-    ) {
-
-    }
+    ) {}
 
 }

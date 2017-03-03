@@ -1,9 +1,9 @@
-import { AdminSrvc } from '../services/AdminSrvc';
+import { AdminSrvc, IAdminInfo } from '../services/AdminSrvc';
 import { AddAdminCtrl } from './modals/AddAdminCtrl';
 
 export class AdminsCtrl {
 
-    private admins: any[];
+    private admins: IAdminInfo[];
     private filteredAdmins: any[];
     private selectedAdmins: any[];
 
@@ -34,7 +34,9 @@ export class AdminsCtrl {
     }
 
     refresh() {
-        this.admins = this.AdminSrvc.get('');
+        this.AdminSrvc.query().then(admins => {
+            this.admins = admins;
+        });
     }
 
     deleteSelected() {
@@ -47,7 +49,6 @@ export class AdminsCtrl {
             templateUrl: 'views/modals/AddAdmin.html',
             clickOutsideToClose: true
         }).then((error?: Error) => {
-            // TODO: refer admin
             if(!error) {
                 this.$mdToast.showSimple('Admin successfully registered!');
             } else {

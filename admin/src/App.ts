@@ -1,5 +1,5 @@
 import { AuthSrvc } from './services/AuthSrvc';
-import { Communicator } from './services/Communicator';
+import { StatsSrvc } from './services/StatsSrvc';
 import { AppSrvc } from './services/AppSrvc';
 import { ServerSrvc } from './services/ServerSrvc';
 import { AdminSrvc } from './services/AdminSrvc';
@@ -21,7 +21,7 @@ angular.module('2Q2R', [
     'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table', 'ngFileUpload'
 ])
     .service('AuthSrvc', AuthSrvc)
-    .service('Communicator', Communicator)
+    .service('StatsSrvc', StatsSrvc)
     .service('AppSrvc', AppSrvc)
     .service('ServerSrvc', ServerSrvc)
     .service('AdminSrvc', AdminSrvc)

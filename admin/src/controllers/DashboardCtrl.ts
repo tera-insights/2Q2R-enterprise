@@ -1,4 +1,4 @@
-import { Communicator } from '../services/Communicator';
+import { StatsSrvc } from '../services/StatsSrvc';
 import L = require('leaflet');
 
 export class DashboardCtrl {
@@ -55,15 +55,15 @@ export class DashboardCtrl {
     }
 
     static $inject = [
-        'Communicator',
+        'StatsSrvc',
         '$timeout'
     ];
 
     constructor(
-        private Communicator: Communicator,
+        private StatsSrvc: StatsSrvc,
         private $timeout: ng.ITimeoutService
     ) {
-        this.communicationID = this.Communicator.subscribe(['registration', 'authentication'], this.onServerNotification);
+        this.communicationID = this.StatsSrvc.subscribe(['registration', 'authentication'], this.onServerNotification);
         this.$timeout(() => {
             var map = L.map('map').setView([this.lConfig.center.lat, this.lConfig.center.lng], this.lConfig.center.zoom);
             L.tileLayer(this.lConfig.tileLayer, {
@@ -75,7 +75,7 @@ export class DashboardCtrl {
     }
 
     destructor() {
-        this.Communicator.unsubscribe([this.communicationID]);
+        this.StatsSrvc.unsubscribe([this.communicationID]);
     }
 
 }

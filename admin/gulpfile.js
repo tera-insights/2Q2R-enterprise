@@ -29,7 +29,8 @@ var libJsFiles = [
     'node_modules/angular-material-data-table/dist/md-data-table.min.js',
     'node_modules/leaflet/dist/leaflet.js',
     'node_modules/chart.js/dist/Chart.bundle.min.js',
-    'node_modules/angular-secure-password/dist/angular-secure-password.js'
+    'node_modules/angular-secure-password/dist/angular-secure-password.js',
+    'node_modules/ng-file-upload/dist/ng-file-upload.min.js'
 ];
 
 var libCssFiles = [
