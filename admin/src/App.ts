@@ -39,7 +39,7 @@ angular.module('2Q2R', [
         $stateProvider: angular.ui.IStateProvider,
         $urlRouterProvider: angular.ui.IUrlRouterProvider
     ) => {
-        $urlRouterProvider.otherwise("/login");
+        $urlRouterProvider.otherwise("/main");
         $stateProvider
             // LOGIN
             .state('login', {
