@@ -1,24 +1,22 @@
 import * as _ from 'lodash';
-import { ServerSrvc, IServerItem, IServerResource } from '../services/ServerSrvc';
-import { AppSrvc, IAppItem, IAppResource } from '../services/AppSrvc';
+import { ServerSrvc, IServerInfo } from '../services/ServerSrvc';
+import { AppSrvc, IAppInfo } from '../services/AppSrvc';
 import { DeleteServersCtrl } from './modals/DeleteServersCtrl';
 import 'angular-resource';
 import 'angular-material';
 
-interface IServerExtendedItem extends IServerItem {
+interface IServerExtendedInfo extends IServerInfo {
     appName?: string;
     userCount?: number;
 }
 
 export class ServersCtrl {
-    private Server: IServerResource;
-    private servers: IServerExtendedItem[];
-    private App: IAppResource;
-    private apps: IAppItem[];
+    private servers: IServerExtendedInfo[];
+    private apps: IAppInfo[];
 
-    private appsByID: { [appID: string]: IAppItem } = {};
-    private selectedServers: IServerExtendedItem[] = [];
-    private filteredServers: IServerExtendedItem[] = [];
+    private appsByID: { [appID: string]: IAppInfo } = {};
+    private selectedServers: IServerExtendedInfo[] = [];
+    private filteredServers: IServerExtendedInfo[] = [];
 
     // These correspond to the different filter types indicated by the drop-down.
     private filterProperty: 'serverName' | 'appName' | 'userCount';
@@ -53,9 +51,9 @@ export class ServersCtrl {
     }
 
     // Aux datascructures to organize Apps and Servers
-    private serversByAppID: { [appID: string]: IServerItem[] } = {};
+    private serversByAppID: { [appID: string]: IServerInfo[] } = {};
 
-    updateServer(server: IServerItem) {
+    updateServer(server: IServerInfo) {
 
     }
 
@@ -80,14 +78,17 @@ export class ServersCtrl {
         if (filterObj) {
             switch (filterObj.type) {
                 case "string":
-                    filterFct = (server: IServerExtendedItem): boolean => {
+                    filterFct = (server: IServerExtendedInfo): boolean => {
                         var serverProperty = server[this.filterProperty] as string;
                         serverProperty = serverProperty ? serverProperty : ""; // TODO: every server should have every required property
-                        return (this.caseSensitive ? serverProperty : serverProperty.toLowerCase()).includes(this.caseSensitive ? this.filterString : this.filterString.toLowerCase());
+                        return (this.caseSensitive ? serverProperty : 
+                            serverProperty.toLowerCase())
+                            .indexOf(this.caseSensitive ? this.filterString : 
+                                this.filterString.toLowerCase()) != -1;
                     };
                     break;
                 case "number":
-                    filterFct = (server: IServerExtendedItem): boolean => {
+                    filterFct = (server: IServerExtendedInfo): boolean => {
                         var val = server[this.filterString];
                         return (val >= this.filterRange.min) &&
                             (val <= this.filterRange.max);
@@ -95,7 +96,7 @@ export class ServersCtrl {
                     break;
 
                 default:  // Cannot apply this, return true
-                    filterFct = (server: IServerExtendedItem): boolean => {
+                    filterFct = (server: IServerExtendedInfo): boolean => {
                         return true;
                     };
             }
@@ -107,16 +108,16 @@ export class ServersCtrl {
 
     // Get all the info from backend again
     refresh() {
-        console.log("Refreshed servers!");
-        this.servers = <IServerExtendedItem[]>this.Server.query();
-        this.apps = this.App.query();
-
         this.$q.all([
-            this.servers.$promise,
-            this.apps.$promise
+            this.ServerSrvc.query().then( (servers) => {
+                this.servers = servers;
+            }),
+            this.AppSrvc.query().then( (apps) => {
+                this.apps = apps;
+            })
         ]).then(() => {
             this.appsByID = _.keyBy(this.apps, 'appID');
-            this.servers.forEach((server: IServerExtendedItem) => {
+            this.servers.forEach((server: IServerExtendedInfo) => {
                 if (server.userCount && server.userCount > this.maxUsers) {
                     this.maxUsers = server.userCount;
                     this.filterRange.max = this.maxUsers;
@@ -147,8 +148,6 @@ export class ServersCtrl {
         private AppSrvc: AppSrvc,
         private ServerSrvc: ServerSrvc
     ) {
-        this.App = AppSrvc.resource;
-        this.Server = ServerSrvc.resource;
         this.refresh();
     }
 

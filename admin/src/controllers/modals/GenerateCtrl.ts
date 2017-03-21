@@ -1,34 +1,29 @@
-import { AppSrvc, IAppItem, IAppResource } from '../../services/AppSrvc';
-import { ServerSrvc, IServerItem, IServerResource } from '../../services/ServerSrvc';
+import { AppSrvc, IAppInfo } from '../../services/AppSrvc';
+import { ServerSrvc, IServerInfo } from '../../services/ServerSrvc';
 import 'angular-resource';
 import 'angular-material';
 
 export class GenerateCtrl {
-    private App: IAppResource;
-    private Server: IServerResource;
-
     private appPrefix: string;
     private serverPrefix: string;
     private numApps = 100;
     private numServers = 1000;
+    private apps: IAppInfo[];
 
     /**
      * Accept function. Closes modal
      */
     accept() {
-        let apps: IAppItem[] = this.App.query();
-        
         for (var i = 0; i < this.numServers; i++) {
-            let app = apps[Math.floor(Math.random() * apps.length)];
-            var server = new this.Server({
-                serverName: this.serverPrefix + " #" + (i + 1),
+            let app = this.apps[Math.floor(Math.random() * this.apps.length)];
+            var server = this.ServersSrvc.create({
+                name: this.serverPrefix + " #" + (i + 1),
                 appID: app.appID,
                 baseURL: "",
                 keyType: "",
                 publicKey: "",
                 permissions: ""
             });
-            server.$save();
         }
 
         this.$mdDialog.hide();
@@ -51,8 +46,9 @@ export class GenerateCtrl {
         private AppsSrvc: AppSrvc,
         private ServersSrvc: ServerSrvc,
     ) {
-        this.App = AppsSrvc.resource;
-        this.Server = ServersSrvc.resource;
+        this.AppsSrvc.query().then((apps) => {
+            this.apps = apps;
+        })
     }
 
 }

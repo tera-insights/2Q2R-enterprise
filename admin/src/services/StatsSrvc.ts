@@ -67,8 +67,6 @@ class SubscriptionManager {
 }
 
 export class StatsSrvc {
-
-    private resource: ng.resource.IResourceClass<Message>;
     private subMngr: SubscriptionManager = new SubscriptionManager();
 
     public resource = this.$resource("/admin/stats/recent");

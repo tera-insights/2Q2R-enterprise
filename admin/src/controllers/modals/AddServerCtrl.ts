@@ -1,5 +1,5 @@
-import { AppSrvc, IAppItem, IAppResource } from '../../services/AppSrvc';
-import { ServerSrvc, IServerItem, IServerResource } from '../../services/ServerSrvc';
+import { AppSrvc, IAppInfo } from '../../services/AppSrvc';
+import { ServerSrvc, IServerInfo } from '../../services/ServerSrvc';
 
 /**
  * Controller of add server modal. 
@@ -8,7 +8,14 @@ import { ServerSrvc, IServerItem, IServerResource } from '../../services/ServerS
  * @class AddServerCtrl
  */
 export class AddServerCtrl {
-    private server: IServerItem;
+    private server: IServerInfo = {
+                serverID: "",
+                appID: "",
+                baseURL: "",
+                keyType: "P-256",
+                publicKey: "",
+                permissions: ""
+            };
     private availablePermissions: string[] = [
         'Register',
         'Authenticate',
@@ -41,14 +48,6 @@ export class AddServerCtrl {
         private $mdDialog: ng.material.IDialogService,
         private ServersSrvc: ServerSrvc
     ) {
-            var Server = ServersSrvc.resource;
-            this.server = new Server({
-                serverName: "",
-                appID: "",
-                baseURL: "",
-                keyType: "P-256",
-                publicKey: "",
-                permissions: ""
-            });
+
     }
 }

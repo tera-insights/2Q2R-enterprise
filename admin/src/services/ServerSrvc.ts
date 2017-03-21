@@ -5,6 +5,7 @@ import 'angular-resource';
  **************/
 
 export interface INewServerRequest {
+    name: string;
     appID: string;
     baseURL: string;
     keyType: string;

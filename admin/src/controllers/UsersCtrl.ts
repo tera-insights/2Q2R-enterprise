@@ -1,10 +1,7 @@
-import { UserSrvc, IUserItem, IUserResource } from "../services/UserSrvc";
+import { UserSrvc } from "../services/UserSrvc";
 import 'angular-resource';
 
 export class UsersCtrl {
-
-    private User: IUserResource;
-    private users: IUserItem[] = [];
 
     static $inject = [
         'Users'
@@ -12,8 +9,7 @@ export class UsersCtrl {
     constructor(
         UsersSrvc: UserSrvc
     ) {
-        this.User = UsersSrvc.resource;
-        this.users = this.User.query();
+       
     }
 
 }

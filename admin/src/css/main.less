@@ -2,8 +2,10 @@
 @import (reference) "mixins";
 
 html {
-    .size()
-    /* grayish color */
+    // 100% 100%
+    .size();
+    // global font size, most measurements are based off this
+    font-size: 16px !important;
 }
 
 
@@ -333,3 +335,126 @@ mdt-table > md-content > ng-include {
     width: 80%;
     height: auto;
 }
+
+
+
+// our application navigation system
+.app-menu {
+    .size();
+    display: flex;
+    flex-direction: column;
+} 
+
+// contains user avatar and application selector in one package
+.app-menu__user-bar {
+    // 64 high to disseminate from the 48 high navigation stuff
+    .size(4rem, 100%);
+    // flexbox and alignment of items
+    display: flex;
+    align-items: center;
+}
+
+
+// user icon, is a circle
+.avatar__circle {
+    // leaves 8px of space on top and bottom, mathematical perfection (probably)
+    .size(3rem, 3rem);
+    // center the placeholder text
+    .center();
+    // circle
+    border-radius: 50%;
+    // hard-coded in until we get actual avatars
+    background-color: @clr-blue-500;
+    color: white;
+    // and the fontsize to make it look more better-er
+    font-size: 20px;
+    // add margin to separate from margin of page and also to line up with the center of the icons
+    margin-left: 8px;
+}
+
+// one of the buttons you can click to change the interface
+.app-menu__navigator {
+    .size(3rem, 100%);
+    // set position to relative so the ripple is bounded inside
+    position: relative;
+    // vertical center
+    display: flex;
+    align-items: center;
+    // cursor
+    cursor: pointer;
+}
+
+// change background to a closer shade to the active color on hover
+.app-menu__navigator:hover {
+    background-color: @clr-grey-200;
+}
+
+// and disable the blue outline on click
+.app-menu__navigator:focus {
+    outline: none;
+}
+
+// if the current navigator is selected, it lights up both this and the icon next to it with a color of the rainbow
+.navigator__spacer {
+    .size(100%, 4px);
+}
+
+// icon that corresponds to text
+.navigator__icon {
+    // space from spacer and text
+    margin: 0 16px;
+}
+
+// text that corresponds to where you want to go
+.navigator__text {
+    color: @primary-text;
+    font-size: 1rem;
+}   
+
+// active navigator item
+.active__navigator {
+
+}
+
+// a mixin to help with the spacer coloration
+// color is the color it lights up with, iteration plugs into an nth-child (i.e which item in the list it is)
+.navigator-color(@color, @iteration) {
+    // the spacer before the icon
+    .active__navigator:nth-child(@{iteration}) .navigator__spacer {
+        // background color because it is just a block of pixels
+        background-color: @color;
+    }
+
+    // the icon
+    .active__navigator:nth-child(@{iteration}) .navigator__icon {
+        // color because that is how the mdi fontset works
+        color: @color; 
+    }
+}
+
+// using the mixin
+
+// first one is red
+.navigator-color(@clr-red-500, 1);
+
+// second is orange
+.navigator-color(@clr-orange-500, 2);
+
+//third is yellow
+.navigator-color(@clr-yellow-500, 3);
+
+// fourth is green
+.navigator-color(@clr-green-500, 4);
+
+// fifth is blue
+.navigator-color(@clr-blue-500, 5);
+
+// sixth is indigo
+.navigator-color(@clr-indigo-500, 6);
+
+// seventh is violet
+.navigator-color(@clr-purple-500, 7);
+
+// and the last colored nav item should always be the settings, as logout just logs you out
+// it gets black
+.navigator-color(@clr-grey-900, 8);

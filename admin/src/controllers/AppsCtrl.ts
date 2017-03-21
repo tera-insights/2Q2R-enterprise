@@ -1,4 +1,4 @@
-import { AppSrvc, IAppItem, IAppResource } from '../services/AppSrvc';
+import { AppSrvc, IAppInfo } from '../services/AppSrvc';
 import { AddAppCtrl } from '../controllers/modals/AddAppCtrl';
 import 'angular-resource';
 import 'angular-material';
@@ -10,11 +10,10 @@ import 'angular-material';
  * @class AppsCtrl
  */
 export class AppsCtrl {
-    private App: IAppResource;
-    private apps: IAppItem[] = [];
+    private apps: IAppInfo[] = [];
 
     // selected items
-    private selected: IAppItem[] = [];
+    private selected: IAppInfo[] = [];
 
     // angular-material-data-table options
     private options = {
@@ -35,17 +34,19 @@ export class AppsCtrl {
             controllerAs: 'cMod',
             templateUrl: 'views/modals/AddApp.html',
             clickOutsideToClose: true
-        }).then((app: IAppItem) => {
-            app.$save().then((newApp: IAppItem) => {
-                this.apps.push(newApp);
+        }).then((app: IAppInfo) => {
+            this.AppSrvc.create({
+                appName: app.appName
+            }).then( (a) => {
+                this.apps.push(a);
             });
         }, () => {
             // TODO: Add nofitifications
         });
     }
 
-    updateApp(app: IAppItem) {
-        app.$update();
+    updateApp(app: IAppInfo) {
+        this.AppSrvc.update(app);
     }
 
     removeApp(app) {
@@ -70,10 +71,9 @@ export class AppsCtrl {
         private $mdDialog: ng.material.IDialogService,
         private AppSrvc: AppSrvc
     ) {
-        this.App = AppSrvc.resource;
-
-        this.apps = this.App.query();
-
+       this.AppSrvc.query().then( (apps) => {
+           this.apps = apps;
+       });
     }
 
 }

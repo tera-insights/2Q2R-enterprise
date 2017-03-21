@@ -8,11 +8,6 @@ export interface INewAppRequest {
     appName: string;
 }
 
-export interface IAppUpdateRequest {
-    appID: string;
-    appName: string;
-}
-
 export interface IAppInfo {
     appID: string;
     appName: string;
@@ -43,7 +38,7 @@ export class AppSrvc {
         return this.resource.create({}, req).$promise;
     }
 
-    public update(req: IAppUpdateRequest): ng.IPromise<IAppInfo> {
+    public update(req: IAppInfo): ng.IPromise<IAppInfo> {
         return this.resource.update({ id: '@appID' }, req).$promise;
     }
 

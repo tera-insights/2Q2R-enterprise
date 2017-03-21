@@ -36,7 +36,8 @@ export class RegisterCtrl {
         let authenticator = createAuthenticator();
         
         authenticator.generateKeyPair().then(() => {
-            Promise.all([authenticator.exportKey(this.password), authenticator.getPublic()]).then(([extKey, pubKey]) => {
+            authenticator.exportKey(this.password).then( (extKey) => 
+                authenticator.getPublic().then((pubKey) => {
                 this.registration.iv = extKey.iv;
                 this.registration.salt = extKey.salt;
                 this.registration.publicKey = pubKey;
@@ -47,7 +48,7 @@ export class RegisterCtrl {
                 FileSaver.saveAs(keyFile, 'Key.1fa');
                 FileSaver.saveAs(regFile, this.registration.name.replace(' ', '_') + '.arr');
                 this.$mdDialog.hide();
-            });
+            }))
         });
     }
 
@@ -59,10 +60,12 @@ export class RegisterCtrl {
     }
 
     static $inject = [
-        '$mdDialog'
+        '$mdDialog',
+        '$q'
     ];
     constructor(
-        private $mdDialog: ng.material.IDialogService
+        private $mdDialog: ng.material.IDialogService,
+        private $q: ng.IQService
     ) {
         console.log(this.password[0]);
     }

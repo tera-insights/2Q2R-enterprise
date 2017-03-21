@@ -1,4 +1,4 @@
-import { AppSrvc, IAppItem } from '../../services/AppSrvc';
+import { AppSrvc, IAppInfo } from '../../services/AppSrvc';
 
 /**
  * Controller of add app modal. 
@@ -7,14 +7,14 @@ import { AppSrvc, IAppItem } from '../../services/AppSrvc';
  * @class AddAppCtrl
  */
 export class AddAppCtrl {
-    private app: IAppItem;
+    private appName;
 
     /**
      * Accept function. Closes modal
      */
     accept() {
         // no need to pass the semester since calee has it.
-        this.$mdDialog.hide(this.app);
+        this.$mdDialog.hide(this.appName);
     }
 
     /**
@@ -30,11 +30,7 @@ export class AddAppCtrl {
     ];
     constructor(
         private $mdDialog: ng.material.IDialogService,
-        AppsSrvc: AppSrvc
-    ) {
-        var App = AppsSrvc.resource;
-        this.app = new App({
-            appName: ""
-        });
+        private AppsSrvc: AppSrvc
+    ) {        
     }
 }

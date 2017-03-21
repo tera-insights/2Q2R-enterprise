@@ -23,17 +23,16 @@ interface INonce {
  * @copyright Tera Insights, LLC
  */
 export class AuthSrvc {
-
-    private resource: any = this.$resource('', { headers: this.authHeaders }, {
-        public: { method: 'GET', url: '/admin/public' },
-        nonce: { method: 'GET', url: '/admin/nonce/:id' }
-    });
-
     private ephemeralKeyManager = createAuthenticator();
     private signingKeyManager = createSigner();
 
     private authHeaders: any;
     private adminID: string;
+
+    private resource: any = this.$resource('', { headers: this.authHeaders }, {
+        public: { method: 'GET', url: '/admin/public' },
+        nonce: { method: 'GET', url: '/admin/nonce/:id' }
+    });
 
     /**
      * This method prepares first-factor authentication headers for
@@ -56,23 +55,22 @@ export class AuthSrvc {
             this.getServerPublic(),
             this.getNonce()
         ]).then(([serverPublic, nonce]) => {
-            Promise.all([
-                this.ephemeralKeyManager.generateKeyPair(),
-                this.ephemeralKeyManager.importServerKey(serverPublic.public),
-                this.signingKeyManager.importKey(key, password)
-            ]).then(() => {
-                this.ephemeralKeyManager.getPublic().then(ephemeralPublic => {
-                    this.signingKeyManager.sign(ephemeralPublic, 'base64URL').then(signature => {
-                        this.authHeaders = {
-                            'X-Authentication-Type': 'admin-frontend',
-                            'X-Public-Key': ephemeralPublic,
-                            'X-Public-Signature': signature
-                        };
-                        deferred.resolve();
-                    });
-                });
+           this.ephemeralKeyManager.generateKeyPair().then( () =>
+                this.ephemeralKeyManager.importServerKey(serverPublic.public)
+                    .then( () =>
+                    this.signingKeyManager.importKey(key, password)
+                        .then(() => 
+                        this.ephemeralKeyManager.getPublic().then(ephemeralPublic => {
+                            this.signingKeyManager.sign(ephemeralPublic, 'base64URL').then(signature => {
+                                this.authHeaders = {
+                                    'X-Authentication-Type': 'admin-frontend',
+                                    'X-Public-Key': ephemeralPublic,
+                                    'X-Public-Signature': signature
+                                };
+                                deferred.resolve();
+                            });
+                        }))))
             });
-        });
 
         return deferred.promise;
     }

@@ -1,0 +1,30 @@
+{
+	"root": {
+		"src": "./src",
+		"dest": "./../server/assets/admin"
+	},
+	"tasks": {
+		"typescript": {
+			"src": "./src/App.ts",
+			"dest": "./../server/assets/admin/js"
+		},
+		"js": {
+			"dest": "../server/assets/admin/"
+		},
+		"less": {
+			"src": "./src/**/*.less",
+			"dest": "./../server/assets/admin/css"
+		},
+		"images": {
+			"src": "./src/img/**/*.*",
+			"dest": "./../server/assets/admin/img/"
+		},
+		"html": {
+			"src": "./src/**/*.html",
+			"dest": "./../server/assets/admin/"
+		},
+		"fonts": {
+			"dest": "./../server/assets/admin/fonts/"
+		}
+	}
+}

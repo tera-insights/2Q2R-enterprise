@@ -4,18 +4,15 @@
         "target": "es5",
         "removeComments": true,
         "preserveConstEnums": true,
-        "outDir": "../build",
+        "outFile": "app.js",
         "sourceMap": true,
-        "lib": [
-            "es2015",
-            "dom"
-        ]
+        "rootDir": "./src",
+        "sourceRoot": "./src"
     },
     "exclude": [
         "tsd.json",
-        "tsconfig.json"
-    ],
-    "files": [
-        "typings/index.d.ts"
+        "tsconfig.json",
+        "node_modules",
+        "build"
     ]
 }

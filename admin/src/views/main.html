@@ -1,7 +1,7 @@
 <div class="full-size" layout="column" ng-cloak>
     <!-- sidenav for state selection -->
     <md-sidenav class="md-sidenav-left" md-component-id="left" md-disable-backdrop md-whiteframe="4">
-        <md-content class="fake-menu">
+        <!--<md-content class="fake-menu">
             <div ng-repeat="menuGroup in ctrl.menuGroups">
                 <md-menu-item ng-repeat="menu in menuGroup">
                     <md-button ng-click="ctrl.select(menu.state, menu.name)">
@@ -11,7 +11,32 @@
                 </md-menu-item>
                 <md-divider ng-if="$index < ctrl.menuGroups.length-1"></md-divider>
             </div>
-        </md-content>
+        </md-content>-->
+
+        <!-- the application menu, always open at the left side of the screen
+             ng-repeat is based on an object somewhere in the mainctrl, controls item functions and colors, etc.
+        -->
+        <div class="app-menu" >
+            <!-- bunches up the user avatar and application selector to make css cleaner -->
+            <div class="app-menu__user-bar">
+                <!-- displays a user avatar of either their choice or just their initials -->
+                <div class="avatar__circle">
+                    VD
+                </div>
+                <!-- application selector, exact form TBD -->
+            </div>
+            <!-- all of the navigation options and logout -->
+            <div class="app-menu__navigator-container" ng-repeat="menuGroup in ctrl.menuGroups">
+                <!-- each option, is the active navigator if clicked -->
+                <div class="app-menu__navigator" md-ink-ripple="#000000" ng-click="ctrl.select(menu.state, menu.name)" ng-repeat="menu in menuGroup" ng-class="{active__navigator: activeMenu === menu}">
+                    <!-- each option has a different color of the rainbow that lights up when it is clicked -->
+                    <div class="navigator__spacer"></div>
+                    <!-- icon is determined from mainctrl and colored on click -->
+                    <md-icon class="navigator__icon" md-font-icon="{{menu.icon}}"></md-icon>
+                    <span class="navigator__text">{{menu.name}}</span>
+                </div>
+            </div>
+        </div>
     </md-sidenav>
     <!-- where everything else exists -->
     <div class="full-size main">

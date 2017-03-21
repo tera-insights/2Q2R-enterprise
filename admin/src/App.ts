@@ -1,3 +1,8 @@
+// all of these are just bundled into the app.min.js
+
+// need to preload lots of angular stuff to keep the system happy
+import * as angular from 'angular';
+
 import { AuthSrvc } from './services/AuthSrvc';
 import { StatsSrvc } from './services/StatsSrvc';
 import { AppSrvc } from './services/AppSrvc';
@@ -13,12 +18,10 @@ import { AppsCtrl } from './controllers/AppsCtrl';
 import { AddAppCtrl } from './controllers/modals/AddAppCtrl';
 import { ServersCtrl } from './controllers/ServersCtrl';
 import { AddServerCtrl } from './controllers/modals/AddServerCtrl';
-import angular = require('angular');
-import 'ui-router-extras';
 
 angular.module('2Q2R', [
-    'ngAria', 'ngMaterial', 'ngResource', 'ngMessages', 'angular-secure-password',
-    'ui.router', 'ngAnimate','ct.ui.router.extras', 'md.data.table', 'ngFileUpload'
+    'ngAria', 'ngAnimate', 'ngResource', 'ngMaterial', 'ngMessages', 'angular-secure-password',
+    'ui.router','ct.ui.router.extras', 'md.data.table', 'ngFileUpload'
 ])
     .service('AuthSrvc', AuthSrvc)
     .service('StatsSrvc', StatsSrvc)
