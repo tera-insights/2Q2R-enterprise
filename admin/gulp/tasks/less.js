@@ -6,6 +6,8 @@ var sourcemaps  = require('gulp-sourcemaps'); 	// sourcemaps to allow LESS debug
 var less 		= require('gulp-less'); 		// less compiler
 var cleanCSS 	= require('gulp-clean-css');	// minify the css
 var concat		= require('gulp-concat');		// concatenate all of our css files
+var gutil		= require('gulp-util');			// used for logging, in this case error handling
+
 
 var config      = require('../config.json');	// the config file
 
@@ -20,6 +22,7 @@ var lessTask = function () {
   return gulp.src(paths.src)
     .pipe(sourcemaps.init()) // start the sourcemap
     .pipe(less()) // less compiler
+    .on('error', gutil.log) // if you get an error don't kill gulp-watch
     .pipe(cleanCSS()) // minify the css
     .pipe(concat('styles.min.css'))
     .pipe(sourcemaps.write()) // write the sourcemap

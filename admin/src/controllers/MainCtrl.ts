@@ -72,8 +72,8 @@ export class MainCtrl {
     */
 
     // a variable that manages the active navigator
-    // is then set based on clicked menuitem 
-    private activeMenu: string;
+    // is then set based on clicked menuitem , defaults to dash
+    private activeMenu: string = "Dashboard";
 
     select(route: string, name: string, menu: string) {
         this.sName = name;
@@ -83,13 +83,6 @@ export class MainCtrl {
 
         // set the active item
         this.activeMenu = menu;
-
-        // and toggle the sidenav
-        this.$mdSidenav('left').toggle();
-    }
-
-    toggleLeft() {
-        this.$mdSidenav('left').toggle();
     }
 
     generate() {
@@ -99,10 +92,42 @@ export class MainCtrl {
             templateUrl: 'views/modals/Generate.html',
             clickOutsideToClose: true
         }).then(() => {
-            // Yey. Generation succesful
+            // Yay. Generation succesful
         }, () => {
             // TODO: Add notifications
         });
+    }
+
+    // used in below function
+    private randomNumber: number = Math.floor(Math.random() * 6) + 1;
+    // displayed on the copyright
+    private randomHtmlChar: string;
+
+    // generates a random number and puts an html symbol according to that on the copyright
+    generateRandomHtmlChar() {
+        switch (this.randomNumber) {
+            case 0:
+                this.randomHtmlChar = "&#9733;"; // star
+                break;
+            case 1:
+                this.randomHtmlChar = "&#9786;"; // smiley face
+                break;
+            case 2:
+                this.randomHtmlChar = "&hearts;"; // heart
+                break;
+            case 3:
+                this.randomHtmlChar = "&#9834;"; // note
+                break;
+            case 4:
+                this.randomHtmlChar = "&#36;"; // dollar sign
+                break;
+            case 5:
+                this.randomHtmlChar = "&infin;"; // infinity sign
+                break;
+            case 6:
+                this.randomHtmlChar = "&spades;"; // spades
+        }
+
     }
 
     static $inject = [
@@ -117,7 +142,10 @@ export class MainCtrl {
         private $mdDialog: ng.material.IDialogService,
         private AuthSrvc: AuthSrvc
     ) {
-        this.toggleLeft();
-        this.select("main.dashboard", "Dashboard", "???");
+        // set the default state (dashboard)
+        this.select("main.dashboard", "Dashboard", "");
+
+        // generate copyright special character
+        this.generateRandomHtmlChar();
     }
 }

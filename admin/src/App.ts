@@ -21,7 +21,7 @@ import { AddServerCtrl } from './controllers/modals/AddServerCtrl';
 
 angular.module('2Q2R', [
     'ngAria', 'ngAnimate', 'ngResource', 'ngMaterial', 'ngMessages', 'angular-secure-password',
-    'ui.router','ct.ui.router.extras', 'md.data.table', 'ngFileUpload'
+    'ui.router','ct.ui.router.extras', 'md.data.table', 'ngFileUpload', 'color.picker'
 ])
     .service('AuthSrvc', AuthSrvc)
     .service('StatsSrvc', StatsSrvc)
@@ -112,4 +112,10 @@ angular.module('2Q2R', [
                 url: "/settings",
                 templateUrl: "views/settings.html"
             });
+    })
+    // allows for our copyright shenanigans
+    .filter('html',function($sce){
+        return function(input){
+            return $sce.trustAsHtml(input);
+        }
     });

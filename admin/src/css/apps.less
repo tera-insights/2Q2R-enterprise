@@ -1,2 +1,239 @@
 // import our mixins as a reference
 @import (reference) "mixins";
+// contains everything in apps.html
+.apps {
+    .size();
+    // center on the y axis
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+// searchbar styles are used throughout, some styles are specific to here
+.apps__searchbar {
+    // appears to have 3rem between top and bottom, 1rem is already present from the tile container
+    margin: 3rem 0 2rem 0;
+}
+
+// scrolls the apps__tiles
+.apps__tile-scroller {
+    // allow a little breathing room on the sides
+    width: 54rem;
+    // center along y axis
+    display: flex;
+    justify-content: center;
+    // fill remaining space
+    flex: 1;
+    // scroll
+    overflow: auto;
+    // offset to make both sides of equal offset (???)
+    margin-left: 1rem;
+    // separate from bottom edge, accounts for copyright
+    margin-bottom: 21px;
+}
+
+// the container for the tiles that represent applications
+.apps__tile-container {
+    // 4 tiles fit in a row
+    // each tile = 192px
+    // 4 tiles
+    // 16px margin between them and edges
+    // (192 * 4) + (16 * 4) = 832 or 52rem
+    width: 52rem;
+    display: flex;
+    // make items flow to next row
+    flex-wrap: wrap;
+    // add with child margins to get 16px gutters
+    padding: 8px;
+}
+
+// each tile displays general info about the app
+.apps__tile {
+    .size(12rem, 12rem);
+    // always push to bottom
+    justify-content: flex-end;
+    // transition to minimize jankiness
+    transition: all 0.3s cubic-bezier(.25, .8, .25, 1);
+    // margin between tiles, excess accounted for by container
+    margin: 8px;
+    // makes it so that the settings sheet does not appear outside of tile
+    overflow: hidden;
+    // clickable, change cursor to reflect that
+    cursor: pointer;
+}
+
+// on hover give a little feedback
+.apps__tile:hover {
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+}
+
+// dashed border, adds an app
+.apps__tile--add {
+    .center();
+    flex-direction: column;
+    font-size: 18px;
+    // outline so it doesn't take up space
+    outline: 4px dashed @secondary-text;
+    // offset by same width to make it inside
+    outline-offset: -4px;
+    // basically transparent
+    background-color: @background;
+    color: @secondary-text;
+    cursor: pointer;
+    .noselect();
+}
+
+// make the border appear to solidify
+@keyframes switch {
+    0% {
+        outline-style: dashed;
+    }
+    70% {
+        outline-style: dotted;
+    }
+    100% {
+        outline-style: solid;
+    }
+}
+
+// on hover give it a little animation :)
+.apps__tile--add:hover {
+    box-shadow: none;
+    outline-style: dotted;
+    // call the animation
+    animation-name: switch;
+    animation-duration: 3.5s;
+    // goes back and forth
+    animation-direction: alternate;
+    animation-iteration-count: infinite;
+}
+
+// plus icon that accompanies text
+.tile__add-icon {
+    margin-bottom: 1rem;
+}
+
+// the top of the tile, displays servers, admins, users, and a settings button
+.tile__top {
+    // align a bit
+    display: flex;
+    flex-direction: column;
+    // take up rest of space
+    flex: 1;
+    // this part is assigned a color later on, but the default is blue
+    background-color: @clr-blue-500;
+}
+
+// first row needs extra margin
+.top__row--first {
+    margin-top: 8px;
+}
+
+// last needs no bottom margin
+.top__row--last {
+    // needs an override
+    margin-bottom: 0 !important;
+}
+
+// 3 rows, each with an icon and text representing how many of servers/admins/users there are
+.top__row {
+    // align text with icon
+    display: flex;
+    align-items: center;
+    // contrast with background
+    color: white;
+    // separate from each other
+    margin-bottom: 8px;
+}
+
+.top__row-icon {
+    color: white;
+    margin: 0 8px;
+}
+
+// manages tile settings
+.top__settings {
+    // no margin
+    margin: 0 !important;
+    // make the md-icon inside white
+    md-icon {
+        color: white;
+    }
+}
+
+// the bottom of the tile, displays name and id. these constitute the filter options on the searchbar here as well
+.tile__bottom {
+    // center it
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: white;
+    // move away from margin
+    padding: 8px;
+}
+
+// app name
+.bottom__name {
+    // differentiate from secondary text
+    color: @primary-text;
+    font-size: 16px;
+    // space out from secondary
+    margin-bottom: 8px;
+}
+
+// app id
+.bottom__id {
+    color: @secondary-text;
+    font-size: 12px;
+    // medium to stand out without standing out
+    font-weight: 500;
+}
+
+// comes in when you click on the settings icon
+.settings__sheet {
+    .size(12rem, 12rem);
+    // does not exist
+    display: none;
+}
+
+// triggered slightly before the animation
+.settings__sheet--exists {
+    display: block;
+}
+
+// going up
+.settings__sheet--animated {
+    background-color: @background;
+    // move to the top of the tile
+    transform: translate(0, -100%);
+    transition: all 450ms cubic-bezier(0.32, 1, 0.23, 1) 0ms;
+}
+
+// going down
+.settings__sheet--deanimated {
+    background-color: @background;
+    // move to the top of the tile
+    transform: translate(0, 100%);
+    transition: all 450ms cubic-bezier(0.32, 1, 0.23, 1) 0ms;
+}
+
+
+// need a separate inner part or else flex cannot be used
+.settings__sheet-inner {
+    .size();
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+// color picker
+.settings__sheet-color {
+    // space out from top
+    margin-top: 16px;
+}
+
+// collapse settings__sheet
+.settings__sheet-back {
+    // align to bottom-left, forced because of default styles
+    margin: auto auto 0 0 !important;
+}

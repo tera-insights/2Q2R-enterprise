@@ -1,9 +1,29 @@
 // general mixins, qol stuff, etc. etc.
 
+// load roboto regular
+@font-face {
+    font-family: 'Roboto';
+    src: url('../fonts/Roboto-Regular.eot');
+    src: local('Roboto Regular'), local('Roboto-Regular'), url('../fonts/Roboto-Regular.eot?#iefix') format('embedded-opentype'), url('../fonts/Roboto-Regular.woff2') format('woff2'), url('../fonts/Roboto-Regular.woff') format('woff'), url('../fonts/Roboto-Regular.ttf') format('truetype'), url('../fonts/Roboto-Regular.svg#Roboto') format('svg');
+    font-weight: 400;
+    font-style: normal;
+}
+
+// load roboto medium
+@font-face {
+    font-family: 'Roboto';
+    src: url('../fonts/Roboto-Medium.eot');
+    src: local('Roboto Medium'), local('Roboto-Medium'), url('../fonts/Roboto-Medium.eot?#iefix') format('embedded-opentype'), url('../fonts/Roboto-Medium.woff2') format('woff2'), url('../fonts/Roboto-Medium.woff') format('woff'), url('../fonts/Roboto-Medium.ttf') format('truetype'), url('../fonts/Roboto-Medium.svg#Roboto') format('svg');
+    font-weight: 500;
+    font-style: normal;
+}
+
 // text colors used
 @primary-text: #212121;
 @secondary-text: #757575;
 
+// important background colors
+@background: #f5f5f5;
 
 // mixin for height/width shorthand
 // defaults to 100% 100%
@@ -12,159 +32,21 @@
     width: @width;
 }
 
-// mixin to quickcenter
+// mixin to quickly center
 .center() {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-// mixins to make flexbox easier and arguably more sane
-
-/*---FlexBox---
-  @flex: flex, flex-inline
-  --------------------------*/
-
-.flex (@flex: flex) {
-    display: -webkit-box;
-    display: -moz-box;
-    display: ~"-ms-@{flex}box";
-    display: ~"-webkit-@{flex}";
-    display: @flex;
-}
-
-
-/*---Flexbox Direction---
-  @type: row, column
-  Direction: normal, reverse
-  --------------------------*/
-
-.flex-direction (@type: row, @direction: normal) when not (@direction =reverse) {
-    -webkit-box-direction: normal;
-    -moz-box-direction: normal;
-    -webkit-flex-direction: @type;
-    -ms-flex-direction: @type;
-    flex-direction: @type;
-}
-
-.flex-direction (@type: row, @direction: normal) when (@type =row) {
-    -webkit-box-orient: horizontal;
-    -moz-box-orient: horizontal;
-}
-
-.flex-direction (@type: row, @direction: normal) when (@direction =reverse) {
-    -webkit-box-direction: reverse;
-    -moz-box-direction: reverse;
-    -webkit-flex-direction: ~"@{type}-@{direction}";
-    -ms-flex-direction: ~"@{type}-@{direction}";
-    flex-direction: ~"@{type}-@{direction}";
-}
-
-.flex-direction (@type: row, @direction: normal) when (@type =column) {
-    -webkit-box-orient: vertical;
-    -moz-box-orient: vertical;
-}
-
-
-/*---Flexbox Wrap---
-  @wrap: wrap, nowrap, wrap-reverse
-  --------------------------*/
-
-.flex-wrap (@wrap: wrap) {
-    -webkit-flex-wrap: @wrap;
-    -ms-flex-wrap: @wrap;
-    flex-wrap: @wrap;
-}
-
-
-/*---Flexbox Justify Content---
-  @justify-content: start, end, center, space-between, space-around
-
-  *FIXME* - Creates duplicate CSS
-  --------------------------*/
-
-.flex-justify-content (@justify-content: start) {
-    -webkit-box-pack: @justify-content;
-    -moz-box-pack: @justify-content;
-    -ms-flex-pack: @justify-content;
-    -webkit-justify-content: @justify-content;
-    justify-content: @justify-content;
-}
-
-.flex-justify-content (@justify-content: start) when (@justify-content =start) {
-    -webkit-justify-content: ~"flex-@{justify-content}";
-    justify-content: ~"flex-@{justify-content}";
-}
-
-.flex-justify-content (@justify-content: start) when (@justify-content =end) {
-    -webkit-justify-content: ~"flex-@{justify-content}";
-    justify-content: ~"flex-@{justify-content}";
-}
-
-.flex-justify-content (@justify-content: start) when (@justify-content =space-between) {
-    -webkit-box-pack: justify;
-    -moz-box-pack: justify;
-    -ms-flex-pack: justify;
-}
-
-.flex-justify-content (@justify-content: start) when (@justify-content =space-around) {
-    -webkit-box-pack: justify;
-    -moz-box-pack: justify;
-    -ms-flex-pack: distribute;
-}
-
-
-/*---Flexbox Align Items---
-  @align-items: center, baseline, stretch, start, end
-  --------------------------*/
-
-.flex-align-items (@align-items: stretch) {
-    -ms-flex-align: @align-item;
-    -webkit-box-align: @align-item;
-    -moz-box-align: @align-item;
-    -webkit-align-items: @align-item;
-    align-items: @align-item;
-}
-
-.flex-align-items (@align-item: stretch) when (@align-item =start) {
-    -webkit-align-items: ~"flex-@{align-item}";
-    align-items: ~"flex-@{align-item}";
-}
-
-.flex-align-items (@align-item: stretch) when (@align-item =end) {
-    -webkit-align-items: ~"flex-@{align-item}";
-    align-items: ~"flex-@{align-item}";
-}
-
-
-/*---Flexbox Align Content---
-  @align-items: start, end, center, space-between, space-around
-
-  *FIXME* - Creates duplicate CSS
-  --------------------------*/
-
-.flex-align-content (@align-content: start) {
-    -webkit-align-content: @align-content;
-    -ms-flex-line-pack: @align-content;
-    align-content: @align-content;
-}
-
-.flex-align-content (@align-content: start) when (@align-content =start) {
-    -webkit-align-content: ~"flex-@{align-content}";
-    align-content: ~"flex-@{align-content}";
-}
-
-.flex-align-content (@align-content: start) when (@align-content =end) {
-    -webkit-align-content: ~"flex-@{align-content}";
-    align-content: ~"flex-@{align-content}";
-}
-
-.flex-align-content (@align-content: start) when (@align-content =space-between) {
-    -ms-flex-line-pack: justify;
-}
-
-.flex-align-content (@align-content: start) when (@align-content =space-around) {
-    -ms-flex-line-pack: distribute;
+// mixin to simplify no-select
+.noselect() {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 // contains the entire material design color set for ease of use
@@ -172,6 +54,8 @@
 // syntax as follows; clr + base color + hue
 // (dash separated)
 // additionally the file should really never have to compile as the only thing it contains is less variables
+
+
 // ==========================================================================
 //
 // Name:        UI Color Palette

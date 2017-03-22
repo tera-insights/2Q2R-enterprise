@@ -1,0 +1,49 @@
+// import our mixins as a reference
+@import (reference) "mixins";
+
+/*
+	Classes that are common to everything
+*/
+
+// standalone searchbar used throughout the application
+.searchbar {
+    .size(4rem, 32rem);
+    // line everything up
+    display: flex;
+    align-items: center;
+    // differentiate from other backgrounds
+    background-color: white;
+}
+
+// the leftmost magnifying glass icon
+.searchbar__search-icon {
+    // separate from margin and input
+    margin: 0 16px;
+    // make it gray
+    color: @secondary-text;
+}
+
+// input in the middle, has no borders or outline
+.searchbar__input {
+    // fill remaining space
+    flex: 1;
+    // give it a more gratuitous font size
+    font-size: 20px;
+    // make the text grayer
+    color: @secondary-text;
+    // override border
+    border: none !important;
+}
+
+.searchbar__input:focus {
+    // no blue outline on focus
+    outline: none;
+}
+
+// the rightmost icon that expands more search options
+.searchbar__filter-icon {
+    // separate from margin and input
+    margin: 0 16px;
+    // make it gray
+    color: @secondary-text;
+}

@@ -15,8 +15,8 @@ var paths = {
 
 // goes straight into the task
 var htmlTask = function() {
-  return gulp.src([paths.src, '*!README.md'])
-    .pipe(changed(paths.dest)) // Ignore unchanged files
+  return gulp.src(paths.src)
+    .pipe(changed(paths.src)) // ignore unchanged files
     .pipe(gulp.dest(paths.dest)); // and send them off
 }
 

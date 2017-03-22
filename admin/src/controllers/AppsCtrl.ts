@@ -62,6 +62,29 @@ export class AppsCtrl {
         }
     }
 
+    // triggers a sheet to move into view on a apps__tile
+    settingsTrigger() {
+        // add a class that just moves it up
+        $(".settings__sheet").addClass("settings__sheet--exists").delay(100).queue(function(next){
+            $(this).addClass("settings__sheet--animated");
+            next();
+        });
+
+    }
+
+    // when the sheet is up, click a button to move it back down
+    settingsRetract() {
+        // now take it away
+        $(".settings__sheet").addClass("settings__sheet--deanimated").delay(450).queue(function(next){
+            $(this).removeClass("settings__sheet--animated");
+            next();
+            $(this).removeClass("settings__sheet--deanimated");
+            next();
+            $(this).removeClass("settings__sheet--exists");
+            next();
+        });
+    }
+
     static $inject = [
         '$mdDialog',
         'AppSrvc'
