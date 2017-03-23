@@ -1,7 +1,5 @@
 import { AppSrvc, IAppInfo } from '../services/AppSrvc';
 import { AddAppCtrl } from '../controllers/modals/AddAppCtrl';
-import 'angular-resource';
-import 'angular-material';
 
 /**
  * Controller for listing and manipulating apps the apps 
@@ -27,7 +25,7 @@ export class AppsCtrl {
         order: "name"
     }
 
-    // Triggered by the FAB
+    // adds a new application
     newApp() {
         this.$mdDialog.show({
             controller: AddAppCtrl,

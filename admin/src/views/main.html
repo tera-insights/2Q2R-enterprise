@@ -9,7 +9,12 @@
             <div class="avatar__circle">
                 VD
             </div>
-            <!-- application selector, exact form TBD -->
+            <!-- application selector, moves you to former applications page -->
+            <div class="app-menu__app-selector" ng-click="ctrl.select('main.apps', 'Applications', 'applications')">
+                <md-icon class="app-selector__cloud" md-font-icon="mdi mdi-24px mdi-cloud"></md-icon>
+                <span class="app-selector__text">The greatest application</span>
+                <span class="app-selector__text app-selector__text--select">Select an application</span>
+            </div>
         </div>
         <!-- all of the navigation options and logout -->
         <div class="app-menu__navigator-container" ng-repeat="menuGroup in ctrl.menuGroups">
@@ -28,5 +33,5 @@
 </div>
 <!-- copyright -->
 <div class="copyright">
-    <span>Made with <span ng-bind-html="ctrl.randomHtmlChar|html"></span> by <a href="http://www.terainsights.com/">Tera Insights</a>, &copy; 2012 - 2017</span>
+    <span>Made with <span ng-bind-html="ctrl.randomHtmlChar|html"></span> by <a href="http://www.terainsights.com/" target="_blank">Tera Insights</a>, &copy; 2012 - 2017</span>
 </div>

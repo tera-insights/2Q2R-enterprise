@@ -22,19 +22,19 @@ export class MainCtrl {
                 icon: "mdi mdi-view-dashboard"
             },
             {
-                state: "main.admin",
-                name: "Administrators",
-                icon: "mdi mdi-certificate"
-            },
-            {
-                state: "main.apps",
-                name: "Applications",
-                icon: "mdi mdi-cloud"
+                state: "main.reports",
+                name: "Reports",
+                icon: "mdi mdi-clipboard-text"
             },
             {
                 state: "main.servers",
                 name: "Servers",
                 icon: "mdi mdi-server"
+            },
+            {
+                state: "main.admin",
+                name: "Administrators",
+                icon: "mdi mdi-certificate"
             },
             {
                 state: "main.users",
@@ -46,11 +46,7 @@ export class MainCtrl {
                 name: "2FA Devices",
                 icon: "mdi mdi-cellphone-link"
             },
-            {
-                state: "main.reports",
-                name: "Reports",
-                icon: "mdi mdi-clipboard-text"
-            },
+
             {
                 state: "main.settings",
                 name: "Settings",
@@ -143,7 +139,7 @@ export class MainCtrl {
         private AuthSrvc: AuthSrvc
     ) {
         // set the default state (dashboard)
-        this.select("main.dashboard", "Dashboard", "");
+        this.select("main.dashboard", "Dashboard", "dashboard");
 
         // generate copyright special character
         this.generateRandomHtmlChar();

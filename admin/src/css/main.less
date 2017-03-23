@@ -1,6 +1,5 @@
 // import our mixins as a reference
 @import (reference) "mixins";
-
 html {
     // 100% 100%
     .size();
@@ -16,7 +15,7 @@ a {
 // wraps the app
 .app__wrap {
     .size();
-    display: flex; 
+    display: flex;
     flex-direction: column;
 }
 
@@ -30,7 +29,6 @@ a {
     background-color: @background;
 }
 
-
 // our application navigation system
 .app-menu {
     .size(100%, 16rem);
@@ -38,7 +36,7 @@ a {
     flex-direction: column;
     // set background to whatever is set in mixins
     background-color: @background;
-} 
+}
 
 // contains user avatar and application selector in one package
 .app-menu__user-bar {
@@ -48,7 +46,6 @@ a {
     display: flex;
     align-items: center;
 }
-
 
 // user icon, is a circle
 .avatar__circle {
@@ -65,6 +62,117 @@ a {
     font-size: 20px;
     // add margin to separate from margin of page and also to line up with the center of the icons
     margin-left: 8px;
+}
+
+// switch between applications
+.app-menu__app-selector {
+    height: 3rem;
+    display: flex;
+    // x axis center
+    align-items: center;
+    // fill remaining space
+    flex: 1;
+    // move away from avatar image
+    margin-left: 8px;
+    margin-right: 8px;
+    border-radius: 4px;
+    // a hue up from the background color
+    background-color: #EEEEEE;
+    // the element is clickable, reflect that
+    cursor: pointer;
+}
+
+// go up another hue on hover
+.app-menu__app-selector:hover {
+    background-color: #E0E0E0;
+}
+
+// no outline
+.app-menu__app-selector:focus {
+    outline: none;
+}
+
+// and make the icon blue 
+.app-menu__app-selector:hover .app-selector__cloud {
+    // default
+    color: @clr-blue-500;
+    // if you hover for 10s 
+    // taste the rainbow
+    animation: rainbow 100s infinite;
+    animation-direction: alternate;
+}
+
+// if you idle for 10s on the application selector it rainbows the hell out of you
+@keyframes rainbow {
+    0% {
+        color: @clr-blue-500;
+    }
+    10% {
+        color: @clr-light-blue-500;
+    }
+    20% {
+        color: @clr-cyan-500;
+    }
+    30% {
+        color: @clr-teal-500;
+    }
+    40% {
+        color: @clr-green-500;
+    }
+    50% {
+        color: @clr-lime-500;
+    }
+    60% {
+        color: @clr-yellow-500;
+    }
+    70% {
+        color: @clr-orange-500;
+    }
+    80% {
+        color: @clr-deep-orange-500;
+    }
+    90% {
+        color: @clr-red-500;
+    }
+    100% {
+        color: @clr-purple-500;
+    }
+}
+
+// cloud icon on the left for s t y l e
+.app-selector__cloud {
+    margin: 0 8px !important;
+}
+
+// text representing what application you are viewing
+.app-selector__text {
+    // fill space
+    flex: 1;
+    color: @primary-text;
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 8px;
+    z-index: 1;
+}
+
+.app-selector__text--select {
+    display: none;
+    // no highlighting on this one
+    .noselect();
+}
+
+// hovering over tells the user that you can switch apps, hide original text 
+.app-menu__app-selector:hover .app-selector__text {
+    // make it disappear
+    display: none;
+}
+
+// hovering over tells the user that you can switch apps 
+.app-menu__app-selector:hover .app-selector__text--select {
+    // one more than normal text
+    z-index: 2;
+    // make it appear
+    display: block;
 }
 
 // contains all of the navigational controls
@@ -94,6 +202,7 @@ a {
 .app-menu__navigator:focus {
     outline: none;
 }
+
 // if the current navigator is selected, it lights up both this and the icon next to it with a color of the rainbow
 // however, if it is not the spacer has no height/width
 .app-menu__navigator:not(.active__navigator) .navigator__spacer {
@@ -117,12 +226,10 @@ a {
     font-size: 1rem;
     // set margin to equalize with spacer
     margin-left: 4px;
-}   
+}
 
 // active navigator item
-.active__navigator {
-
-}
+.active__navigator {}
 
 // a mixin to help with the spacer coloration
 // color is the color it lights up with, iteration plugs into an nth-child (i.e which item in the list it is)
@@ -134,42 +241,31 @@ a {
         // and restore its size
         .size(100%, 4px);
     }
-
     // the icon
     .active__navigator:nth-child(@{iteration}) .navigator__icon {
         // color because that is how the mdi fontset works
-        color: @color; 
+        color: @color;
     }
 }
 
 // using the mixin
-
 // first one is red
 .navigator-color(@clr-red-500, 1);
-
 // second is orange
 .navigator-color(@clr-orange-500, 2);
-
 //third is yellow
 .navigator-color(@clr-yellow-600, 3);
-
 // fourth is green
 .navigator-color(@clr-green-500, 4);
-
 // fifth is blue
 .navigator-color(@clr-blue-500, 5);
-
 // sixth is indigo
 .navigator-color(@clr-indigo-500, 6);
-
 // seventh is violet
 .navigator-color(@clr-purple-500, 7);
-
 // and the last colored nav item should always be the settings, as logout just logs you out
 // it gets black
 .navigator-color(@clr-grey-900, 8);
-
-
 // the main part of where the content is displayed in the app
 .app__main {
     // take up remaining space

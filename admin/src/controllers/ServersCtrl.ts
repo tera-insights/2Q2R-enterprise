@@ -2,8 +2,6 @@ import * as _ from 'lodash';
 import { ServerSrvc, IServerInfo } from '../services/ServerSrvc';
 import { AppSrvc, IAppInfo } from '../services/AppSrvc';
 import { DeleteServersCtrl } from './modals/DeleteServersCtrl';
-import 'angular-resource';
-import 'angular-material';
 
 interface IServerExtendedInfo extends IServerInfo {
     appName?: string;

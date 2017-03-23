@@ -1,4 +1,3 @@
-import 'angular-resource';
 import { createAuthenticator, createSigner, ExternalKeyPair } from 'p256-auth';
 
 /**************

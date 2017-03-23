@@ -1,5 +1,4 @@
 import { StatsSrvc } from '../services/StatsSrvc';
-import * as L from 'leaflet';
 
 export class DashboardCtrl {
 

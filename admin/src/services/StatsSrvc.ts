@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import 'angular-resource';
 
 export type MessageHandler = (msgs: any[]) => void;
 

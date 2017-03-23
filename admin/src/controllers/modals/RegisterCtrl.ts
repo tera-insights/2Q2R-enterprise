@@ -1,6 +1,5 @@
 import { INewAdminRequest } from '../../interfaces/rest';
 import { createAuthenticator } from 'p256-auth';
-import 'angular-material';
 import FileSaver = require('file-saver');
 
 /**

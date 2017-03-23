@@ -1,7 +1,5 @@
 import { AppSrvc, IAppInfo } from '../../services/AppSrvc';
 import { ServerSrvc, IServerInfo } from '../../services/ServerSrvc';
-import 'angular-resource';
-import 'angular-material';
 
 export class GenerateCtrl {
     private appPrefix: string;

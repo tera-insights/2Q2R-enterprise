@@ -1,5 +1,4 @@
 import { UserSrvc } from "../services/UserSrvc";
-import 'angular-resource';
 
 export class UsersCtrl {
 

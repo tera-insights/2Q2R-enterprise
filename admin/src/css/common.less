@@ -28,7 +28,7 @@
     // fill remaining space
     flex: 1;
     // give it a more gratuitous font size
-    font-size: 20px;
+    font-size: 19px;
     // make the text grayer
     color: @secondary-text;
     // override border
@@ -46,4 +46,75 @@
     margin: 0 16px;
     // make it gray
     color: @secondary-text;
+}
+
+// dialog styles
+.dialog {
+    // only width because it should be as high as its content
+    width: 24rem;
+}
+
+// contains everything that isn't the actions
+.dialog__content {
+    // f l e x  i t  u p
+    display: flex;
+    // per material design specs for dialog
+    padding: 24px;
+}
+
+// overall title of the dialog
+.dialog__title {
+    // title size
+    font-size: 20px;
+    // medium
+    font-weight: 500;
+    // per material design specs for dialog :(
+    margin-bottom: 20px;
+    color: @primary-text;
+}
+
+// used for any text
+.dialog__text {
+    font-size: 14px;
+    line-height: 20px;
+    color: @secondary-text;
+}
+
+// dialog that has an input inside of it
+.dialog--input {
+    // this one doesn't need as much horizontal space
+    width: 20rem;
+    // the title gets a little extra margin to account for loss of margin on the input
+    .dialog__title {
+        margin-bottom: 24px
+    }
+}
+
+// the input inside of the dialog--input
+.dialog__input {
+    // no margin required
+    margin: 0 !important;
+    // maddeningly small amount of padding to the left
+    padding-left: 0 !important;
+    // destroy this, adds unnecessary padding
+    .md-errors-spacer {
+        display: none !important;
+    }
+}
+
+// subheader because the existing angular material one is too rigid
+.subheader {
+    // only have a height because width should be based on inside content
+    height: 3rem;
+    // subdued but noticible
+    font-size: 14px;
+    color: @secondary-text;
+    font-weight: 500;
+    // center on x axis
+    display: flex;
+    align-items: center;
+    // if there's a flex, always align to left-hand side
+    margin-right: auto;
+    // and pad out
+    padding-left: 1rem;
 }

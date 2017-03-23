@@ -1,2 +1,56 @@
 // import our mixins as a reference
 @import (reference) "mixins";
+// main container 
+.settings {
+    .size();
+    display: flex;
+    flex-direction: column;
+    // align on center of y axis
+    align-items: center;
+}
+
+// displays the user name + 's settings, just makes things flow a little better
+.settings__title {
+    font-size: 28px;
+    color: @primary-text;
+    // space out from top
+    margin-top: 56px;
+}
+
+// inner part, this is where most of the stuff exists
+.settings__inner {
+    .size(100%, 52rem);
+    display: flex;
+    flex-direction: column;
+}
+
+// a row that controls one setting
+.settings__row {
+    .size(3rem, 100%);
+    // align on x axis
+    display: flex;
+    align-items: center;
+    background-color: white;
+    // transition for box-shadow 
+    transition: all 0.3s cubic-bezier(.25, .8, .25, 1);
+    // separate from other rows
+    margin: 8px 0;
+}
+
+// user feedback in the form of extra box-shadow 
+.settings__row:hover {
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+}
+
+// what the setting is 
+.settings__row-text {
+    font-size: 16px;
+    color: @primary-text;
+    // move from edge
+    margin-left: 16px;
+}
+
+.settings__row-toggle {
+    // move from edge
+    margin-right: 16px;
+}

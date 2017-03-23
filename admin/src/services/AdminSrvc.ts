@@ -1,5 +1,3 @@
-import 'angular';
-import 'angular-resource';
 
 /**************
  * Interfaces *
