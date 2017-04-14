@@ -45,6 +45,7 @@ angular.module('2Q2R', [
         $urlRouterProvider.otherwise("/main");
         $stateProvider
             // LOGIN
+            /* disabled for now, login does not work
             .state('login', {
                 url: "/login",
                 template: "<ui-view />",
@@ -64,7 +65,7 @@ angular.module('2Q2R', [
             .state('login.2q2r', {
                 url: "/2q2r",
                 templateUrl: "views/iframe.html"
-            })
+            })*/
             // DASHBOARD
             .state('main', {
                 url: "/main",

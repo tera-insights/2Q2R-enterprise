@@ -7,7 +7,7 @@ import { AppSrvc, IAppInfo } from '../../services/AppSrvc';
  * @class AddAppCtrl
  */
 export class AddAppCtrl {
-    private appName;
+    private appName: string = "";
 
     /**
      * Accept function. Closes modal

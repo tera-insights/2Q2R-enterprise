@@ -29,12 +29,12 @@ export class AppsCtrl {
     newApp() {
         this.$mdDialog.show({
             controller: AddAppCtrl,
-            controllerAs: 'cMod',
+            controllerAs: '$ctrl',
             templateUrl: 'views/modals/AddApp.html',
             clickOutsideToClose: true
-        }).then((app: IAppInfo) => {
+        }).then((appName: string) => {
             this.AppSrvc.create({
-                appName: app.appName
+                appName: appName
             }).then( (a) => {
                 this.apps.push(a);
             });

@@ -13,7 +13,7 @@ var libJsFiles = [
     'node_modules/jquery/dist/jquery.min.js',                                   // used for miscellaneous purposes, is a dependency of basically everything, etc etc.
     'node_modules/random-js/lib/random.min.js',                                 // for random random numbers, used in some encrytion things
     'node_modules/prob.js/dist/prob-min.js',                                    // also a random number generator (???)   
-    // 'node_modules/angular/angular.min.js',                                   // main framework we use (IS LOADED VIA IMPORT IN APP.TS)
+    'node_modules/angular/angular.min.js',                                      // main framework we use
     'node_modules/angular-aria/angular-aria.min.js',                            // for ARIA attributes (screenreaders) and a dependency of angular material
     'node_modules/angular-material/angular-material.min.js',                    // our ui framework, the majority of ui elements on the screen are from here
     'node_modules/angular-resource/angular-resource.min.js',                    // interacts with REST server data sources
@@ -27,8 +27,7 @@ var libJsFiles = [
     'node_modules/leaflet/dist/leaflet.js',                                     // used for maps
     'node_modules/chart.js/dist/Chart.bundle.min.js',                           // current charting library, will probably be replaced with ours in the future
     'node_modules/tinycolor2/dist/tinycolor-min.js',                            // dependency of color picker below     
-    'node_modules/angularjs-color-picker/dist/angularjs-color-picker.min.js',   // color picker
-    'node_modules/file-saver/fileSaver.min.js'                                  // not entirely sure?     
+    'node_modules/angularjs-color-picker/dist/angularjs-color-picker.min.js'    // color picker     
 ];
 
 // css lib files

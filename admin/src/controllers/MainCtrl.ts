@@ -139,7 +139,7 @@ export class MainCtrl {
         private AuthSrvc: AuthSrvc
     ) {
         // set the default state (dashboard)
-        this.select("main.dashboard", "Dashboard", "dashboard");
+        this.select("main.dashboard", "Dashboard", "");
 
         // generate copyright special character
         this.generateRandomHtmlChar();

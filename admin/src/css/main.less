@@ -12,6 +12,11 @@ a {
     text-decoration: none;
 }
 
+// ui views should always occupy all space 
+ui-view {
+    .size();
+}
+
 // wraps the app
 .app__wrap {
     .size();
@@ -27,11 +32,16 @@ a {
     display: flex;
     // and the background, should be left to this, not to elements inside
     background-color: @background;
+    // hide overflow or else things go wrong on smaller screens
+    overflow-x: hidden;
 }
 
 // our application navigation system
 .app-menu {
     .size(100%, 16rem);
+    // if i don't absolutely force this to stay at 16rem it will get resized to 179.3px at smaller displays by the ui-view's padding-right
+    min-width: 16rem;
+    max-width: 16rem;
     display: flex;
     flex-direction: column;
     // set background to whatever is set in mixins
@@ -191,6 +201,7 @@ a {
     align-items: center;
     // cursor
     cursor: pointer;
+    .noselect();
 }
 
 // change background to a closer shade to the active color on hover

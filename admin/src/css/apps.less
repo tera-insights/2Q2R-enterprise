@@ -69,8 +69,10 @@
 
 // used to select all applications to view
 .apps__tile--all {
-    .center();
+    display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     font-size: 18px;
     // outline so it doesn't take up space
     outline: 4px dashed @secondary-text;
@@ -83,9 +85,39 @@
     .noselect();
 }
 
-// icon that accompanies text
-.tile__all-icon {
-    margin-bottom: 1rem;
+// 3 rows, each with an icon and text representing how many of servers/admins/users there are throughout all applications
+.all__row {
+    // align text with icon
+    display: flex;
+    align-items: center;
+    // put self at top
+    align-self: flex-start;
+    // contrast with normal tile
+    color: @secondary-text;
+    // it makes sense trust me
+    margin: 0 0 8px 4px;
+}
+
+// first row needs extra margin
+.all__row--first {
+    // extra spacing due to dashed border
+    margin-top: 1rem;
+}
+
+// last needs bottom margin
+.all__row--last {
+    margin-bottom: 8px;
+}
+
+// next to text on stats
+.all__row-icon {
+    color: @secondary-text;
+    margin: 0 8px;
+}
+
+// no box shadow on hover
+.apps__tile--all:hover {
+    box-shadow: none;
 }
 
 // dashed border, adds an app
@@ -104,29 +136,9 @@
     .noselect();
 }
 
-// make the border appear to solidify
-@keyframes switch {
-    0% {
-        outline-style: dashed;
-    }
-    70% {
-        outline-style: dotted;
-    }
-    100% {
-        outline-style: solid;
-    }
-}
-
-// on hover give it a little animation :)
+// remove the box shadow on hover
 .apps__tile--add:hover {
     box-shadow: none;
-    outline-style: dotted;
-    // call the animation
-    animation-name: switch;
-    animation-duration: 3.5s;
-    // goes back and forth
-    animation-direction: alternate;
-    animation-iteration-count: infinite;
 }
 
 // plus icon that accompanies text
@@ -134,15 +146,28 @@
     margin-bottom: 1rem;
 }
 
+// aligns and sizes the tile top and bottom while not touching the settings sheet 
+.tile__fixer {
+    // fill overall tile size
+    .size();
+    display: flex;
+    flex-direction: column;
+}
+
 // the top of the tile, displays servers, admins, users, and a settings button
 .tile__top {
     // align a bit
     display: flex;
-    flex-direction: column;
-    // take up rest of space
+    // needs to take up unused space if name does not overflow
     flex: 1;
     // this part is assigned a color later on, but the default is blue
     background-color: @clr-blue-500;
+}
+
+// bunches up all the information to allow a row on tile__top
+.top__info-display {
+    display: flex;
+    flex-direction: column;
 }
 
 // first row needs extra margin
@@ -150,10 +175,9 @@
     margin-top: 8px;
 }
 
-// last needs no bottom margin
+// last needs bottom margin
 .top__row--last {
-    // needs an override
-    margin-bottom: 0 !important;
+    margin-bottom: 8px;
 }
 
 // 3 rows, each with an icon and text representing how many of servers/admins/users there are
@@ -172,10 +196,10 @@
     margin: 0 8px;
 }
 
-// manages tile settings
+// manages tile settings, just the button
 .top__settings {
-    // no margin
-    margin: 0 !important;
+    // push to right margin
+    margin-left: auto !important;
     // make the md-icon inside white
     md-icon {
         color: white;
@@ -184,6 +208,8 @@
 
 // the bottom of the tile, displays name and id. these constitute the filter options on the searchbar here as well
 .tile__bottom {
+    // actual maximum height it can do is 88px, but padding is factored in
+    max-height: 72px;
     // center it
     display: flex;
     flex-direction: column;
@@ -197,7 +223,7 @@
 .bottom__name {
     // differentiate from secondary text
     color: @primary-text;
-    font-size: 16px;
+    font-size: 15px;
     // space out from secondary
     margin-bottom: 8px;
 }
@@ -237,7 +263,6 @@
     transform: translate(0, 100%);
     transition: all 450ms cubic-bezier(0.32, 1, 0.23, 1) 0ms;
 }
-
 
 // need a separate inner part or else flex cannot be used
 .settings__sheet-inner {

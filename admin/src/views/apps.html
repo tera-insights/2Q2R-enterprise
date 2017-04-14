@@ -1,4 +1,3 @@
-
 <!-- trashy old stuff
 <md-content class="table-content">
     <div class="table-wrapper basic-card">
@@ -46,34 +45,40 @@
         <!-- the applications are represented by tiles -->
         <div class="apps__tile-container">
             <div class="apps__tile md-whiteframe-2dp">
-                <!-- set background color based on color picker ng-model -->
-                <div class="tile__top" ng-style="{'background-color': tileColor}">
-                    <!-- number of servers -->
-                    <div class="top__row top__row--first">
-                        <!-- smaller icon and an i tag because md-icon is weird sometimes -->
-                        <md-icon class="top__row-icon" md-font-icon="mdi mdi-24px mdi-server"></md-icon>
-                        <span class="top__row-text">58</span>
+                <!-- aligns some things, can't think of a non-convoluted way to do this otherwise -->
+                <div class="tile__fixer">
+                    <!-- set background color based on color picker ng-model -->
+                    <div class="tile__top" ng-style="{'background-color': tileColor}">
+                        <!-- bunches up the information to make moving the settings button to the top left easier -->
+                        <div class="top__info-display">
+                            <!-- number of servers -->
+                            <div class="top__row top__row--first">
+                                <!-- smaller icon and an i tag because md-icon is weird sometimes -->
+                                <md-icon class="top__row-icon" md-font-icon="mdi mdi-24px mdi-server"></md-icon>
+                                <span class="top__row-text">58</span>
+                            </div>
+                            <!-- number of admins -->
+                            <div class="top__row">
+                                <!-- smaller icon and an i tag because md-icon is weird sometimes -->
+                                <md-icon class="top__row-icon" md-font-icon="mdi mdi-24px mdi-certificate"></md-icon>
+                                <span class="top__row-text">296</span>
+                            </div>
+                            <!-- number of users -->
+                            <div class="top__row top__row--last">
+                                <!-- smaller icon and an i tag because md-icon is weird sometimes -->
+                                <md-icon class="top__row-icon" md-font-icon="mdi mdi-24px mdi-account"></md-icon>
+                                <span class="top__row-text">11.98k</span>
+                            </div>
+                        </div>
+                        <!-- settings for the tile (color, deletion, etc.) -->
+                        <md-button class="md-icon-button top__settings" ng-click="ctrl2.settingsTrigger()">
+                            <md-icon md-font-icon="mdi mdi-24px mdi-settings"></md-icon>
+                        </md-button>
                     </div>
-                    <!-- number of admins -->
-                    <div class="top__row">
-                        <!-- smaller icon and an i tag because md-icon is weird sometimes -->
-                        <md-icon class="top__row-icon" md-font-icon="mdi mdi-24px mdi-certificate"></md-icon>
-                        <span class="top__row-text">296</span>
+                    <div class="tile__bottom">
+                        <span class="bottom__name">The greatest app</span>
+                        <span class="bottom__id">someidgoeshereiguess</span>
                     </div>
-                    <!-- number of users -->
-                    <div class="top__row top__row--last">
-                        <!-- smaller icon and an i tag because md-icon is weird sometimes -->
-                        <md-icon class="top__row-icon" md-font-icon="mdi mdi-24px mdi-account"></md-icon>
-                        <span class="top__row-text">11.98k</span>
-                    </div>
-                    <!-- settings for the tile (color, deletion, etc.) -->
-                    <md-button class="md-icon-button top__settings" ng-click="ctrl2.settingsTrigger()">
-                        <md-icon md-font-icon="mdi mdi-24px mdi-settings"></md-icon>
-                    </md-button>
-                </div>
-                <div class="tile__bottom">
-                    <span class="bottom__name">The greatest app</span>
-                    <span class="bottom__id">someidgoeshereiguess</span>
                 </div>
                 <!-- contains settings, triggered by settings button -->
                 <div class="settings__sheet">
@@ -86,8 +91,22 @@
                     </div>
                 </div>
             </div>
-            <!-- this tile is always present, selects all applications at once -->
-            <div class="apps__tile apps__tile--all" ng-click="ctrl2.newApp()">
+            <!-- this tile is always present, selects all applications at once. because it does this, it shares visual elements with add tile but also shows stats like a normal tile -->
+            <div class="apps__tile apps__tile--all">
+                <div class="all__row all__row--first">
+                    <md-icon class="all__row-icon" md-font-icon="mdi mdi-24px mdi-server"></md-icon>
+                    <span class="all__row-text">58</span>
+                </div>
+                <!-- number of admins -->
+                <div class="all__row">
+                    <md-icon class="all__row-icon" md-font-icon="mdi mdi-24px mdi-certificate"></md-icon>
+                    <span class="all__row-text">296</span>
+                </div>
+                <!-- number of users -->
+                <div class="all__row all__row--last">
+                    <md-icon class="all__row-icon" md-font-icon="mdi mdi-24px mdi-account"></md-icon>
+                    <span class="all__row-text">11.98k</span>
+                </div>
                 <!-- md-icon doesn't like anything that isn't 24px -->
                 <i class="mdi mdi-36px mdi-all-inclusive tile__all-icon"></i>
                 <span>View overall</span>

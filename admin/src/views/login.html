@@ -1,3 +1,4 @@
+<!--
 <md-content layout-padding>
     <div>
         <p>Login to an existing administrator account.</p>
@@ -9,11 +10,10 @@
             <secure-password array="ctrl.password"></secure-password>
             <md-button class="md-primary" ngf-select="cMod.uploadSigningKey($file)">Upload signing key</md-button>
             <div layout-gt-sm="row">
-                <md-button ng-disabled="loginForm.$invalid || ctrl.password[0] != 0 || !ctrl.signingKey" class="md-raised md-primary" ng-click="ctrl.login(username)" >Login</md-button>
+                <md-button ng-disabled="loginForm.$invalid || ctrl.password[0] != 0 || !ctrl.signingKey" class="md-raised md-primary" ng-click="ctrl.login(username)">Login</md-button>
                 <md-button class="md-raised" ng-click="ctrl.register()">Register</md-button>
             </div>
         </form>
-        <!-- ngMessages form validation -->
         <div class="row">
             <ng-messages class="error-message" for="loginForm.username.$error">
                 <ng-message when="required">Please specify a username.</ng-message>
@@ -24,4 +24,20 @@
             </ng-messages>
         </div>
     </div>
-</md-content>
+</md-content> -->
+<!-- main container -->
+<div class="login">
+    <!-- holds states inside of a whiteframe centered box -->
+    <div class="login__box md-whiteframe-2dp">
+        <!-- a circular button that adds a key from the user's machine -->
+        <div class="nokeyreg__add-key" ng-click="ctrl.submitKey()">
+            <!-- when it's done, tell the user -->
+            <div class="nokeyreg__add-key--done">
+                Key Uploaded!
+                <!-- will be generated in the future, a picture that represents your key -->
+                <img class="add-key__identicon" src="../admin/img/identicon.png">
+                Click to continue
+            </div>
+        </div>
+    </div>
+</div>

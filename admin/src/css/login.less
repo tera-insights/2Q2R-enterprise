@@ -1,2 +1,100 @@
 // import our mixins as a reference
 @import (reference) "mixins";
+// overall container
+.login {
+    .size();
+    // center
+    .center();
+    background-color: #f5f5f5;
+}
+
+// holds all of the states
+.login__box {
+    .size(40rem, 32rem);
+    // contain the expanded circle
+    overflow: hidden;
+    background-color: white;
+}
+
+// initial state: not logged in, not registered
+.login__nokeyreg {
+    // center a circle inside of it
+    .center();
+    // contrast with background
+    background-color: white;
+}
+
+// circular button inside that adds a login key
+.nokeyreg__add-key {
+    .size(16rem, 16rem);
+    // center text inside
+    .center();
+    // make it blue
+    background-color: @clr-blue-500;
+    // make it a circle
+    border-radius: 50%;
+    // emulate a button a bit
+    cursor: pointer;
+    // make text inside white
+    color: white;
+    // and bigger 
+    font-size: 20px;
+    // and meatier
+    font-weight: 500;
+    // transition when expanded is played, gotten from mdi animations
+    transition: all .3s cubic-bezier(0, 0, .2, 1), width .3s cubic-bezier(0, 0, .2, 1), height .3s cubic-bezier(0, 0, .2, 1), opacity .6s cubic-bezier(0, 0, .2, 1), -webkit-transform .3s cubic-bezier(0, 0, .2, 1);
+    // center it with the power of maths
+    margin: 0 auto;
+    margin-top: 12rem;
+}
+
+.expanded {
+    // scale it up enough to span the entire thing
+    transform: scale(4);
+}
+
+// before, append an Add a Key thing
+.nokeyreg__add-key::after {
+    content: "Add a key";
+}
+
+// and after make it disappear
+.nokeyreg__add-key.expanded::after {
+    content: "";
+}
+
+// do the same in reverse for the content that is shown after the key is verified
+.nokeyreg__add-key.expanded .nokeyreg__add-key--done {
+    // fade in on expansion of parent
+    animation: fadein 1.5s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+// animation used above
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.nokeyreg__add-key--done {
+    display: none;
+    // scale this down by the reverse factor of the scaling up of it's parent
+    transform: scale(0.25);
+    .noselect();
+}
+
+.nokeyreg__add-key:focus {
+    outline: none;
+}
+
+// displays unique image for each key
+.add-key__identicon {
+    // space from other text
+    margin: 2rem 0;
+}

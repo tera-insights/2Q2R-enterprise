@@ -19,6 +19,11 @@ export class LoginCtrl {
         fileReader.readAsText(file);
     }
 
+    // probably merge with upload signed key, just need to test animations
+    submitKey() {
+        $(".nokeyreg__add-key").toggleClass("expanded");
+    }
+
     /**
      * Makes a call to the authentication service with the user's input
      * credentials, resulting in the creation of first-factor headers if
@@ -44,6 +49,7 @@ export class LoginCtrl {
             this.$mdToast.showSimple('Registration canceled.');
         });
     }
+
 
     static $inject = [
         'AuthSrvc',

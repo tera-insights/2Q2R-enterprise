@@ -6,10 +6,10 @@ import (
 	"2q2r/security"
 	"2q2r/util"
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/hmac"
+	_ "crypto/elliptic"
+	_ "crypto/hmac"
 	"crypto/rsa"
-	"crypto/sha256"
+	_ "crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -17,7 +17,7 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"math/big"
+	_ "math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -295,7 +295,8 @@ func (s *Server) recoverWrap(handle http.Handler) http.Handler {
 		}
 		for _, pattern := range headerAuthPatterns {
 			if glob.Glob(pattern, r.URL.Path) {
-				s.headerAuthentication(w, r)
+				// currently disabled because of large portion of commented out code higher up
+				// s.headerAuthentication(w, r)
 				break
 			}
 		}
@@ -344,69 +345,69 @@ func getAuthDataFromHeaders(r *http.Request) (string, string, error) {
 }
 
 // For requests coming from an app sever or the admin frontend
-func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
-	id, received, err := getAuthDataFromHeaders(r)
-	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
+// func (s *Server) headerAuthentication(w http.ResponseWriter, r *http.Request) {
+// 	id, received, err := getAuthDataFromHeaders(r)
+// 	util.OptionalBadRequestPanic(err, "Invalid X-Authentication header")
 
-	hmacBytes, err := util.DecodeBase64(received)
-	util.OptionalInternalPanic(err, "Failed to decode MAC")
+// 	hmacBytes, err := util.DecodeBase64(received)
+// 	util.OptionalInternalPanic(err, "Failed to decode MAC")
 
-	var key []byte
-	var x, y *big.Int
-	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
-		// Look up admin's signing key
-		var a Admin
-		err = s.DB.Find(&a, Admin{ID: id}).Error
-		util.OptionalBadRequestPanic(err, "Could not find admin with ID "+id)
-		var sk security.SigningKey
-		err = s.DB.Find(&sk, security.SigningKey{ID: a.PrimarySigningKeyID}).Error
-		util.OptionalInternalPanic(err, "Could not find admin's signing key")
-		skBytes, err := util.DecodeBase64(sk.PublicKey)
-		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
-		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
+// 	var key []byte
+// 	var x, y *big.Int
+// 	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+// 		// Look up admin's signing key
+// 		var a Admin
+// 		err = s.DB.Find(&a, Admin{ID: id}).Error
+// 		util.OptionalBadRequestPanic(err, "Could not find admin with ID "+id)
+// 		var sk security.SigningKey
+// 		err = s.DB.Find(&sk, security.SigningKey{ID: a.PrimarySigningKeyID}).Error
+// 		util.OptionalInternalPanic(err, "Could not find admin's signing key")
+// 		skBytes, err := util.DecodeBase64(sk.PublicKey)
+// 		util.OptionalInternalPanic(err, "Could not decode admin's signing key")
+// 		x, y = elliptic.Unmarshal(elliptic.P256(), skBytes)
 
-		// Verify nonce
-		nonce, err := s.ng.GetNonce(id)
-		util.OptionalBadRequestPanic(err, "No nonce for admin")
-		util.PanicIfFalse(nonce == r.Header.Get("X-Nonce"),
-			http.StatusBadRequest, "Nonces do not match")
+// 		// Verify nonce
+// 		nonce, err := s.ng.GetNonce(id)
+// 		util.OptionalBadRequestPanic(err, "No nonce for admin")
+// 		util.PanicIfFalse(nonce == r.Header.Get("X-Nonce"),
+// 			http.StatusBadRequest, "Nonces do not match")
 
-		// Verify ephemeral signature
-		pub := r.Header.Get("X-Public-Key")
-		sig := r.Header.Get("X-Public-Signature")
-		key, err = s.kc.VerifyEphemeralKey(pub, sig, sk)
-		util.OptionalBadRequestPanic(err, "Could not "+
-			"verify ephemeral key signature")
-	} else {
-		var app AppServerInfo
-		err := s.DB.First(&app, AppServerInfo{ID: id}).Error
-		util.OptionalBadRequestPanic(err, "Could not find app server")
+// 		// Verify ephemeral signature
+// 		pub := r.Header.Get("X-Public-Key")
+// 		sig := r.Header.Get("X-Public-Signature")
+// 		key, err = s.kc.VerifyEphemeralKey(pub, sig, sk)
+// 		util.OptionalBadRequestPanic(err, "Could not "+
+// 			"verify ephemeral key signature")
+// 	} else {
+// 		var app AppServerInfo
+// 		err := s.DB.First(&app, AppServerInfo{ID: id}).Error
+// 		util.OptionalBadRequestPanic(err, "Could not find app server")
 
-		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
-		key = s.kc.GetShared(x, y)
-	}
+// 		x, y = elliptic.Unmarshal(elliptic.P256(), app.PublicKey)
+// 		key = s.kc.GetShared(x, y)
+// 	}
 
-	route := []byte(r.URL.Path)
-	var body []byte
-	if r.ContentLength > 0 {
-		_, err := r.Body.Read(body)
-		util.OptionalInternalPanic(err, "Failed to read request body")
-	}
+// 	route := []byte(r.URL.Path)
+// 	var body []byte
+// 	if r.ContentLength > 0 {
+// 		_, err := r.Body.Read(body)
+// 		util.OptionalInternalPanic(err, "Failed to read request body")
+// 	}
 
-	hash := hmac.New(sha256.New, []byte(util.EncodeBase64(key)))
-	hash.Write(route)
-	if len(body) > 0 {
-		hash.Write(body)
-	}
-	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
-		hash.Write([]byte(r.Header.Get("X-Nonce")))
-	}
+// 	hash := hmac.New(sha256.New, []byte(util.EncodeBase64(key)))
+// 	hash.Write(route)
+// 	if len(body) > 0 {
+// 		hash.Write(body)
+// 	}
+// 	if r.Header.Get("X-Authentication-Type") == "admin-frontend" {
+// 		hash.Write([]byte(r.Header.Get("X-Nonce")))
+// 	}
 
-	match := hmac.Equal(hmacBytes, hash.Sum(nil))
-	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
+// 	match := hmac.Equal(hmacBytes, hash.Sum(nil))
+// 	util.PanicIfFalse(match, http.StatusUnauthorized, "Invalid security headers")
 
-	s.kc.PutShared(x, y, key)
-}
+// 	s.kc.PutShared(x, y, key)
+// }
 
 // GetHandler returns the routes used by the 2Q2R server.
 func (s *Server) GetHandler() http.Handler {

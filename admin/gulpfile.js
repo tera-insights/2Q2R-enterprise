@@ -10,8 +10,8 @@
 	Adding a new task means adding a new js file to the gulp/tasks directory	
 */
 
-var gulp 			= require('gulp'); 				// the task runner, gulp; always needs to be first
-var	requireDir 		= require('require-dir'); 		// require specific directories within our file system
+var gulp 			= require('gulp'); 						// the task runner, gulp; always needs to be first
+var	requireDir 		= require('require-dir'); 				// require specific directories within our file system
 var config 			= require('./gulp/config.json');		// use a config file for everything, call with config.whatever
 
 // recursively get all the files inside of gulp/tasks

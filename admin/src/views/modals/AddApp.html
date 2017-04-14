@@ -3,12 +3,12 @@
         <span class="dialog__title">Create new application</span>
         <!-- enter the name of the new application -->
         <md-input-container class="dialog__input">
-            <input md-autofocus placeholder="Enter app name" ng-model="cMod.app.appName">
+            <input md-autofocus placeholder="Enter app name" ng-model="$ctrl.appName">
         </md-input-container>
     </md-dialog-content>
     <md-dialog-actions class="dialog__actions">
         <span flex></span>
-        <md-button ng-click="cMod.cancel()" aria-label="Cancel">Cancel</md-button>
-        <md-button class="md-primary" ng-click="cMod.accept()" aria-label="Accept">Accept</md-button>
+        <md-button ng-click="$ctrl.cancel()" aria-label="Cancel">Cancel</md-button>
+        <md-button class="md-primary" ng-click="$ctrl.accept()" aria-label="Accept">Accept</md-button>
     </md-dialog-actions>
 </md-dialog>
