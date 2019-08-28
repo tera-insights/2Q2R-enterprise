@@ -1,6 +1,6 @@
 Port: ":8080"
 DatabaseType:                    "postgres"
-DatabaseName:                    "host=localhost user=jess password=abc dbname=test sslmode=disable"
+DatabaseName:                    "host=localhost user=test2q2r password=abc dbname=test2q2r sslmode=disable"
 ExpirationTime:                  5m
 CleanTime:                       30s
 BaseURL:                         "127.0.0.1"

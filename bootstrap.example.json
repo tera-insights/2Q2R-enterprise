@@ -1,0 +1,12 @@
+{
+    "name": "admin",
+    "email": "admin@example.local",
+    "permissions": [],
+    "adminFor": "",
+    "iv": "12345",
+    "salt": "exampleSalt",
+    "publicKey": "-----BEGIN PUBLIC KEY-----MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCIltleX+OGVtJBnqZ9i0MLQFWD1B3MkLmLk7DqRpNXp9aOG+MoXCB9ACKo4IcjG6+y3EeXbP7c2oLaWwq//D6Uj/NJ1HoSSyR5NCGSlqkZjxxo2IpC2TunpgywenS+1LKj036XNixFEdUrXQwOTNLbv+GewyHjhDMf9th5RwofHwIDAQAB-----END PUBLIC KEY-----",
+    "signingPublicKey": "1",
+    "signature":"au-a6O4EDCzTH_C4OH_WWDqjEkdivXQ5AfnurBx8elgVYT8Ph3NHTqE5osbm7RLDBNANY5BHyMOL3enUxVmZQQ3qIwjfUy5IAk65u2fELKLJ1juuvpfR6ZbUKJMnuaVpIFT9CxMaA3my7Qoqn2Bo_NgmkJWEJ7rzKHkX_wpus7E",
+    "ownerID":"rQNhfdnrcrxCT2URsReI85jtqIq-QvogYFBjFR-JuZQ"
+}

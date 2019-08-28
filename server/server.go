@@ -3,8 +3,8 @@
 package server
 
 import (
-	"2q2r/security"
-	"2q2r/util"
+	"github.com/alinVD/2Q2R-enterprise/security"
+	"github.com/alinVD/2Q2R-enterprise/util"
 	"crypto/ecdsa"
 	_ "crypto/elliptic"
 	_ "crypto/hmac"
@@ -16,6 +16,7 @@ import (
 	"encoding/pem"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	_ "math/big"
 	"net/http"
@@ -121,7 +122,7 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	viper.SetDefault("LogRequests", false)
 	viper.SetDefault("Base64EncodedPublicKey", "mypubkey")
 	viper.SetDefault("KeyType", "ECC-P256")
-	viper.SetDefault("PrivateKeyFile", "priv.pem")
+	viper.SetDefault("PrivateKeyFile", "app_server_priv.pem")
 	viper.SetDefault("PrivateKeyEncrypted", false)
 	viper.SetDefault("AdminSessionLength", 15*time.Minute)
 	viper.SetDefault("MaxMindPath", "db.mmdb")
@@ -156,36 +157,23 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	}
 
 	// Load the Tera Insights RSA public key
-	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16QwDL9Hyk1vKK2a8" +
-		"wCmdiz/0da1ciRJ6z08jQxkfEzPVgrM+Vb8Qq/yS3tcLEA/VD+tucTzwzmZxbg5GvLz" +
-		"ygyGoYuIVKhaCq598FCZlnqVHlOqa3b0Gg28I9CsJNXOntiYKff3d0KJ7v2HC2kZvL7" +
-		"AnJkw7HxFv5bJCb3NPzfZJ3uLCKuWlG6lowG9pcoys7fogdJP8yrcQQarTQMDxPucY2" +
-		"4HBvnP44mBzN3cBLg7sy6p7ZqBJbggrP6EQx2uwFyd5pW0INNW7wBx/wf/kEAQJEuBz" +
-		"OKkBQWuR4q7aThFfKNyfklRZ0dgrRQegjMkMy5s9Bwe2cou45VzzA7rSQIDAQAB"
+	pubKey := "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCIltleX+OGVtJBnq" +
+			"Z9i0MLQFWD1B3MkLmLk7DqRpNXp9aOG+MoXCB9ACKo4IcjG6+y3Ee" + 
+			"XbP7c2oLaWwq//D6Uj/NJ1HoSSyR5NCGSlqkZjxxo2IpC2Tunpgyw" + 
+			"enS+1LKj036XNixFEdUrXQwOTNLbv+GewyHjhDMf9th5RwofHwIDAQAB"
+	
 	block, _ := base64.StdEncoding.DecodeString(pubKey)
 	pub, err := x509.ParsePKIXPublicKey(block)
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to parse server's public key"))
 	}
 
-	// Read the elliptic private key
-	file, err := os.Open(c.PrivateKeyFile)
-	if err != nil {
-		panic(errors.Wrap(err, "Couldn't open private key file"))
+	keyBytes, err := ioutil.ReadFile(c.PrivateKeyFile)
+	if keyBytes == nil {
+		panic(errors.Errorf("Couldn't open private key at path %s", c.PrivateKeyFile))
 	}
 
-	info, err := file.Stat()
-	if err != nil {
-		panic(errors.Wrap(err, "Couldn't get info about private key file"))
-	}
-
-	bytes := make([]byte, info.Size())
-	_, err = file.Read(bytes)
-	if err != nil {
-		panic(errors.Wrap(err, "Couldn't read private key file"))
-	}
-
-	p, _ := pem.Decode(bytes)
+	p, _ := pem.Decode(keyBytes)
 	if p == nil {
 		panic(errors.New("File was not PEM-formatted"))
 	}
@@ -198,12 +186,11 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		}
 	} else {
 		key = p.Bytes
-	}
+	}	
 
 	priv, err := x509.ParseECPrivateKey(key)
 	if err != nil {
-		panic(errors.Wrap(err, "Couldn't parse file as DER-encoded ECDSA "+
-			"private key"))
+		panic(errors.Wrap(err, "Couldn't parse file as DER-encoded ECDSA private key"))
 	}
 
 	db, err := gorm.Open(c.DatabaseType, c.DatabaseName)

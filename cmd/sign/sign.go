@@ -3,7 +3,7 @@
 package main
 
 import (
-	"2q2r/util"
+	"github.com/alinVD/2Q2R-enterprise/util"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -28,11 +28,11 @@ func main() {
 	var keyPath string
 	var encrypted bool
 	var infoPath string
-	flag.StringVar(&keyPath, "key-path", "./priv.pem",
+	flag.StringVar(&keyPath, "key-path", "./app_server_priv.pem",
 		"Path to PEM file containing the Tera Insights Private Key")
 	flag.BoolVar(&encrypted, "encrypted", false,
 		"When true, prompts for a password to decrypt the private key")
-	flag.StringVar(&infoPath, "info-path", "./info.json",
+	flag.StringVar(&infoPath, "info-path", "./admin_info.json",
 		"Path to JSON file containing info about the first admin")
 	flag.Parse()
 
@@ -96,6 +96,7 @@ func main() {
 		panic(errors.Wrap(err, "Couldn't sign admin's public key"))
 	}
 
+	info["ownerID"] = ownerID;
 	info["signature"] = util.EncodeBase64(signature)
 	bytes, _ := json.Marshal(info)
 	err = ioutil.WriteFile(infoPath, bytes, os.ModePerm)

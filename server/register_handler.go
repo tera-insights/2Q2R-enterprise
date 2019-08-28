@@ -3,8 +3,8 @@
 package server
 
 import (
-	"2q2r/security"
-	"2q2r/util"
+	"github.com/alinVD/2Q2R-enterprise/security"
+	"github.com/alinVD/2Q2R-enterprise/util"
 	"bytes"
 	"crypto"
 	"encoding/json"

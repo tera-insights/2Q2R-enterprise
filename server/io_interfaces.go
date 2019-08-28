@@ -20,6 +20,7 @@ type NewAdminRequest struct {
 	PublicKey        string   `json:"publicKey"`        // same encoding
 	SigningPublicKey string   `json:"signingPublicKey"` // same encoding
 	Signature        string   `json:"signature"`        // same encoding
+	OwnerID          string   `json:"ownerID"`
 }
 
 // REPLY POST /admin/new/:code

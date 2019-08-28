@@ -3,7 +3,7 @@
 package server
 
 import (
-	"2q2r/util"
+	"github.com/alinVD/2Q2R-enterprise/util"
 	"net/http"
 
 	"github.com/gorilla/mux"

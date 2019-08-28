@@ -3,17 +3,16 @@
 package main
 
 import (
-	"2q2r/server"
-	"2q2r/util"
+	"github.com/alinVD/2Q2R-enterprise/server"
+	"github.com/alinVD/2Q2R-enterprise/util"
+	"github.com/alinVD/2Q2R-enterprise/security"
 	"crypto"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
-
-	"2q2r/security"
+	"os"	
 
 	"github.com/pkg/errors"
 )
@@ -26,7 +25,7 @@ func main() {
 	var configPath string
 	var configType string
 
-	flag.StringVar(&bootstrapPath, "file-path", "./bootstrap.json",
+	flag.StringVar(&bootstrapPath, "file-path", "./bootstrap.example.json",
 		"Path to JSON file containing info to bootstrap the first admin")
 	flag.StringVar(&configPath, "config-path", "./config.yaml",
 		"Path to server configuration file")
@@ -54,7 +53,7 @@ func main() {
 
 	s := server.NewServer(r, configType)
 	kc := security.NewKeyCache(s.Config.ExpirationTime, s.Config.CleanTime,
-		s.Pub, s.DB)
+		s.Pub, s.DB, nil)
 
 	// Verify the passed signature
 	adminID, err := util.RandString(32)
@@ -82,7 +81,7 @@ func main() {
 		panic(errors.Wrap(err, "Could not generate random ID for key"))
 	}
 
-	if err = tx.Create(&server.SigningKey{
+	if err = tx.Create(&security.SigningKey {
 		ID:        keyID,
 		IV:        req.IV,
 		Salt:      req.Salt,
