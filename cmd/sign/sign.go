@@ -3,7 +3,6 @@
 package main
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -13,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/alinVD/2Q2R-enterprise/util"
 	"golang.org/x/crypto/ssh/terminal"
 
 	"flag"
@@ -96,9 +96,9 @@ func main() {
 		panic(errors.Wrap(err, "Couldn't sign admin's public key"))
 	}
 
-	info["ownerID"] = ownerID;
+	info["ownerID"] = ownerID
 	info["signature"] = util.EncodeBase64(signature)
-	bytes, _ := json.Marshal(info)
+	bytes, _ := json.MarshalIndent(info, "", "	")
 	err = ioutil.WriteFile(infoPath, bytes, os.ModePerm)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't save file with signature"))

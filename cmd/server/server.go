@@ -3,12 +3,13 @@
 package main
 
 import (
-	"2q2r/server"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/alinVD/2Q2R-enterprise/server"
 
 	"github.com/pkg/errors"
 )

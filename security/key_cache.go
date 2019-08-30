@@ -152,7 +152,13 @@ func (kc *KeyCache) VerifySignature(sig KeySignature) error {
 	for len(s) != 0 {
 		toVerify := s[len(s)-1]
 		s = s[:len(s)-1]
-		if toVerify.SigningPublicKey == "1" {
+		if toVerify.SigningPublicKey == "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB"+
+			"CgKCAQEAyY2LvohHNfGhWrRJ1XHXIfDfHXea06LoWcvjYEURVv/2Us9w6SH608y/"+
+			"5dtqq3aHDXszuxkfWpkLXGOVjkj3xFxDPD8u7gMf90bPKMCk8s1c84kKSqOQ/lKV"+
+			"Y5+IWyecdpOCYDHWRHdqvb9boJlly6+simKiY0yO3iXXMxfrJlfCOOok1B+aeqgU"+
+			"fqy/ulgEVnlHnziOWhZf8Wg2VG/1bJQ/z9KCT69LjL+SIxS+ljzS6Hj0emdJV1of"+
+			"Afe8IzgCHs68qwTy6rCr+gP39wKtGBIBtt6mBsSAQNKFte1eorMZur0FW8a+Unmy"+
+			"R6GxVHcI+mSRk5yb2nMCXar51FIG6QIDAQAB" {
 			// Verify this Tera Insights signature using `rsa.VerifyPSS`.
 
 			decoded, err := decodeBase64(toVerify.Signature)

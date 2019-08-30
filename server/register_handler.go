@@ -3,8 +3,6 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"bytes"
 	"crypto"
 	"encoding/json"
@@ -14,9 +12,12 @@ import (
 	"net/http"
 	"time"
 
+	rice "github.com/GeertJohan/go.rice"
+	"github.com/alinVD/2Q2R-enterprise/security"
+	"github.com/alinVD/2Q2R-enterprise/util"
+
 	"sync"
 
-	"github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -104,7 +105,7 @@ func (rh *registerHandler) GetRequest(id string) (*registrationReq, error) {
 	// We transactionally find the long-term request and then delete it from
 	// the DB.
 	tx := rh.s.DB.Begin()
-	query := LongTermRequest{ID: string(h.Sum(nil))}
+	query := LongTermRequest{ID: h.Sum(nil)}
 	if err := tx.First(ltr, query).Error; err != nil {
 		tx.Rollback()
 		return nil, err

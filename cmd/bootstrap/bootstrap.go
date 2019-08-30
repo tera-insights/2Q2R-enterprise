@@ -3,16 +3,18 @@
 package main
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/server"
-	"github.com/alinVD/2Q2R-enterprise/util"
-	"github.com/alinVD/2Q2R-enterprise/security"
 	"crypto"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"	
+	"log"
+	"os"
+
+	"github.com/alinVD/2Q2R-enterprise/security"
+	"github.com/alinVD/2Q2R-enterprise/server"
+	"github.com/alinVD/2Q2R-enterprise/util"
 
 	"github.com/pkg/errors"
 )
@@ -56,16 +58,11 @@ func main() {
 		s.Pub, s.DB, nil)
 
 	// Verify the passed signature
-	adminID, err := util.RandString(32)
-	if err != nil {
-		panic(errors.Wrap(err, "Could not generate random ID for admin"))
-	}
-
 	signature := security.KeySignature{
 		SigningPublicKey: req.SigningPublicKey,
 		SignedPublicKey:  req.PublicKey,
 		Type:             "signing",
-		OwnerID:          adminID,
+		OwnerID:          req.OwnerID,
 		Signature:        req.Signature,
 	}
 	err = kc.VerifySignature(signature)
@@ -81,7 +78,7 @@ func main() {
 		panic(errors.Wrap(err, "Could not generate random ID for key"))
 	}
 
-	if err = tx.Create(&security.SigningKey {
+	if err = tx.Create(&security.SigningKey{
 		ID:        keyID,
 		IV:        req.IV,
 		Salt:      req.Salt,
@@ -96,8 +93,10 @@ func main() {
 		panic(errors.Wrapf(err, "Could not marshal %s as JSON", req.Permissions))
 	}
 
+	log.Printf(string(encodedPermissions))
+
 	if err = tx.Create(&server.Admin{
-		ID:                  adminID,
+		ID:                  req.OwnerID,
 		Status:              "active",
 		Name:                req.Name,
 		Email:               req.Email,
@@ -124,10 +123,11 @@ func main() {
 	h := crypto.SHA256.New()
 	io.WriteString(h, ltrID)
 	ltr := server.LongTermRequest{
-		ID:    string(h.Sum(nil)),
+		ID:    h.Sum(nil),
 		AppID: "1",
 	}
 	if err = tx.Create(&ltr).Error; err != nil {
+		log.Printf("%x", h.Sum(nil))
 		tx.Rollback()
 		panic(errors.Wrap(err, "Could not save long-term request"))
 	}

@@ -3,9 +3,6 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
-	"crypto/ecdsa"
 	_ "crypto/elliptic"
 	_ "crypto/hmac"
 	"crypto/rsa"
@@ -24,7 +21,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GeertJohan/go.rice"
+	"github.com/alinVD/2Q2R-enterprise/security"
+	"github.com/alinVD/2Q2R-enterprise/util"
+
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
@@ -93,7 +93,7 @@ type Server struct {
 	DB        *gorm.DB
 	disperser *disperser
 	Pub       *rsa.PublicKey
-	priv      *ecdsa.PrivateKey
+	priv      *rsa.PrivateKey
 	sc        *securecookie.SecureCookie
 	kc        *security.KeyCache
 	ng        *security.NonceGen
@@ -157,11 +157,14 @@ func NewServer(r io.Reader, ct string) (s Server) {
 	}
 
 	// Load the Tera Insights RSA public key
-	pubKey := "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCIltleX+OGVtJBnq" +
-			"Z9i0MLQFWD1B3MkLmLk7DqRpNXp9aOG+MoXCB9ACKo4IcjG6+y3Ee" + 
-			"XbP7c2oLaWwq//D6Uj/NJ1HoSSyR5NCGSlqkZjxxo2IpC2Tunpgyw" + 
-			"enS+1LKj036XNixFEdUrXQwOTNLbv+GewyHjhDMf9th5RwofHwIDAQAB"
-	
+	pubKey := "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyY2LvohHNfGhWrRJ1XHX" +
+		"IfDfHXea06LoWcvjYEURVv/2Us9w6SH608y/5dtqq3aHDXszuxkfWpkLXGOVjkj3" +
+		"xFxDPD8u7gMf90bPKMCk8s1c84kKSqOQ/lKVY5+IWyecdpOCYDHWRHdqvb9boJll" +
+		"y6+simKiY0yO3iXXMxfrJlfCOOok1B+aeqgUfqy/ulgEVnlHnziOWhZf8Wg2VG/1" +
+		"bJQ/z9KCT69LjL+SIxS+ljzS6Hj0emdJV1ofAfe8IzgCHs68qwTy6rCr+gP39wKt" +
+		"GBIBtt6mBsSAQNKFte1eorMZur0FW8a+UnmyR6GxVHcI+mSRk5yb2nMCXar51FIG" +
+		"6QIDAQAB"
+
 	block, _ := base64.StdEncoding.DecodeString(pubKey)
 	pub, err := x509.ParsePKIXPublicKey(block)
 	if err != nil {
@@ -186,9 +189,9 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		}
 	} else {
 		key = p.Bytes
-	}	
+	}
 
-	priv, err := x509.ParseECPrivateKey(key)
+	priv, err := x509.ParsePKCS1PrivateKey(key)
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't parse file as DER-encoded ECDSA private key"))
 	}
@@ -205,7 +208,8 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		AutoMigrate(&Admin{}).
 		AutoMigrate(&security.KeySignature{}).
 		AutoMigrate(&security.SigningKey{}).
-		AutoMigrate(&Permission{}).Error
+		AutoMigrate(&Permission{}).
+		AutoMigrate(&LongTermRequest{}).Error
 	if err != nil {
 		panic(errors.Wrap(err, "Could not migrate schemas"))
 	}

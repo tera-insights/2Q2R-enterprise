@@ -3,13 +3,14 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"crypto"
 	"encoding/json"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/alinVD/2Q2R-enterprise/security"
+	"github.com/alinVD/2Q2R-enterprise/util"
 
 	"net"
 
@@ -76,7 +77,7 @@ func (ah *adminHandler) NewAdmin(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(h, requestID)
 	query := ah.s.DB.Create(&LongTermRequest{
 		AppID: "1",
-		ID:    string(h.Sum(nil)),
+		ID:    h.Sum(nil),
 	})
 	util.OptionalInternalPanic(query.Error, "Could not save long-term request "+
 		"to the database")
@@ -342,7 +343,7 @@ func (ah *adminHandler) NewLongTerm(w http.ResponseWriter, r *http.Request) {
 	util.OptionalInternalPanic(err, "Could not generate request ID")
 	h := crypto.SHA256.New()
 	io.WriteString(h, id)
-	hashedID := string(h.Sum(nil))
+	hashedID := h.Sum(nil)
 
 	query := ah.s.DB.Create(&LongTermRequest{
 		AppID: req.AppID,
@@ -365,7 +366,7 @@ func (ah *adminHandler) DeleteLongTerm(w http.ResponseWriter, r *http.Request) {
 
 	query := ah.s.DB.Delete(LongTermRequest{}, &LongTermRequest{
 		AppID: req.AppID,
-		ID:    req.HashedRequestID,
+		ID:    []byte(req.HashedRequestID),
 	})
 	util.OptionalInternalPanic(query.Error, "Could not delete long-term request")
 

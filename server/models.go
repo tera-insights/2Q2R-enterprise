@@ -31,7 +31,7 @@ type AppServerInfo struct {
 // LongTermRequest is the Gorm model for a long-term registration request set
 // up by an admin.
 type LongTermRequest struct {
-	ID    string `json:"hashedRequestID"` // sha-256 hashed
+	ID    []byte `json:"hashedRequestID"` // sha-256 hashed
 	AppID string `json:"appID"`
 }
 

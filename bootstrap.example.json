@@ -2,11 +2,11 @@
     "name": "admin",
     "email": "admin@example.local",
     "permissions": [],
-    "adminFor": "",
-    "iv": "12345",
-    "salt": "exampleSalt",
-    "publicKey": "-----BEGIN PUBLIC KEY-----MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCIltleX+OGVtJBnqZ9i0MLQFWD1B3MkLmLk7DqRpNXp9aOG+MoXCB9ACKo4IcjG6+y3EeXbP7c2oLaWwq//D6Uj/NJ1HoSSyR5NCGSlqkZjxxo2IpC2TunpgywenS+1LKj036XNixFEdUrXQwOTNLbv+GewyHjhDMf9th5RwofHwIDAQAB-----END PUBLIC KEY-----",
-    "signingPublicKey": "1",
-    "signature":"au-a6O4EDCzTH_C4OH_WWDqjEkdivXQ5AfnurBx8elgVYT8Ph3NHTqE5osbm7RLDBNANY5BHyMOL3enUxVmZQQ3qIwjfUy5IAk65u2fELKLJ1juuvpfR6ZbUKJMnuaVpIFT9CxMaA3my7Qoqn2Bo_NgmkJWEJ7rzKHkX_wpus7E",
-    "ownerID":"rQNhfdnrcrxCT2URsReI85jtqIq-QvogYFBjFR-JuZQ"
+    "adminFor": "test",
+    "iv": "45gh3546",
+    "salt": "",
+	"publicKey": "MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgFWO+i8IBqgep2QnePaB81EameeMXxXDcXHFjnP1zNvbVxneN9qyrhaqG6cVflmeaemGui0bv9IKc2elyrJQa6IVw39vv8Al2g/Sxk1Ze2UKqp2gu7psvSv6+WmYSAKD4Sf+yyMfgyCbL7TQUChmF8QT6lrD5koNUIFtZIZUgpAhAgMBAAE=",
+    "signingPublicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyY2LvohHNfGhWrRJ1XHXIfDfHXea06LoWcvjYEURVv/2Us9w6SH608y/5dtqq3aHDXszuxkfWpkLXGOVjkj3xFxDPD8u7gMf90bPKMCk8s1c84kKSqOQ/lKVY5+IWyecdpOCYDHWRHdqvb9boJlly6+simKiY0yO3iXXMxfrJlfCOOok1B+aeqgUfqy/ulgEVnlHnziOWhZf8Wg2VG/1bJQ/z9KCT69LjL+SIxS+ljzS6Hj0emdJV1ofAfe8IzgCHs68qwTy6rCr+gP39wKtGBIBtt6mBsSAQNKFte1eorMZur0FW8a+UnmyR6GxVHcI+mSRk5yb2nMCXar51FIG6QIDAQAB",
+    "signature": "pW7fxb8davlSl6HFb9Q3neauxYBmMlTmVbURgPEVW_6E3M9D8dyP2sLOPODqd0ByBw56Z4Vxslxfm7Ex9MT6ESDSzdrX8O0GG0y9V9IkBS6bncHZQjZ4wsdHlBtx2CyBmya5V3DrJTZSZpAJfr8QPKmiBZdwD3RK8UU9Sw56rdmSdDf3IqUq8NvYdSu9Ph-AHczHM95uTpV4lKsj86KGK_d1cgjDpcv0Q4IarzGIXv8OlvzmCaf6F0j0D0vaenFaUDYP51TZYi3da9oHNv-uwfzMBsWdqHQqrkWLO_c1gr4_33J1fH_4Ip9noOoKkDkRzUsvGW8KWFu5o1kf7mCGTw",
+    "ownerID": "W62oalwVeodOi72fk921D8bk8kV5yRJCgJAWZR0dp1M"
 }
