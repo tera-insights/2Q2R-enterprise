@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/alinVD/2Q2R-enterprise/server"
+	"github.com/tera-insights/2Q2R-enterprise/server"
 
 	"github.com/pkg/errors"
 )

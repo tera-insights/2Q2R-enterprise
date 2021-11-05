@@ -3,8 +3,9 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"net/http"
+
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"github.com/gorilla/mux"
 )

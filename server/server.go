@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
+	"github.com/tera-insights/2Q2R-enterprise/security"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/handlers"
@@ -141,19 +141,19 @@ func NewServer(r io.Reader, ct string) (s Server) {
 		CleanTime:                       viper.GetDuration("CleanTime"),
 		ListenerExpirationTime:          viper.GetDuration("ListenerExpirationTime"),
 		RecentlyCompletedExpirationTime: viper.GetDuration("RecentlyCompletedExpirationTime"),
-		BaseURL:                viper.GetString("BaseURL"),
-		HTTPS:                  viper.GetBool("HTTPS"),
-		LogRequests:            viper.GetBool("LogRequests"),
-		CertFile:               viper.GetString("CertFile"),
-		KeyFile:                viper.GetString("KeyFile"),
-		Base64EncodedPublicKey: viper.GetString("Base64EncodedPublicKey"),
-		KeyType:                viper.GetString("KeyType"),
-		PrivateKeyFile:         viper.GetString("PrivateKeyFile"),
-		PrivateKeyEncrypted:    viper.GetBool("PrivateKeyEncrypted"),
-		PrivateKeyPassword:     viper.GetString("PrivateKeyPassword"),
-		AdminSessionLength:     viper.GetDuration("AdminSessionLength"),
-		MaxMindPath:            viper.GetString("MaxMindPath"),
-		MaxOpenDBConnections:   viper.GetInt("MaxOpenDBConnections"),
+		BaseURL:                         viper.GetString("BaseURL"),
+		HTTPS:                           viper.GetBool("HTTPS"),
+		LogRequests:                     viper.GetBool("LogRequests"),
+		CertFile:                        viper.GetString("CertFile"),
+		KeyFile:                         viper.GetString("KeyFile"),
+		Base64EncodedPublicKey:          viper.GetString("Base64EncodedPublicKey"),
+		KeyType:                         viper.GetString("KeyType"),
+		PrivateKeyFile:                  viper.GetString("PrivateKeyFile"),
+		PrivateKeyEncrypted:             viper.GetBool("PrivateKeyEncrypted"),
+		PrivateKeyPassword:              viper.GetString("PrivateKeyPassword"),
+		AdminSessionLength:              viper.GetDuration("AdminSessionLength"),
+		MaxMindPath:                     viper.GetString("MaxMindPath"),
+		MaxOpenDBConnections:            viper.GetInt("MaxOpenDBConnections"),
 	}
 
 	// Load the Tera Insights RSA public key

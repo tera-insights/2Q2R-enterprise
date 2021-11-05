@@ -3,7 +3,7 @@
 package main
 
 import (
-	"2q2r/server"
+	"github.com/tera-insights/2Q2R-enterprise/server"
 
 	"github.com/jinzhu/gorm"
 )
@@ -35,4 +35,3 @@ func main() {
 	}).Error
 	handle(err)
 }
-		

@@ -12,9 +12,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/server"
-	"github.com/alinVD/2Q2R-enterprise/util"
+	"github.com/tera-insights/2Q2R-enterprise/security"
+	"github.com/tera-insights/2Q2R-enterprise/server"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"github.com/pkg/errors"
 )

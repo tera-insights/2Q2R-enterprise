@@ -1,7 +1,7 @@
 # Copyright 2016 Tera Insights, LLC. All Rights Reserved.
 
 install_dependencies:
-	glide install
+	go mod vendor
 
 test: test_server
 
@@ -15,3 +15,5 @@ test_server:
 run: 
 	go run cmd/server/server.go --config-path=config.example.yaml
 	
+build: **/*.go
+	go build -o bin/2Q2R.linux cmd/server/server.go

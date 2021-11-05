@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/alinVD/2Q2R-enterprise/util"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 	"golang.org/x/crypto/ssh/terminal"
 
 	"flag"

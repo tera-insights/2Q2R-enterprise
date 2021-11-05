@@ -3,8 +3,6 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"bytes"
 	"encoding/json"
 	"html/template"
@@ -12,6 +10,9 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
+
+	"github.com/tera-insights/2Q2R-enterprise/security"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"time"
 

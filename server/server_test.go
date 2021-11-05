@@ -3,7 +3,6 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -13,6 +12,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/tera-insights/2Q2R-enterprise/util"
 )
 
 var s = NewServer(Config{

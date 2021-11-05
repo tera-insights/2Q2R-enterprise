@@ -13,8 +13,8 @@ import (
 	"time"
 
 	rice "github.com/GeertJohan/go.rice"
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
+	"github.com/tera-insights/2Q2R-enterprise/security"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"sync"
 
@@ -299,11 +299,11 @@ func (rh *registerHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Save key
 	err = tx.Model(&security.Key{}).Create(&security.Key{
-		ID:     util.EncodeBase64(reg.KeyHandle),
-		Type:   successData.Type,
-		Name:   successData.DeviceName,
-		UserID: rr.UserID,
-		AppID:  rr.AppID,
+		ID:                     util.EncodeBase64(reg.KeyHandle),
+		Type:                   successData.Type,
+		Name:                   successData.DeviceName,
+		UserID:                 rr.UserID,
+		AppID:                  rr.AppID,
 		MarshalledRegistration: marshalledRegistration,
 		Counter:                0,
 	}).Error

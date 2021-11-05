@@ -3,7 +3,6 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"github.com/stretchr/testify/require"
 )

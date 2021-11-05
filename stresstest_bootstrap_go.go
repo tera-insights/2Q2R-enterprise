@@ -3,13 +3,14 @@
 package main
 
 import (
-	"2q2r/security"
-	"2q2r/server"
-	"2q2r/util"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+
+	"github.com/tera-insights/2Q2R-enterprise/security"
+	"github.com/tera-insights/2Q2R-enterprise/server"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"crypto/elliptic"
 

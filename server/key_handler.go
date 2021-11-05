@@ -3,11 +3,12 @@
 package server
 
 import (
-	"github.com/alinVD/2Q2R-enterprise/security"
-	"github.com/alinVD/2Q2R-enterprise/util"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/tera-insights/2Q2R-enterprise/security"
+	"github.com/tera-insights/2Q2R-enterprise/util"
 
 	"github.com/gorilla/mux"
 )
